@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "books")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -19,10 +20,10 @@ import java.time.LocalDateTime;
 public class Book {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 20)
     private String isbn;
 
     @Column(nullable = false)
@@ -31,38 +32,48 @@ public class Book {
     @Column(nullable = false)
     private String author;
 
-    @JoinColumn(nullable = false)
-    @ManyToOne
+    @JoinColumn(name = "genre_id", nullable = false)
+    @ManyToOne(optional = false)
     private Genre genre;
 
+    @Column(length = 100)
     private String publisher;
 
+    @Column(name = "publication_date")
     private LocalDate publishedDate;
 
+    @Column(length = 20)
     private String language;
 
     private Integer pages;
 
+    @Column(length = 2000)
     private String description;
 
-    @Column(nullable = false)
-    private Integer totalCopies;
+    @Column(name = "total_copies", nullable = false)
+    @Builder.Default
+    private Integer totalCopies = 0;
 
-    private Integer availableCopies;
+    @Column(name = "available_copies", nullable = false)
+    @Builder.Default
+    private Integer availableCopies = 0;
 
+    @Column(precision = 10, scale = 2)
     private BigDecimal price;
 
+    @Column(name = "cover_image_url", length = 500)
     private String coverImageUrl;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean active = true;
 
     @CreationTimestamp
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @AssertTrue(message = "Số lượng bản hiện có không được vượt quá tổng số bản.")

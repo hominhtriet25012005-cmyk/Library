@@ -5,10 +5,12 @@ import com.library.modal.User;
 import com.library.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(name = "app.initialize-admin", havingValue = "true", matchIfMissing = false)
 @RequiredArgsConstructor
 public class DataInitializationComponent implements CommandLineRunner {
 

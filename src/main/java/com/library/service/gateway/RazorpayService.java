@@ -66,6 +66,8 @@ public class RazorpayService {
             paymentLinkRequest.put("callback_url", successUrl);
             paymentLinkRequest.put("callback_method", "get");
 
+            JSONObject notes = new JSONObject();
+            notes.put("payment_id", payment.getId());
             if (payment.getPaymentType() == PaymentType.MEMBERSHIP) {
                 notes.put("subscription_id", payment.getSubscription().getId());
                 notes.put("plan", payment.getSubscription().getPlan().getPlanCode());

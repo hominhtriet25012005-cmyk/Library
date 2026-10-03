@@ -5,6 +5,7 @@ import com.library.payload.dto.BookLoanDTO;
 import com.library.payload.request.BookLoanSearchRequest;
 import com.library.payload.request.CheckinRequest;
 import com.library.payload.request.CheckoutRequest;
+import com.library.payload.request.RenewRequest;
 import com.library.payload.response.ApiResponse;
 import com.library.payload.response.PageResponse;
 import com.library.service.BookLoanService;
@@ -52,7 +53,7 @@ public class BookLoanController {
     @PostMapping("/renew")
     public ResponseEntity<?> renew(
 
-            @Valid @RequestBody RenewalRequest renewalRequest) throws Exception {
+            @Valid @RequestBody RenewRequest renewalRequest) throws Exception {
 
         BookLoanDTO bookLoan = bookLoanService
                 .renewCheckout(renewalRequest);

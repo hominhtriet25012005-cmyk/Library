@@ -66,13 +66,13 @@ public class AuthServiceImpl implements AuthService {
         UserDetails userDetails = customUserServiceImplementation.loadUserByUsername(username);
 
         if (userDetails == null) {
-            throw new UserException("user not found with email - " + password);
+            throw new UserException("user not found with email - " + username);
         }
         if (!passwordEncoder.matches(password, userDetails.getPassword())) {
             throw new UserException("password not match");
         }
 
-        return new UsernamePasswordAuthenticationToken(email,
+        return new UsernamePasswordAuthenticationToken(username,
                 null, userDetails.getAuthorities());
     }
 

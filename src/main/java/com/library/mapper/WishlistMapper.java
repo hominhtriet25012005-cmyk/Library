@@ -3,9 +3,13 @@ package com.library.mapper;
 import com.library.modal.Wishlist;
 import com.library.payload.dto.WishlistDTO;
 import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class WishlistMapper {
+
+    private final BookMapper bookMapper;
 
     public WishlistDTO toDTO(Wishlist wishlist) {
         if (wishlist == null) {

@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
 
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
     @Override
     public User getCurrentUser() throws Exception {

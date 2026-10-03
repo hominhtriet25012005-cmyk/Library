@@ -36,7 +36,7 @@ public class BookReviewServiceImpl implements BookReviewService {
     private final BookLoanRepository bookLoanRepository;
 
     @Override
-    public BookReviewDTO createReview(CreateReviewRequest createReviewRequest) throws Exception {
+    public BookReviewDTO createReview(CreateReviewRequest request) throws Exception {
 
         // 1. fetch the logged user
         User user = userService.getCurrentUser();
