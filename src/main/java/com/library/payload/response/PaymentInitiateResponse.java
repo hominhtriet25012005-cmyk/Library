@@ -13,12 +13,16 @@ import lombok.NoArgsConstructor;
 public class PaymentInitiateResponse {
 
     private Long paymentId;
+    private Long orderCode;
+    private String paymentLinkId;
+    private String qrCode;
+    private String currency;
+    private com.library.domain.PaymentStatus status;
 
     private PaymentGateway gateway;
 
     private String transactionId;
 
-    private String razorpayOrderId;
 
     private Long amount;
 

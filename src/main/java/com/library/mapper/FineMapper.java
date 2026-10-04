@@ -33,6 +33,11 @@ public class FineMapper {
 
         dto.setType(fine.getType());
         dto.setAmount(fine.getAmount());
+        dto.setAmountPaid(fine.getAmountPaid());
+        if (fine.getAmount() != null && fine.getAmountPaid() != null) {
+            dto.setAmountOutstanding(fine.getStatus() == com.library.domain.FineStatus.WAIVED
+                    ? 0L : fine.getAmount() - fine.getAmountPaid());
+        }
         dto.setStatus(fine.getStatus());
         dto.setReason(fine.getReason());
         dto.setNotes(fine.getNotes());

@@ -67,16 +67,10 @@ class StartupConfigurationTests {
     }
 
     @Test
-    void paymentPublisherAndListenerHaveDistinctBeanNames() {
-        new ApplicationContextRunner()
-                .withBean(SubscriptionService.class, () -> mock(SubscriptionService.class))
-                .withUserConfiguration(
-                        com.library.event.publisher.PaymentEventPublisher.class,
-                        com.library.event.listener.PaymentEventPublisher.class)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasBean("paymentEventPublisher");
-                    assertThat(context).hasBean("paymentSuccessListener");
-                });
+    void legacyVerificationIsRetiredWithoutCallingPaymentService() {
+        var service = mock(com.library.service.PaymentService.class);
+        var controller = new com.library.controller.PaymentController(service);
+        assertThat(controller.verifyPayment().getStatusCode().value()).isEqualTo(410);
+        verifyNoInteractions(service);
     }
 }

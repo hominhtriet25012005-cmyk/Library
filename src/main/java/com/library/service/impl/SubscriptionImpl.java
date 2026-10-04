@@ -34,32 +34,29 @@ public class SubscriptionImpl implements SubscriptionService {
     private final UserService userService;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final PaymentService paymentService;
+    private final PayOSMembershipPaymentService payOSMembership;
+    private final PayOSOrderStore payOSOrderStore;
+    private final com.library.repository.PaymentRepository payments;
 
     @Override
     public PaymentInitiateResponse subscribe(SubscriptionDTO subscriptionDTO) throws Exception {
+        payOSMembership.assertAvailable();
+        if (subscriptionDTO == null || subscriptionDTO.getPlanId() == null || subscriptionDTO.getId() != null) {
+            throw new IllegalArgumentException("A plan ID is required; subscription ID must not be supplied");
+        }
 
         User user = userService.getCurrentUser();
 
-        SubscriptionPlan plan = subscriptionPlanRepository
-                .findById(subscriptionDTO.getPlanId()).orElseThrow(
-                        () -> new Exception("Plan not found!")
-                );
-
-        Subscription subscription = subscriptionMapper.toEntity(subscriptionDTO, plan, user);
-        subscription.initializeFromPlan();
-        subscription.setIsActive(false);
-        Subscription savedSubscription = subscriptionRepository.save(subscription);
-
-        // create payment (todo)
+        Long subscriptionId = payOSOrderStore.draftSubscription(subscriptionDTO.getPlanId(),
+                user.getId(), subscriptionDTO.getNotes());
 
         PaymentInitiateRequest paymentInitiateRequest = PaymentInitiateRequest
                 .builder()
                 .userId(user.getId())
-                .subscriptionId(subscription.getId())
+                .subscriptionId(subscriptionId)
                 .paymentType(PaymentType.MEMBERSHIP)
-                .gateway(PaymentGateway.RAZORPAY)
-                .amount(subscription.getPrice())
-                .description("Library Subscription - " + plan.getName())
+                .gateway(PaymentGateway.PAYOS)
+                // Amount/currency are read from the stored subscription, not this request.
                 .build();
 
         return paymentService.initiatePayment(paymentInitiateRequest);
@@ -77,11 +74,19 @@ public class SubscriptionImpl implements SubscriptionService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public SubscriptionDTO cancelSubscription(Long subscriptionId, String reason) throws SubscriptionException {
 
-        Subscription subscription = subscriptionRepository.findById(subscriptionId)
+        Subscription subscription = subscriptionRepository.findLockedById(subscriptionId)
                 .orElseThrow(() -> new SubscriptionException(
                         "Không tìm thấy gói đăng ký với ID này: " + subscriptionId));
+        User current;
+        try { current = userService.getCurrentUser(); }
+        catch (Exception ex) { throw new org.springframework.security.access.AccessDeniedException("Authentication required"); }
+        if (current.getRole() != com.library.domain.UserRole.ROLE_ADMIN
+                && !java.util.Objects.equals(current.getId(), subscription.getUser().getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Subscription access denied");
+        }
 
         if (!subscription.getIsActive()) {
             throw new SubscriptionException("Gói đăng ký hiện không còn hiệu lực.");
@@ -98,21 +103,9 @@ public class SubscriptionImpl implements SubscriptionService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public SubscriptionDTO activateSubscription(Long subscriptionId, Long paymentId) throws SubscriptionException {
-
-        Subscription subscription = subscriptionRepository.findById(subscriptionId)
-                .orElseThrow(
-                        () -> new SubscriptionException("subscription not found by id!")
-                );
-
-        // verify payment (todo)
-
-        subscription.setIsActive(true);
-        subscription.setStartDate(LocalDate.now());
-        subscription.calculateEndDate();
-        subscription = subscriptionRepository.save(subscription);
-
-        return subscriptionMapper.toDTO(subscription);
+        throw new SubscriptionException("Legacy activation retired; payOS settlement activates membership atomically");
     }
 
     @Override

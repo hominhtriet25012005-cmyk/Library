@@ -34,7 +34,8 @@ public class SubscriptionPlanDTO {
 
     @NotNull(message = "Giá gói là bắt buộc")
     @Positive(message = "Giá gói phải lớn hơn 0")
-    private Long price;
+    @jakarta.validation.constraints.Digits(integer = 8, fraction = 2)
+    private java.math.BigDecimal price;
 
     @Size(min = 3, max = 3, message = "Mã tiền tệ phải có đúng 3 ký tự")
     private String currency;

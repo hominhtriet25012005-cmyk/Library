@@ -12,6 +12,9 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface FineRepository extends JpaRepository<Fine, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select f from Fine f where f.id = :id")
+    java.util.Optional<Fine> findLockedById(@Param("id") Long id);
 
     @Query("""
         SELECT f FROM Fine f

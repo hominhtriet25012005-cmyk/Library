@@ -7,6 +7,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "wishlists", uniqueConstraints = @UniqueConstraint(
+        name = "uq_wishlists_user_book", columnNames = {"user_id", "book_id"}))
 @Getter
 @Setter
 @AllArgsConstructor
@@ -15,16 +17,19 @@ import java.time.LocalDateTime;
 public class Wishlist {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
     @CreationTimestamp
+    @Column(name = "added_at", nullable = false, updatable = false)
     private LocalDateTime addedAt;
 
     @Column(length = 500)

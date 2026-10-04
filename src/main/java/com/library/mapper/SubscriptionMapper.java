@@ -46,6 +46,7 @@ public class SubscriptionMapper {
         dto.setPlanName(subscription.getPlanName());
         dto.setPlanCode(subscription.getPlanCode());
         dto.setPrice(subscription.getPrice());
+        dto.setCurrency(subscription.getCurrency());
 
         dto.setStartDate(subscription.getStartDate());
         dto.setEndDate(subscription.getEndDate());
@@ -78,7 +79,7 @@ public class SubscriptionMapper {
         }
 
         Subscription subscription = new Subscription();
-        subscription.setId(dto.getId());
+        // New subscriptions never accept an existing ID from the client.
         subscription.setUser(user);
         subscription.setPlan(plan);
         subscription.setNotes(dto.getNotes());

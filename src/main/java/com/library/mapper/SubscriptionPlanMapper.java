@@ -48,7 +48,8 @@ public class SubscriptionPlanMapper {
         plan.setName(dto.getName());
         plan.setDescription(dto.getDescription());
         plan.setDurationDays(dto.getDurationDays());
-        plan.setPrice(dto.getPrice());
+        plan.setPrice(validatePrice(dto.getPrice()));
+        plan.setCurrency(normalizeCurrency(dto.getCurrency()));
         plan.setMaxBooksAllowed(dto.getMaxBooksAllowed());
         plan.setMaxDaysPerBook(dto.getMaxDaysPerBook());
         plan.setDisplayOrder(dto.getDisplayOrder() != null ? dto.getDisplayOrder() : 0);
@@ -77,7 +78,7 @@ public class SubscriptionPlanMapper {
             plan.setDurationDays(dto.getDurationDays());
         }
         if (dto.getPrice() != null) {
-            plan.setPrice(dto.getPrice());
+            plan.setPrice(validatePrice(dto.getPrice()));
         }
         if (dto.getCurrency() != null) {
             plan.setCurrency(normalizeCurrency(dto.getCurrency()));
@@ -102,8 +103,20 @@ public class SubscriptionPlanMapper {
     }
 
     private String normalizeCurrency(String currency) {
-        return currency == null || currency.isBlank()
+        String normalized = currency == null || currency.isBlank()
                 ? "VND"
                 : currency.trim().toUpperCase(Locale.ROOT);
+        if (!"VND".equals(normalized)) {
+            throw new IllegalArgumentException("New plan prices must use VND");
+        }
+        return normalized;
+    }
+
+    private java.math.BigDecimal validatePrice(java.math.BigDecimal price) {
+        if (price == null || price.signum() <= 0 || price.compareTo(new java.math.BigDecimal("99999999")) > 0
+                || price.stripTrailingZeros().scale() > 0) {
+            throw new IllegalArgumentException("Plan price must be positive whole VND within DECIMAL(10,2)");
+        }
+        return price;
     }
 }

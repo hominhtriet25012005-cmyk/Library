@@ -6,10 +6,13 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import java.sql.Types;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "fines")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -18,23 +21,34 @@ import java.time.LocalDateTime;
 public class Fine {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
-    @JoinColumn(nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "book_loan_id", nullable = false)
     private BookLoan bookLoan;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(Types.VARCHAR)
+    @Column(nullable = false, length = 30)
     private FineType type;
 
     @Column(nullable = false)
     private Long amount;
 
-    private FineStatus status;
+    @Column(name = "amount_paid", nullable = false)
+    @Builder.Default
+    private Long amountPaid = 0L;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(Types.VARCHAR)
+    @Column(nullable = false, length = 30)
+    @Builder.Default
+    private FineStatus status = FineStatus.PENDING;
 
     @Column(length = 500)
     private String reason;
@@ -43,6 +57,7 @@ public class Fine {
     private String notes;
 
     @ManyToOne
+    @JoinColumn(name = "waived_by")
     private User waivedBy;
 
     @Column(name = "waived_at")
@@ -56,17 +71,17 @@ public class Fine {
     private LocalDateTime paidAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "processed_by_user_id")
+    @JoinColumn(name = "processed_by")
     private User processedBy;
 
     @Column(name = "transaction_id", length = 100)
     private String transactionId;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
@@ -75,9 +90,14 @@ public class Fine {
             throw new IllegalArgumentException("Payment amount must be positive");
         }
 
-        // Update status based on amount paid
-            this.status = FineStatus.PAID;
-            this.paidAt = LocalDateTime.now();
+        if ((status != FineStatus.PENDING && status != FineStatus.PARTIALLY_PAID)
+                || amount == null || amountPaid == null || amountPaid < 0 || amountPaid > amount
+                || paymentAmount > amount - amountPaid) {
+            throw new IllegalArgumentException("Fine is not payable or payment exceeds outstanding balance");
+        }
+        amountPaid += paymentAmount;
+        status = amountPaid.equals(amount) ? FineStatus.PAID : FineStatus.PARTIALLY_PAID;
+        if (status == FineStatus.PAID) paidAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
     }
 
     public void waive(User admin, String reason) {

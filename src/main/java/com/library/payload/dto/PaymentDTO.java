@@ -25,6 +25,7 @@ public class PaymentDTO {
     private String userEmail;
 
     private Long bookLoanId;
+    private Long fineId;
 
     private Long subscriptionId;
 
@@ -39,6 +40,7 @@ public class PaymentDTO {
     @NotNull(message = "Bắt buộc phải nhập số tiền.")
     @Positive(message = "Số tiền phải là số dương.")
     private Long amount;
+    private String currency;
 
     private String transactionId;
 

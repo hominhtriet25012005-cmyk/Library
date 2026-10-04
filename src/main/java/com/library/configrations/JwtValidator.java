@@ -22,6 +22,10 @@ import java.util.List;
 
 public class JwtValidator extends OncePerRequestFilter {
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return "POST".equals(request.getMethod()) && "/api/payments/webhook/payos".equals(request.getServletPath());
+    }
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
@@ -29,9 +33,9 @@ public class JwtValidator extends OncePerRequestFilter {
         String jwt = request.getHeader(JwtConstant.JWT_HEADER);
         // Bearer kjasdfjaoisduwer
         if (jwt != null) {
-            jwt = jwt.substring(7);
-
             try {
+                if (!jwt.startsWith("Bearer ") || jwt.length() <= 7) throw new IllegalArgumentException();
+                jwt = jwt.substring(7);
                 SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
                 Claims claims = Jwts.parser().verifyWith(key).build()
                         .parseSignedClaims(jwt).getPayload();
@@ -46,7 +50,9 @@ public class JwtValidator extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
             } catch (Exception e) {
-                throw new BadCredentialsException("Token JWT không hợp lệ");
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid bearer token");
+                return;
             }
         }
         filterChain.doFilter(request, response);

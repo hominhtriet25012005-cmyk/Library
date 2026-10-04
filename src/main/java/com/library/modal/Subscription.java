@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
 @Entity
+@Table(name = "subscriptions")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -18,54 +19,64 @@ import java.time.temporal.ChronoUnit;
 public class Subscription {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
-    @JoinColumn(nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "plan_id", nullable = false)
     private SubscriptionPlan plan;
 
+    @Column(name = "plan_name", length = 255)
     private String planName;
 
+    @Column(name = "plan_code", length = 100)
     private String planCode;
 
+    @Column(nullable = false)
     private Long price;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 3)
+    private String currency;
+
+    @Column(name = "max_books_allowed", nullable = false)
     private Integer maxBooksAllowed;
 
-    @Column(nullable = false)
+    @Column(name = "max_days_per_book", nullable = false)
     private Integer maxDaysPerBook;
 
-    @Column(nullable = false)
+    @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
-    @Column(nullable = false)
+    @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
-    @Column(nullable = false)
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 
-    private Boolean autoRenew;
+    @Column(name = "auto_renew", nullable = false)
+    @Builder.Default
+    private Boolean autoRenew = false;
 
-    private Boolean autoReview;
-
+    @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
     private String cancellationReason;
 
+    @Column(columnDefinition = "TEXT")
     private String notes;
 
     @CreationTimestamp
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
     public boolean isValid() {
@@ -97,7 +108,18 @@ public class Subscription {
         if (plan != null) {
             this.planName = plan.getName();
             this.planCode = plan.getPlanCode();
-            this.price = plan.getPrice();
+            if (!"VND".equals(plan.getCurrency()) || plan.getPrice() == null) {
+                throw new IllegalArgumentException("Membership requires a VND price");
+            }
+            try {
+                this.price = plan.getPrice().longValueExact();
+            } catch (ArithmeticException ex) {
+                throw new IllegalArgumentException("Price must be whole VND within the supported range");
+            }
+            if (this.price <= 0) {
+                throw new IllegalArgumentException("Price must be positive");
+            }
+            this.currency = "VND";
             this.maxBooksAllowed = plan.getMaxBooksAllowed();
             this.maxDaysPerBook = plan.getMaxDaysPerBook();
             if (startDate == null) {

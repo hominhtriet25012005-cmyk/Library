@@ -22,10 +22,8 @@ public class PaymentMapper {
             dto.setUserEmail(payment.getUser().getEmail());
         }
 
-        // Book Loan information
-        // if (payment.getBookLoan() != null) {
-        //    dto.setBookLoanId(payment.getBookLoan().getId());
-        // }
+        if (payment.getBookLoan() != null) dto.setBookLoanId(payment.getBookLoan().getId());
+        if (payment.getFine() != null) dto.setFineId(payment.getFine().getId());
 
         // Subscription information
         if (payment.getSubscription() != null) {
@@ -36,10 +34,11 @@ public class PaymentMapper {
         dto.setStatus(payment.getStatus());
         dto.setGateway(payment.getGateway());
         dto.setAmount(payment.getAmount());
+        dto.setCurrency(payment.getCurrency());
         dto.setTransactionId(payment.getTransactionId());
         dto.setGatewayPaymentId(payment.getGatewayPaymentId());
         dto.setGatewayOrderId(payment.getGatewayOrderId());
-        dto.setGatewaySignature(payment.getGatewaySignature());
+        // Gateway signatures are not needed by API consumers.
         dto.setDescription(payment.getDescription());
         dto.setFailureReason(payment.getFailureReason());
         dto.setInitiatedAt(payment.getInitiatedAt());

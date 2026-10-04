@@ -26,6 +26,12 @@ public class SecurityConfig {
                         SessionCreationPolicy.STATELESS
                 ))
                 .authorizeHttpRequests(Authorize -> Authorize
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/payments/webhook/payos").permitAll()
+                        .requestMatchers("/api/subscriptions/activate").denyAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/fines", "/api/fines/", "/api/fines/waive").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/fines", "/api/fines/").hasRole("ADMIN")
+                        .requestMatchers("/api/subscriptions/admin", "/api/subscriptions/admin/**").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/payments", "/api/payments/").hasRole("ADMIN")
                         .requestMatchers("/api/subscription-plans/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
@@ -46,7 +52,7 @@ public class SecurityConfig {
                 cfg.setAllowCredentials(true);
                 cfg.setAllowedOrigins(
                         Arrays.asList(
-                                "http://localhost:5173/",
+                                "http://localhost:5173",
                                 "https://library.com"
                         )
                 );

@@ -9,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "subscription_plans")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -17,25 +18,25 @@ import java.time.LocalDateTime;
 public class SubscriptionPlan {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true, length = 100)
     private String planCode;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "title", nullable = false, unique = true, length = 150)
     private String name;
 
 
     @Column(length = 500)
     private String description;
 
-    @Column(nullable = false)
+    @Column(name = "duration_in_days", nullable = false)
     private Integer durationDays;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 10, scale = 2)
     @Positive(message = "Giá gói phải lớn hơn 0")
-    private Long price;
+    private java.math.BigDecimal price;
 
     @Column(nullable = false, length = 3)
     @Builder.Default
@@ -53,7 +54,7 @@ public class SubscriptionPlan {
     @Builder.Default
     private Integer displayOrder=0;
 
-    @Column(nullable = false)
+    @Column(name = "active", nullable = false)
     @Builder.Default
     private Boolean isActive=true;
 
@@ -68,11 +69,11 @@ public class SubscriptionPlan {
     private String adminNotes;
 
     @CreationTimestamp
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @Column(length = 150)

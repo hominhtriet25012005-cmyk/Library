@@ -39,6 +39,8 @@ public class FineServiceImpl implements FineService {
     private final FineMapper fineMapper;
     private final UserService userService;
     private final PaymentService paymentService;
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
 
     @Override
     public FineDTO createFine(CreateFineRequest createFineRequest) {
@@ -65,30 +67,17 @@ public class FineServiceImpl implements FineService {
 
     @Override
     public PaymentInitiateResponse payFine(Long fineId, String transactionId) throws Exception {
-
-        // 1. validate fine exist
-        Fine fine = fineRepository.findById(fineId)
-                .orElseThrow(() -> new Exception("Fine doesn't exist"));
-
-        // 2. check already paid
-        if(fine.getStatus().equals(FineStatus.PAID)){
-            throw new Exception("fine already paid");
+        if (transactionId != null && !transactionId.isBlank()) {
+            throw new IllegalArgumentException("Transaction reference must come from verified payOS evidence");
         }
-        if(fine.getStatus().equals(FineStatus.WAIVED)){
-            throw new Exception("fine waived");
-        }
-
-        // 3. initiate payment
-
         User user = userService.getCurrentUser();
 
         PaymentInitiateRequest request = PaymentInitiateRequest
                 .builder()
                 .userId(user.getId())
-                .fineId(fine.getId())
+                .fineId(fineId)
                 .paymentType(PaymentType.FINE)
-                .gateway(PaymentGateway.RAZORPAY)
-                .amount(fine.getAmount())
+                .gateway(PaymentGateway.PAYOS)
                 .description("library fine payment")
                 .build();
 
@@ -96,27 +85,15 @@ public class FineServiceImpl implements FineService {
     }
 
     @Override
-    public void markFineAsPaid(Long fineId, Long amount, String transactionId) throws Exception {
-
-        Fine fine = fineRepository.findById(fineId)
-                .orElseThrow(() -> new Exception(
-                        "Fine not found with id: " + fineId));
-
-        // Apply payment amount safely
-        fine.applyPayment(amount);
-        fine.setTransactionId(transactionId);
-        fine.setStatus(FineStatus.PAID);
-        fine.setUpdatedAt(LocalDateTime.now());
-
-        fineRepository.save(fine);
-
-    }
-
-    @Override
+    @org.springframework.transaction.annotation.Transactional
     public FineDTO waiveFine(WaiveFineRequest waiveFineRequest) throws Exception {
-
-        Fine fine = fineRepository.findById(waiveFineRequest.getFineId())
+        User currentAdmin = userService.getCurrentUser();
+        if (currentAdmin.getRole() != com.library.domain.UserRole.ROLE_ADMIN) {
+            throw new org.springframework.security.access.AccessDeniedException("Administrator required");
+        }
+        Fine fine = fineRepository.findLockedById(waiveFineRequest.getFineId())
                 .orElseThrow(() -> new Exception("Fine not found with id: "));
+        entityManager.refresh(fine, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 
         // 2. Check if already waived or paid
         if (fine.getStatus() == FineStatus.WAIVED) {
@@ -128,7 +105,6 @@ public class FineServiceImpl implements FineService {
         }
 
         // 3. Waive the fine
-        User currentAdmin = userService.getCurrentUser();
         fine.waive(currentAdmin, waiveFineRequest.getReason());
 
         // 4. Save and return

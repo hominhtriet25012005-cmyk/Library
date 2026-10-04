@@ -22,6 +22,21 @@ public class FineController {
 
     private final FineService fineService;
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    ResponseEntity<?> denied() {
+        return ResponseEntity.status(403).body(java.util.Map.of("error", "Fine access denied"));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    ResponseEntity<?> invalid() {
+        return ResponseEntity.badRequest().body(java.util.Map.of("error", "Invalid fine payment request"));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    ResponseEntity<?> unavailable() {
+        return ResponseEntity.status(409).body(java.util.Map.of("error", "Fine payment unavailable; reconciliation may be required"));
+    }
+
     @PostMapping
     public ResponseEntity<?> createFine(
             @Valid @RequestBody CreateFineRequest fineRequest

@@ -25,7 +25,7 @@ public class PaymentInitiateRequest {
     private PaymentType paymentType;
 
     @NotNull(message = "Cổng thanh toán là bắt buộc.")
-    private PaymentGateway gateway; // RAZORPAY or STRIPE
+    private PaymentGateway gateway; // New payments support PAYOS only; legacy enums remain readable.
 
     @NotNull(message = "Bắt buộc phải nhập số tiền.")
     @Positive(message = "Số tiền phải là số dương.")

@@ -1,10 +1,8 @@
 package com.library.controller;
 
 import com.library.payload.dto.PaymentDTO;
-import com.library.payload.request.PaymentVerifyRequest;
 import com.library.payload.response.ApiResponse;
 import com.library.service.PaymentService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,15 +20,9 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/verify")
-    public ResponseEntity<?> verifyPayment(
-            @Valid @RequestBody PaymentVerifyRequest request) {
-        try {
-            PaymentDTO payment = paymentService.verifyPayment(request);
-            return ResponseEntity.ok(payment);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ApiResponse(e.getMessage(), false));
-        }
+    public ResponseEntity<?> verifyPayment() {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(new ApiResponse("Legacy verification retired; use verified payOS webhook or reconciliation", false));
     }
 
     @GetMapping
