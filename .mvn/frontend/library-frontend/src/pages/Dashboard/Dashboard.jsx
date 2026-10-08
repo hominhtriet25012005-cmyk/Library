@@ -1,38 +1,93 @@
 import React from "react";
 import StatesCard from "./StatesCard";
-import { LibraryBooks } from "@mui/icons-material";
-import { AutoAwesome } from "@mui/icons-material";
-import { LinearProgress, Box, Tabs, Tab } from "@mui/material";
+import { Alert, Box, Button, Tabs, Tab } from "@mui/material";
 import { statsConfig } from "./StateConfig";
+import CurrentLoans from "./CurrentLoans";
+import Reservation from "./Reservation";
+import ReadingHistory from "./ReadingHistory";
+import Recommandation from "./Recommandation";
+import { loans } from "../MyLoans/loans";
+import { myReservation } from "../My Reservation/reservation";
+import { loansApi, loadLoanPages } from "../../api/loans.js";
+import { reservationsApi, loadReservationPages } from "../../api/reservations.js";
+import { finesApi } from "../../api/fines.js";
 
-const Dashboard = () => {
+const Dashboard = ({ preview = false }) => {
   const [activeTab, setActiveTab] = React.useState(0);
+  const [realLoans, setRealLoans] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const [refresh, setRefresh] = React.useState(0);
+  const [realReservations, setRealReservations] = React.useState(null);
+  const [reservationError, setReservationError] = React.useState("");
+  const [reservationRefresh, setReservationRefresh] = React.useState(0);
+  const [realFines, setRealFines] = React.useState(null);
+  const [fineError, setFineError] = React.useState("");
+  const [fineRefresh, setFineRefresh] = React.useState(0);
+
+  React.useEffect(() => {
+    if (preview) return;
+    const controller = new AbortController();
+    loadLoanPages(loansApi.list, { signal: controller.signal })
+      .then((entries) => { setRealLoans(entries); setError(""); })
+      .catch((failure) => { if (failure.name !== "AbortError") setError(failure.message); });
+    return () => controller.abort();
+  }, [preview, refresh]);
+
+  React.useEffect(() => {
+    if (preview) return;
+    const controller = new AbortController();
+    loadReservationPages(reservationsApi.list, { signal: controller.signal })
+      .then((entries) => { if (!controller.signal.aborted) { setRealReservations(entries); setReservationError(""); } })
+      .catch((failure) => { if (!controller.signal.aborted && failure.name !== "AbortError") setReservationError(failure.message); });
+    return () => controller.abort();
+  }, [preview, reservationRefresh]);
+
+  React.useEffect(() => {
+    if (preview) return;
+    const controller = new AbortController();
+    finesApi.mine({}, { signal: controller.signal })
+      .then((entries) => {
+        if (controller.signal.aborted) return;
+        if (!Array.isArray(entries)) throw new Error("Dữ liệu tiền phạt không hợp lệ.");
+        setRealFines(entries);
+        setFineError("");
+      })
+      .catch((failure) => {
+        if (controller.signal.aborted || failure.name === "AbortError") return;
+        setRealFines(null);
+        setFineError(failure.message || "Không thể tải tiền phạt.");
+      });
+    return () => controller.abort();
+  }, [preview, fineRefresh]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
   const stateData = statsConfig({
-    myLoans: [1, 2, 3],
-    reservations: [1, 2],
-    stats: { readingStreak: 5 },
+    myLoans: preview ? loans : realLoans,
+    reservations: preview ? myReservation : realReservations,
+    fines: preview ? null : realFines,
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-500 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-100 py-8">
       <div className=" px-4 sm:px-6 lg:px-8">
         <div className="mb-8 animate-fade-in-up">
-          <h1 className="text-4xl font-bold text-indigo-500 mb-2">
-            My{" "}
-            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Dashboard
+          <h1 className="text-4xl font-bold text-blue-700 mb-2">
+            <span className="bg-gradient-to-r from-blue-700 to-sky-700 bg-clip-text text-transparent">
+              Tổng quan của tôi
             </span>
           </h1>
 
           <p className="text-lg text-gray-600">
-            Track your reading journey and manage your library
+            {preview ? "Bản xem thử với dữ liệu mẫu." : "Theo dõi sách đang mượn của bạn từ dữ liệu hệ thống."}
           </p>
         </div>
+
+        {error && <Alert severity="error" sx={{ mb: 3 }} action={<Button onClick={() => setRefresh((value) => value + 1)}>Thử lại</Button>}>{error}</Alert>}
+        {reservationError && <Alert severity="error" sx={{ mb: 3 }} action={<Button onClick={() => setReservationRefresh((value) => value + 1)}>Thử lại</Button>}>Không tải được đặt giữ: {reservationError}</Alert>}
+        {fineError && <Alert severity="error" sx={{ mb: 3 }} action={<Button onClick={() => setFineRefresh((value) => value + 1)}>Thử lại</Button>}>Không tải được tiền phạt: {fineError}</Alert>}
 
         {/* state card */}
 
@@ -50,57 +105,27 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Reading Progress */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 mb-1">
-                2025 Reading Goal
-              </h3>
-              <p className="text-gray-600">{250} of 30 books read</p>
-            </div>
-
-            <div className="p-3 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full">
-              <AutoAwesome sx={{ fontSize: 32, color: "#4F46E5" }} />
-            </div>
-          </div>
-
-          <LinearProgress
-            variant="determinate"
-            value={30}
-            sx={{
-              height: 12,
-              borderRadius: 6,
-              backgroundColor: "#E0E7FF",
-              "& .MuiLinearProgress-bar": {
-                background: "linear-gradient(90deg, #4F46E5 0%, #9333EA 100%)",
-                borderRadius: 6,
-              },
-            }}
-          />
-
-          <p className="text-sm text-gray-600 mt-2">70%</p>
-        </div>
-
         {/* tab section */}
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
             <Tabs
+              variant="scrollable"
+              scrollButtons="auto"
               value={activeTab}
               onChange={handleTabChange}
-              aria-label="basic tabs example"
+              aria-label="Các mục tổng quan"
             >
-              <Tab label="Current Loans" />
-              <Tab label="Reservations" />
-              <Tab label="Reading History" />
-              <Tab label="Recommendations" />
+              <Tab label="Sách đang mượn" />
+              <Tab label="Sách đặt giữ" />
+              <Tab label="Lịch sử đọc" />
+              <Tab label="Gợi ý sách" />
             </Tabs>
           </Box>
 
           {/* current loans tab */}
-          {activeTab === 0 && <CurrentLoans />}
+          {activeTab === 0 && (preview || realLoans ? <CurrentLoans loans={preview ? loans : realLoans} preview={preview} /> : !error && <p role="status" className="p-6 text-slate-600">Đang tải lượt mượn...</p>)}
           {/* Reservations Tab */}
-          {activeTab === 1 && <Reservation />}
+          {activeTab === 1 && (preview || realReservations ? <Reservation entries={preview ? myReservation : realReservations} preview={preview} /> : !reservationError && <p role="status" className="p-6 text-slate-600">Đang tải đặt giữ...</p>)}
 
           {/* Reading History Tab */}
           {activeTab === 2 && <ReadingHistory />}

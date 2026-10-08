@@ -1,7 +1,5 @@
 export const isActive = (path, location) => {
-  console.log("checking active for path:", path, "with location:", location);
-  if (path == "/") {
-    return location?.pathname === "/";
-  }
-  return location?.pathname.startsWith(path);
+  return location?.pathname === path || (!["/user", "/demo"].includes(path) && location?.pathname.startsWith(`${path}/`));
 };
+
+export const navigationPath = (path, preview) => preview ? path.replace(/^\/user(?=\/|$)/, "/demo") : path;

@@ -1,5 +1,4 @@
 import { Card, CardContent } from "@mui/material";
-import React from "react";
 
 const StatesCard = ({ bgColor, icon, value, title, subtitle, textColor }) => {
   return (

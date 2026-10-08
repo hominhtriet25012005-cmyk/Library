@@ -1,200 +1,53 @@
-import { Box, Card, CardContent, Divider } from "@mui/material";
-import React from "react";
+import { useState } from "react";
+import { Box, Button, Card, CardContent, Chip, Typography } from "@mui/material";
+import MenuBook from "@mui/icons-material/MenuBookRounded";
+import { Link } from "react-router-dom";
+import { formatDate, loanStatusLabels } from "../../display.js";
+import { canRenewLoan, canReturnLoan, effectiveLoanStatus } from "./loanRules.js";
 
-const LoanCard = ({ loan }) => {
-  return (
-    <Card>
-      <CardContent sx={{ p: 3 }}>
-        <Box
-          sx={{
-            display: "flex",
-            gap: 3,
-            flexDirection: { xs: "column", md: "row" },
-          }}
-        >
-          {/* Book Cover */}
-          <Box
-            sx={{
-              width: 80,
-              height: 120,
-              borderRadius: 2,
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              cursor: "pointer",
-              transition: "transform 0.3s",
-              "&:hover": {
-                transform: "scale(1.05)",
-              },
-            }}
-          >
-            <MenuBook sx={{ fontSize: 40, color: "white", opacity: 0.9 }} />
-          </Box>
+const statusColors = { CHECKED_OUT: "primary", OVERDUE: "error", RETURNED: "success", LOST: "error", DAMAGED: "warning" };
 
-          {/* book details */}
-
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6">{loan.bookTitle}</Typography>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-              <Person sx={{ fontSize: 16 }} />
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                {loan.bookAuthor}
-              </Typography>
-            </Box>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <NumbersIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                ISBN: {loan.bookIsbn}
-              </Typography>
-            </Box>
-          </Box>
-
-          <Divider
-            orientation="vertical"
-            flexItem
-            sx={{ display: { xs: "none", md: "block" } }}
-          />
-
-          {/* loan details */}
-
-          <Box sx={{ flex: 1 }}>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: 2,
-                mb: 2,
-              }}
-            >
-              {/* checkout date */}
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
-                >
-                  Checkout Date
-                </Typography>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <CalendarTodayIcon sx={{ fontSize: 14, color: "#667eea" }} />
-
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {loan.checkoutDate}
-                  </Typography>
-                </Box>
-              </Box>
-
-              {/* due date */}
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
-                >
-                  Due Date
-                </Typography>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <CalendarToday sx={{ fontSize: 14, color: "#667eea" }} />
-
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {loan.dueDate}
-                  </Typography>
-                </Box>
-              </Box>
-
-              {loan.returnDate && (
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "text.secondary", display: "block", mb: 0.5 }}
-                  >
-                    Return Date
-                  </Typography>
-
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <AssignmentReturn sx={{ fontSize: 14, color: "#10B981" }} />
-
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {loan.returnDate}
-                    </Typography>
-                  </Box>
-                </Box>
-              )}
-            </Box>
-          </Box>
+const LoanCard = ({ loan, preview = false, onAction }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [coverFailed, setCoverFailed] = useState(false);
+  const status = effectiveLoanStatus(loan);
+  return <Card component="article">
+    <CardContent sx={{ p: 3 }}>
+      <Box sx={{ display: "flex", gap: 2.5, flexDirection: { xs: "column", sm: "row" } }}>
+        <Box sx={{ width: 80, height: 112, borderRadius: 2, bgcolor: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+          {loan.bookCoverImage && !coverFailed ? <img src={loan.bookCoverImage} alt={`Bìa sách ${loan.bookTitle}`} onError={() => setCoverFailed(true)} className="h-full w-full object-cover" />
+            : <MenuBook sx={{ color: "#1769ff", fontSize: 40 }} />}
         </Box>
-
-        {/* Note section */}
-        {loan.notes && (
-          <Box
-            sx={{
-              mt: 3,
-              p: 2,
-              borderRadius: 2,
-              bgcolor: "rgba(59, 130, 246, 0.05)",
-              border: "1px solid rgba(59, 130, 246, 0.2)",
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{ color: "text.secondary", fontStyle: "italic" }}
-            >
-              <strong>Note:</strong> {loan.notes}
-            </Typography>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
+            <Typography variant="h6" component="h2">{loan.bookTitle}</Typography>
+            <Chip label={loanStatusLabels[status] || status} color={statusColors[status] || "default"} size="small" />
           </Box>
-        )}
-
-        <Divider sx={{ my: 2 }} />
-
-        {/* Action buttons */}
-        <Box
-          sx={{
-            display: "flex",
-            gap: 1.5,
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Button
-            variant="outlined"
-            sx={{
-              borderColor: "#667eea",
-              color: "#667eea",
-              textTransform: "none",
-              fontWeight: 600,
-              "&:hover": {
-                borderColor: "#764ba2",
-                bgcolor: "rgba(102, 126, 234, 0.05)",
-              },
-            }}
-          >
-            View Book Details
-          </Button>
-
-          {loan.status === "CHECKED_OUT" && !loan.returnDate && (
-            <Button
-              variant="outlined"
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                "&:hover": {
-                  transform: "translateY(-2px)",
-                },
-                transition: "all 0.3s",
-              }}
-            >
-              {" "}
-              Return Book
-            </Button>
-          )}
+          <Typography color="text.secondary">{loan.bookAuthor || "Chưa rõ tác giả"}</Typography>
+          <Typography variant="body2" color="text.secondary">ISBN: {loan.bookIsbn || "—"}</Typography>
+          <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-3">
+            <p>Ngày mượn: <strong>{formatDate(loan.checkoutDate)}</strong></p>
+            <p>Hạn trả: <strong>{formatDate(loan.dueDate)}</strong></p>
+            <p>Gia hạn: <strong>{loan.renewalCount ?? 0}/{loan.maxRenewals ?? "—"}</strong></p>
+          </div>
         </Box>
-      </CardContent>
-    </Card>
-  );
+      </Box>
+      {expanded && <div className="mt-5 rounded-xl bg-blue-50 p-4 text-sm text-slate-700">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <p>Mã lượt mượn: #{loan.id}</p>
+          <p>Ngày trả: {formatDate(loan.returnDate)}</p>
+          {status === "OVERDUE" && <p>Quá hạn: {loan.overdueDays || "Theo hạn trả"}</p>}
+          <p>Ghi chú: {loan.notes || "Không có"}</p>
+        </div>
+      </div>}
+      <Box sx={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 1, mt: 2 }}>
+        <Button onClick={() => setExpanded((value) => !value)}>{expanded ? "Thu gọn" : "Chi tiết lượt mượn"}</Button>
+        {!preview && loan.bookId && <Button component={Link} to={`/user/books/${loan.bookId}`} variant="outlined">Xem sách</Button>}
+        {!preview && canRenewLoan(loan) && <Button onClick={() => onAction(loan, "renew")} variant="outlined">Gia hạn</Button>}
+        {!preview && canReturnLoan(loan) && <Button onClick={() => onAction(loan, "return")} variant="contained">Trả sách</Button>}
+      </Box>
+    </CardContent>
+  </Card>;
 };
 
 export default LoanCard;

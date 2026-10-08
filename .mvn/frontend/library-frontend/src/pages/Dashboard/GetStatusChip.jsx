@@ -1,12 +1,13 @@
 import { Chip } from "@mui/material";
-import React from "react";
+import { loanStatusLabels } from "../../display";
 
 const GetStatusChip = ({ status }) => {
   const configs = {
-    ACTIVE: { label: "Active", color: "success" },
-    OVERDUE: { label: "Overdue", color: "error" },
-    PENDING: { label: "Pending", color: "warning" },
-    READY: { label: "Ready for Pickup", color: "success" },
+    CHECKED_OUT: { label: loanStatusLabels.CHECKED_OUT, color: "success" },
+    OVERDUE: { label: loanStatusLabels.OVERDUE, color: "error" },
+    RETURNED: { label: loanStatusLabels.RETURNED, color: "default" },
+    LOST: { label: loanStatusLabels.LOST, color: "error" },
+    DAMAGED: { label: loanStatusLabels.DAMAGED, color: "warning" },
   };
 
   const config = configs[status] || { label: status, color: "default" };

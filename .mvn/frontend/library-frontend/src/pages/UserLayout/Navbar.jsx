@@ -1,26 +1,22 @@
 import {
   AppBar,
+  Button,
   IconButton,
   Toolbar,
-  Tooltip,
   Typography,
 } from "@mui/material";
-import React from "react";
-import { navigationItems } from "./NavigationItems";
-import { isActive } from "./util";
+import { navigationItems, secondaryItems } from "./NavigationItems";
+import { isActive, navigationPath } from "./util";
 import { useLocation } from "react-router";
-import MenuIcon from "@mui/icons-material/Menu";
-import SearchIcon from "@mui/icons-material/Search";
-import { Notifications } from "@mui/icons-material";
-import ContrastIcon from "@mui/icons-material/Contrast";
+import MenuIcon from "@mui/icons-material/MenuRounded";
+import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
+import { Link as RouterLink } from "react-router-dom";
+import { useAuth } from "../../auth/useAuth";
+import { drawerWidth } from "./layout";
 
-const drawerWidth = 280;
-const user = {
-  fullName: "John Doe",
-  profilePicture: "https://randomuser.me/api/portraits/men/75.jpg",
-};
-const Navbar = ({ handleDrawerToggle }) => {
+const Navbar = ({ handleDrawerToggle, preview = false }) => {
   const location = useLocation();
+  const { user } = useAuth();
   return (
     <AppBar
       position="fixed"
@@ -48,29 +44,18 @@ const Navbar = ({ handleDrawerToggle }) => {
           component="div"
           sx={{ flexGrow: 1, fontWeight: 600 }}
         >
-          {navigationItems.find((item) => isActive(item.path, location))
-            ?.title || "Dashboard"}
+          {[...navigationItems, ...secondaryItems].find((item) => isActive(navigationPath(item.path, preview), location))
+            ?.title || "Tổng quan"}
         </Typography>
 
-        <Tooltip title="Search">
-          <IconButton>
-            <SearchIcon />
-          </IconButton>
-        </Tooltip>
-
-        <Notifications />
-
-        <Box sx={{ ml: 2 }}>
-          <ContrastIcon />
-        </Box>
-
-        <Tooltip title="Account">
-          <IconButton sx={{ ml: 1 }}>
-            <Avatar src={user?.profilePicture} sx={{ width: 36, height: 36 }}>
-              {user?.fullName?.charAt(0)}
-            </Avatar>
-          </IconButton>
-        </Tooltip>
+        <Typography variant="caption" color="text.secondary" sx={{ display: { xs: "none", sm: "block" } }}>
+          {preview ? "Bản xem thử · dữ liệu mẫu" : "Danh mục và yêu thích: dữ liệu thật"}
+        </Typography>
+        {!preview && user?.role === "ROLE_ADMIN" && (
+          <Button component={RouterLink} to="/admin/dashboard" size="small" startIcon={<AdminPanelSettingsRoundedIcon />} sx={{ ml: 1, whiteSpace: "nowrap" }}>
+            Quản trị
+          </Button>
+        )}
       </Toolbar>
     </AppBar>
   );

@@ -1,30 +1,19 @@
-import React from "react";
 import CurrentLoanCard from "./CurrentLoanCard";
+import { effectiveLoanStatus } from "../MyLoans/loanRules.js";
 
-const loan = {
-  bookTitle: "The Great Gatsby",
-  bookCoverImage:
-    "https://pixabay.com/images/download/dariuszsankowski-glasses-1052023_1920.jpg",
-  bookAuthor: "Triet",
-  dueDate: "2026-11-31",
-  status: "active",
-  remainingDays: 5,
-  overdueDays: 0,
-};
-
-const CurrentLoans = () => {
+const CurrentLoans = ({ loans = [], preview = false }) => {
+  const activeLoans = loans.filter((loan) => ["CHECKED_OUT", "OVERDUE"].includes(effectiveLoanStatus(loan)));
   return (
     <div className="p-6">
       <h3 className="text-2xl font-bold text-gray-900 mb-6">
-        Books You're Currently Reading
+        Sách bạn đang mượn
       </h3>
 
       <div className="space-y-4">
-        {/* List of current loans will go here */}
-
-        {[1, 1, 1, 1].map((item, index) => (
-          <CurrentLoanCard loan={loan} key={index} />
+        {activeLoans.map((loan) => (
+          <CurrentLoanCard key={loan.id} loan={loan} preview={preview} />
         ))}
+        {activeLoans.length === 0 && <p className="text-slate-600">Chưa có sách đang mượn.</p>}
       </div>
     </div>
   );

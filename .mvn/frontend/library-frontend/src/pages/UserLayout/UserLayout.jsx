@@ -1,24 +1,22 @@
-import React from "react";
+import { useState } from "react";
 import { Box, Toolbar } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import UserSidebar from "./UserSidebar";
+import Navbar from "./Navbar";
+import { drawerWidth } from "./layout";
 
-const drawerWidth = 240;
-const UserLayout = () => {
+const UserLayout = ({ preview = false }) => {
+  const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "white" }}>
-      {/* app baar */}
+      <Navbar preview={preview} handleDrawerToggle={() => setMobileOpen((open) => !open)} />
+      <UserSidebar preview={preview} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      {/* profile menu */}
-
-      {/* user sidebar */}
-      <UserSidebar />
-
-      {/* main content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
+          minWidth: 0,
           width: { md: `calc(100% - ${drawerWidth}px)` },
           minHeight: "100vh",
         }}

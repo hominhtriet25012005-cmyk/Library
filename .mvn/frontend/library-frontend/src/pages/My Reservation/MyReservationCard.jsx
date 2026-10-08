@@ -1,13 +1,17 @@
-import { HourglassBottom } from "@mui/icons-material";
-import React from "react";
-import {
-  AccessAlarm,
-  CalendarToday,
-  CheckCircle,
-  Close,
-} from "@mui/icons-material";
+import { Button, Divider } from "@mui/material";
+import { Link } from "react-router-dom";
+import AccessAlarm from "@mui/icons-material/AccessAlarmRounded";
+import Book from "@mui/icons-material/BookRounded";
+import CalendarToday from "@mui/icons-material/CalendarTodayRounded";
+import CheckCircle from "@mui/icons-material/CheckCircleRounded";
+import Close from "@mui/icons-material/CloseRounded";
+import HourglassBottom from "@mui/icons-material/HourglassBottomRounded";
+import Notifications from "@mui/icons-material/NotificationsRounded";
+import { getStatusColor } from "./getStatusColor";
+import { formatDate, reservationStatusLabels } from "../../display";
+import { canCancelReservation } from "./reservationRules.js";
 
-const MyReservationCard = ({ reservation }) => {
+const MyReservationCard = ({ reservation, preview = false, onAction }) => {
   const statusColors = getStatusColor(reservation.status);
   // const timeRemaining = getTimeRemaining(reservation.dueDate);
 
@@ -16,7 +20,7 @@ const MyReservationCard = ({ reservation }) => {
 
     const icons = {
       PENDING: <HourglassBottom className={iconClass} />,
-      AVAILABLE: <CalendarIcon className={iconClass} />,
+      AVAILABLE: <CalendarToday className={iconClass} />,
       FULFILLED: <CheckCircle className={iconClass} />,
       CANCELLED: <Close className={iconClass} />,
       EXPIRED: <AccessAlarm className={iconClass} />,
@@ -37,7 +41,7 @@ const MyReservationCard = ({ reservation }) => {
           <span
             className={`${statusColors.text} font-bold text-sm uppercase tracking-wider`}
           >
-            {reservation.status}
+            {reservationStatusLabels[reservation.status] ?? reservation.status}
           </span>
         </div>
       </div>
@@ -45,17 +49,19 @@ const MyReservationCard = ({ reservation }) => {
         {/* book header */}
         <div className="mb-4">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
+            <div className="p-3 rounded-lg bg-gradient-to-br from-blue-600 to-sky-700 shadow-lg">
               <Book className="w-6 h-6 text-white" />
             </div>
 
             <div>
-              <p>Book Id</p>
+              <p>Mã sách</p>
               <h3>#{reservation.bookId}</h3>
             </div>
           </div>
 
-          <p>{reservation.bookTitle}</p>
+          <p className="font-semibold text-slate-900">{reservation.bookTitle}</p>
+          <p className="text-sm text-slate-600">{reservation.bookAuthor || "Chưa rõ tác giả"}</p>
+          {reservation.bookIsbn && <p className="text-xs text-slate-500">ISBN: {reservation.bookIsbn}</p>}
         </div>
 
         <Divider sx={{ py: 3 }} />
@@ -63,16 +69,17 @@ const MyReservationCard = ({ reservation }) => {
         {/* Timeline */}
 
         <div className="space-y-3 mt-3">
+          {reservation.queuePosition != null && reservation.status === "PENDING" && <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">Vị trí hàng đợi: {reservation.queuePosition}</p>}
           <div className="flex items-start gap-2">
             <AccessAlarm className="w-4 h-4 text-gray-400 mt-0.5" />
 
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase">
-                Reserved
+                Đã đặt giữ
               </p>
 
               <p className="text-sm font-semibold text-gray-700">
-                {reservation.reservedAt}
+                {formatDate(reservation.reservedAt)}
               </p>
             </div>
           </div>
@@ -80,31 +87,31 @@ const MyReservationCard = ({ reservation }) => {
 
         {reservation.availableAt && (
           <div className="flex items-start gap-2">
-            <CalendarIcon className="w-4 h-4 text-green-500 mt-0.5" />
+            <CalendarToday className="w-4 h-4 text-green-500 mt-0.5" />
 
             <div>
               <p className="text-xs font-semibold text-green-600 uppercase">
-                Available
+                Sẵn sàng nhận
               </p>
 
               <p className="text-sm font-semibold text-green-700">
-                {reservation.availableAt}
+                {formatDate(reservation.availableAt)}
               </p>
             </div>
           </div>
         )}
 
-        {reservation.expiresAt && (
+        {reservation.availableUntil && (
           <div className="flex items-start gap-2">
             <Notifications className="w-4 h-4 text-red-500 mt-0.5" />
 
             <div>
               <p className="text-xs font-semibold text-red-600 uppercase">
-                Expires
+                Hết hạn nhận
               </p>
 
               <p className="text-sm font-semibold text-red-700">
-                {reservation.expiresAt}
+                {new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(reservation.availableUntil))}
               </p>
             </div>
           </div>
@@ -116,15 +123,22 @@ const MyReservationCard = ({ reservation }) => {
 
             <div>
               <p className="text-xs font-semibold text-blue-600 uppercase">
-                Fulfilled
+                Đã nhận sách
               </p>
 
               <p className="text-sm font-semibold text-blue-700">
-                {reservation.fulfilledAt}
+                {formatDate(reservation.fulfilledAt)}
               </p>
             </div>
           </div>
         )}
+        {reservation.cancelledAt && <p className="mt-3 text-sm text-slate-600">Đã hủy: {formatDate(reservation.cancelledAt)}</p>}
+        {reservation.notes && <p className="mt-3 whitespace-pre-line rounded-lg bg-blue-50 p-3 text-sm text-slate-700">Ghi chú: {reservation.notes}</p>}
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          {!preview && reservation.bookId && <Button component={Link} to={`/user/books/${reservation.bookId}`} variant="outlined">Xem sách</Button>}
+          {!preview && canCancelReservation(reservation) && <Button color="error" onClick={() => onAction(reservation, "cancel")}>Hủy đặt giữ</Button>}
+          {!preview && reservation.status === "AVAILABLE" && reservation.isBookAvailable === true && <p className="text-sm text-blue-700">Sách sẵn sàng. ADMIN sẽ xác nhận giao sách tại thư viện.</p>}
+        </div>
       </div>
     </div>
   );
