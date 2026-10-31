@@ -35,4 +35,4 @@ const colors = {
   },
 };
 
-return colors[status] || colors.EXPIRED;
+export const getStatusColor = (status) => colors[status] || colors.EXPIRED;

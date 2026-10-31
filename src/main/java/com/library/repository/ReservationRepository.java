@@ -14,6 +14,10 @@ import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
+    @Query("SELECT r FROM Reservation r WHERE r.book.id = :bookId " +
+            "AND (r.status = 'PENDING' OR r.status = 'AVAILABLE') ORDER BY r.reservedAt, r.id")
+    List<Reservation> findActiveQueue(@Param("bookId") Long bookId);
+
 
 
     /**

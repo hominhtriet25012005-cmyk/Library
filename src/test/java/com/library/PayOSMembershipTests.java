@@ -100,7 +100,10 @@ class PayOSMembershipTests {
     @Test void orderStoreUsesSnapshotAndDeduplicatesUnderSubscriptionLock() {
         PaymentRepository payments = mock(PaymentRepository.class);
         SubscriptionRepository subscriptions = mock(SubscriptionRepository.class);
-        var realStore = new PayOSOrderStore(payments, subscriptions, mock(UserRepository.class),
+        var userRepository = mock(UserRepository.class);
+        when(userRepository.findLockedById(7L)).thenReturn(Optional.of(User.builder().id(7L).build()));
+        when(userRepository.findLockedById(99L)).thenReturn(Optional.of(User.builder().id(99L).build()));
+        var realStore = new PayOSOrderStore(payments, subscriptions, userRepository,
                 mock(SubscriptionPlanRepository.class));
         Subscription sub = Subscription.builder().id(8L).user(User.builder().id(7L).build())
                 .price(100000L).currency("VND").isActive(false).build();
@@ -132,6 +135,21 @@ class PayOSMembershipTests {
         assertThat(realStore.draftSubscription(3L, 7L, "notes")).isEqualTo(8L);
         verify(subscriptions, never()).saveAndFlush(any());
         verifyNoInteractions(payments);
+    }
+
+    @Test void activeMembershipBlocksNewDraftBeforeAnyPaymentWrite() {
+        var payments = mock(PaymentRepository.class);
+        var subscriptions = mock(SubscriptionRepository.class);
+        var userRepository = mock(UserRepository.class);
+        var plans = mock(SubscriptionPlanRepository.class);
+        var realStore = new PayOSOrderStore(payments, subscriptions, userRepository, plans);
+        when(userRepository.findLockedById(7L)).thenReturn(Optional.of(User.builder().id(7L).build()));
+        when(subscriptions.existsCurrentActiveByUserId(eq(7L), any())).thenReturn(true);
+
+        assertThatThrownBy(() -> realStore.draftSubscription(3L, 7L, null))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("active membership");
+        verifyNoInteractions(plans, payments);
+        verify(subscriptions, never()).saveAndFlush(any());
     }
 
     @Test void createsInactiveDraftUsingPlanPriceAndAuthenticatedUser() {

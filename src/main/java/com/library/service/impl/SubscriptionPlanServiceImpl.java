@@ -48,7 +48,7 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
         User currentUser = userService.getCurrentUser();
         existingPlan.setUpdatedBy(currentUser.getFullName());
         SubscriptionPlan updatedPlan = planRepository.save(existingPlan);
-        return null;
+        return planMapper.toDTO(updatedPlan);
     }
 
     @Override
@@ -62,11 +62,21 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
 
     @Override
     public List<SubscriptionPlanDTO> getAllSubscriptionPlan() {
-        List<SubscriptionPlan> planList = planRepository.findAll();
+        List<SubscriptionPlan> planList = planRepository.findAllPlans();
 
         return planList.stream().map(
                 planMapper::toDTO
         ).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<SubscriptionPlanDTO> getAvailableSubscriptionPlans() {
+        return planRepository.findSellingPlans().stream().map(planMapper::toDTO).map(plan -> {
+            plan.setAdminNotes(null);
+            plan.setCreatedBy(null);
+            plan.setUpdatedBy(null);
+            return plan;
+        }).toList();
     }
 
 

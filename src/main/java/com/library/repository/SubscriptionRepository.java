@@ -2,6 +2,9 @@ package com.library.repository;
 
 import com.library.modal.Subscription;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -10,6 +13,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
+    @EntityGraph(attributePaths = {"user", "plan"})
+    @Query("select s from Subscription s where (:userId is null or s.user.id = :userId) "
+            + "and (:planId is null or s.plan.id = :planId) "
+            + "and (:active is null or s.isActive = :active)")
+    Page<Subscription> searchAdminSubscriptions(@Param("userId") Long userId,
+            @Param("planId") Long planId, @Param("active") Boolean active, Pageable pageable);
     @Query("select s from Subscription s where s.user.id = :userId and s.plan.id = :planId "
             + "and s.isActive = false and s.cancelledAt is null and "
             + "(not exists (select p.id from Payment p where p.subscription = s) "
@@ -31,6 +40,17 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             @Param("userId") Long userId,
             @Param("today") LocalDate today
     );
+
+    @Query("select case when count(s) > 0 then true else false end from Subscription s "
+            + "where s.user.id = :userId and s.isActive = true "
+            + "and s.startDate <= :today and s.endDate >= :today")
+    boolean existsCurrentActiveByUserId(@Param("userId") Long userId, @Param("today") LocalDate today);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_READ)
+    @Query("select s from Subscription s where s.user.id = :userId and s.id <> :subscriptionId "
+            + "and s.isActive = true and s.startDate <= :today and s.endDate >= :today")
+    List<Subscription> findOtherCurrentActiveLockedByUserId(@Param("userId") Long userId,
+            @Param("subscriptionId") Long subscriptionId, @Param("today") LocalDate today);
 
     @Query("select s from Subscription s where s.isActive = true " +
             "AND s.endDate < :today")

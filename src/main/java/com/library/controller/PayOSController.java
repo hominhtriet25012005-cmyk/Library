@@ -20,16 +20,20 @@ public class PayOSController {
     }
 
     @GetMapping("/{id}/status")
-    public PayOSConfirmationService.Status status(@PathVariable Long id) { return confirmation.status(id); }
+    public PayOSConfirmationService.Status status(@PathVariable Long id) {
+        return confirmation.status(id); }
 
     @PostMapping("/{id}/reconcile")
-    public PayOSConfirmationService.Status reconcile(@PathVariable Long id) { return confirmation.reconcile(id); }
+    public PayOSConfirmationService.Status reconcile(@PathVariable Long id) {
+        return confirmation.reconcile(id); }
 
     @ExceptionHandler(AccessDeniedException.class)
-    ResponseEntity<?> denied() { return ResponseEntity.status(403).body(Map.of("error", "Access denied")); }
+    ResponseEntity<?> denied() {
+        return ResponseEntity.status(403).body(Map.of("error", "Access denied")); }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    ResponseEntity<?> invalid() { return ResponseEntity.badRequest().body(Map.of("error", "Invalid payment evidence")); }
+    ResponseEntity<?> invalid() {
+        return ResponseEntity.badRequest().body(Map.of("error", "Invalid payment evidence")); }
 
     @ExceptionHandler(ResponseStatusException.class)
     ResponseEntity<?> statusError(ResponseStatusException ex) {

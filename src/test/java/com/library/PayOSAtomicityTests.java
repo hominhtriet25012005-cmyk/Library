@@ -30,6 +30,7 @@ class PayOSAtomicityTests {
     private TransactionTemplate tx;
     private PaymentRepository payments;
     private SubscriptionRepository subscriptions;
+    private UserRepository users;
     private Long paymentId;
     private Long subscriptionId;
 
@@ -49,6 +50,7 @@ class PayOSAtomicityTests {
         var repositories = new JpaRepositoryFactory(em);
         payments = repositories.getRepository(PaymentRepository.class);
         subscriptions = repositories.getRepository(SubscriptionRepository.class);
+        users = repositories.getRepository(UserRepository.class);
         tx.executeWithoutResult(status -> {
             User user = User.builder().fullName("Test User").email("test@example.test").role(UserRole.ROLE_USER).build();
             em.persist(user);
@@ -99,6 +101,37 @@ class PayOSAtomicityTests {
                 new JpaRepositoryFactory(em).getRepository(FineRepository.class)));
     }
     private Long ownerId() { return tx.execute(status -> em.find(Payment.class, paymentId).getUser().getId()); }
+
+    private Long secondMembershipOrder() {
+        return tx.execute(status -> {
+            var first = em.find(Subscription.class, subscriptionId);
+            var second = Subscription.builder().user(first.getUser()).plan(first.getPlan()).isActive(false).build();
+            second.initializeFromPlan();
+            em.persist(second);
+            var payment = Payment.builder().user(first.getUser()).subscription(second).amount(100000L)
+                    .currency("VND").gateway(PaymentGateway.PAYOS).paymentType(PaymentType.MEMBERSHIP)
+                    .status(PaymentStatus.PROCESSING).gatewayOrderId("second-link").build();
+            em.persist(payment);
+            em.flush();
+            return payment.getId();
+        });
+    }
+
+    @Test void cancellingEarlyRemovesActivePurchaseBlock() {
+        Long owner = ownerId();
+        tx.executeWithoutResult(status -> em.find(Subscription.class, subscriptionId).setIsActive(true));
+        boolean activeBeforeCancel = Boolean.TRUE.equals(
+                tx.execute(status -> subscriptions.existsCurrentActiveByUserId(owner, LocalDate.now())));
+        assertThat(activeBeforeCancel).isTrue();
+        tx.executeWithoutResult(status -> {
+            var subscription = em.find(Subscription.class, subscriptionId);
+            subscription.setIsActive(false);
+            subscription.setCancelledAt(java.time.LocalDateTime.now());
+        });
+        boolean activeAfterCancel = Boolean.TRUE.equals(
+                tx.execute(status -> subscriptions.existsCurrentActiveByUserId(owner, LocalDate.now())));
+        assertThat(activeAfterCancel).isFalse();
+    }
 
     @Test void fineOrderUsesOutstandingBalanceOwnerAndExistingOrder() {
         Long fineId = createFine(); var store = fineStore(); Long owner = ownerId();
@@ -178,7 +211,7 @@ class PayOSAtomicityTests {
     }
     @SuppressWarnings("deprecation")
     private PayOSSettlementService proxied(PaymentRepository repository) {
-        var target = new PayOSSettlementService(repository, subscriptions);
+        var target = new PayOSSettlementService(repository, subscriptions, users);
         org.springframework.test.util.ReflectionTestUtils.setField(target, "entityManager", em);
         var proxy = new ProxyFactory(target);
         proxy.setProxyTargetClass(true);
@@ -213,6 +246,46 @@ class PayOSAtomicityTests {
         });
         service.complete(paymentId, "link", 100000L, "VND", "receipt");
         tx.executeWithoutResult(status -> assertThat(em.find(Subscription.class, subscriptionId).getIsActive()).isFalse());
+    }
+
+    @Test void differentPaidOrdersForOneUserCannotBothActivate() throws Exception {
+        Long secondPaymentId = secondMembershipOrder();
+        Long owner = ownerId();
+        var service = proxied(payments);
+        var executor = Executors.newFixedThreadPool(2);
+        int successes = 0;
+        int rejected = 0;
+        try {
+            var start = new CountDownLatch(1);
+            Callable<Boolean> first = () -> {
+                start.await();
+                try { service.complete(paymentId, "link", 100000L, "VND", "first-receipt"); return true; }
+                catch (IllegalStateException ex) { return false; }
+            };
+            Callable<Boolean> second = () -> {
+                start.await();
+                try { service.complete(secondPaymentId, "second-link", 100000L, "VND", "second-receipt"); return true; }
+                catch (IllegalStateException ex) { return false; }
+            };
+            var a = executor.submit(first);
+            var b = executor.submit(second);
+            start.countDown();
+            for (var result : java.util.List.of(a, b)) {
+                if (result.get(20, TimeUnit.SECONDS)) successes++; else rejected++;
+            }
+        } finally { executor.shutdownNow(); }
+        assertThat(successes).isEqualTo(1);
+        assertThat(rejected).isEqualTo(1);
+        tx.executeWithoutResult(status -> {
+            assertThat(subscriptions.existsCurrentActiveByUserId(owner, LocalDate.now())).isTrue();
+            long activeCount = em.createQuery("select count(s) from Subscription s where s.user.id = :userId and s.isActive = true", Long.class)
+                    .setParameter("userId", owner).getSingleResult();
+            assertThat(activeCount).isEqualTo(1L);
+            var firstPayment = em.find(Payment.class, paymentId);
+            var secondPayment = em.find(Payment.class, secondPaymentId);
+            assertThat(java.util.List.of(firstPayment, secondPayment).stream()
+                    .filter(p -> p.getStatus() == PaymentStatus.SUCCESS).count()).isEqualTo(1L);
+        });
     }
 
     @Test void invalidEvidenceOrCancelledDraftCannotGrantMembership() {

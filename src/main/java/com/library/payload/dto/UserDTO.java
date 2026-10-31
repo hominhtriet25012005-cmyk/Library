@@ -1,7 +1,9 @@
 package com.library.payload.dto;
 
 import com.library.domain.UserRole;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -11,17 +13,28 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class UserDTO {
 
+    // ID user
     private Long id;
 
-    @NotNull(message = "Cần có địa chỉ email.")
+    // Không được rỗng
+    // Phải đúng định dạng email
+    // Tối đa 255 ký tự
+    @NotBlank(message = "Cần có địa chỉ email.")
+    @Email(message = "Địa chỉ email không hợp lệ.")
+    @Size(max = 255)
     private String email;
 
-    @NotNull(message = "Yêu cầu nhập mật khẩu.")
+    // Password hiện đang nằm trong UserDTO
+    // Đây là điểm mình khuyên tách sau này
+    @NotBlank(message = "Yêu cầu nhập mật khẩu.")
+    @ToString.Exclude
     private String password;
 
+    @Size(max = 30)
     private String phone;
 
-    @NotNull(message = "Họ và tên là bắt buộc.")
+    @NotBlank(message = "Họ và tên là bắt buộc.")
+    @Size(max = 255)
     private String fullName;
 
     private UserRole role;

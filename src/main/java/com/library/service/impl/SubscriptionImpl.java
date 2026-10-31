@@ -10,6 +10,7 @@ import com.library.modal.User;
 import com.library.payload.dto.SubscriptionDTO;
 import com.library.payload.request.PaymentInitiateRequest;
 import com.library.payload.response.PaymentInitiateResponse;
+import com.library.payload.response.PageResponse;
 import com.library.repository.SubscriptionPlanRepository;
 import com.library.repository.SubscriptionRepository;
 import com.library.service.PaymentService;
@@ -65,9 +66,14 @@ public class SubscriptionImpl implements SubscriptionService {
     @Override
     public SubscriptionDTO getUsersActiveSubscription(Long userId) throws Exception {
         User user = userService.getCurrentUser();
+        Long targetId = userId == null ? user.getId() : userId;
+        if (!java.util.Objects.equals(targetId, user.getId())
+                && user.getRole() != com.library.domain.UserRole.ROLE_ADMIN) {
+            throw new org.springframework.security.access.AccessDeniedException("Subscription access denied");
+        }
 
         Subscription subscription = subscriptionRepository
-                .findActiveSubscriptionByUserId(user.getId(), LocalDate.now())
+                .findActiveSubscriptionByUserId(targetId, LocalDate.now())
                 .orElseThrow(() -> new SubscriptionException("no active subscription found!"));
 
         return subscriptionMapper.toDTO(subscription);
@@ -110,8 +116,16 @@ public class SubscriptionImpl implements SubscriptionService {
 
     @Override
     public List<SubscriptionDTO> getAllSubscriptions(Pageable pageable) {
-        List<Subscription> subscriptions = subscriptionRepository.findAll();
-        return subscriptionMapper.toDTOList(subscriptions);
+        return subscriptionMapper.toDTOList(subscriptionRepository.findAll());
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public PageResponse<SubscriptionDTO> searchAdminSubscriptions(Long userId, Long planId, Boolean active, Pageable pageable) {
+        var found = subscriptionRepository.searchAdminSubscriptions(userId, planId, active, pageable);
+        return new PageResponse<>(found.getContent().stream().map(subscriptionMapper::toDTO).toList(),
+                found.getNumber(), found.getSize(), found.getTotalElements(), found.getTotalPages(),
+                found.isLast(), found.isFirst(), found.isEmpty());
     }
 
     @Override

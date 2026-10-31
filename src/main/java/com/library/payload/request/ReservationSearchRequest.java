@@ -1,15 +1,11 @@
 package com.library.payload.request;
 
 import com.library.domain.ReservationStatus;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
-@Builder
 public class ReservationSearchRequest {
 
     private Long userId;

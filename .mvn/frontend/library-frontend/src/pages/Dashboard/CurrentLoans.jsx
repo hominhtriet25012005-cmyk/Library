@@ -1,32 +1,48 @@
-import React from "react";
+import { Box, Typography, Stack } from "@mui/material";
 import CurrentLoanCard from "./CurrentLoanCard";
+import { effectiveLoanStatus } from "../MyLoans/loanRules.js";
+import { EmptyState } from "../../components/common";
+import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 
-const loan = {
-  bookTitle: "The Great Gatsby",
-  bookCoverImage:
-    "https://pixabay.com/images/download/dariuszsankowski-glasses-1052023_1920.jpg",
-  bookAuthor: "Triet",
-  dueDate: "2026-11-31",
-  status: "active",
-  remainingDays: 5,
-  overdueDays: 0,
-};
+const CurrentLoans = ({ loans = [], preview = false }) => {
+  const activeLoans = (loans || []).filter((loan) =>
+    ["CHECKED_OUT", "OVERDUE"].includes(effectiveLoanStatus(loan)),
+  );
 
-const CurrentLoans = () => {
   return (
-    <div className="p-6">
-      <h3 className="text-2xl font-bold text-gray-900 mb-6">
-        Books You're Currently Reading
-      </h3>
+    <Box sx={{ p: { xs: 2.5, sm: 3.5 } }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2.5,
+        }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: 750, color: "#102d62" }}>
+          Sách bạn đang mượn ({activeLoans.length})
+        </Typography>
+        <Typography variant="caption" sx={{ color: "#64748b" }}>
+          Vui lòng hoàn trả đúng hạn để tránh phát sinh tiền phạt quá hạn
+        </Typography>
+      </Box>
 
-      <div className="space-y-4">
-        {/* List of current loans will go here */}
-
-        {[1, 1, 1, 1].map((item, index) => (
-          <CurrentLoanCard loan={loan} key={index} />
-        ))}
-      </div>
-    </div>
+      {activeLoans.length > 0 ? (
+        <Stack spacing={2}>
+          {activeLoans.map((loan) => (
+            <CurrentLoanCard key={loan.id} loan={loan} preview={preview} />
+          ))}
+        </Stack>
+      ) : (
+        <EmptyState
+          icon={AutoStoriesRoundedIcon}
+          title="Bạn chưa mượn cuốn sách nào"
+          description="Khám phá ngay hàng ngàn đầu sách hấp dẫn trong kho thư viện của chúng tôi."
+          actionText="Tìm kiếm sách"
+          actionTo={preview ? "/demo/books" : "/user/books"}
+        />
+      )}
+    </Box>
   );
 };
 

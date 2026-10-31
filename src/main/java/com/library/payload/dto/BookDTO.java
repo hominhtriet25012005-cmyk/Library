@@ -15,7 +15,7 @@ public class BookDTO {
 
     private Long id;
 
-    @NotBlank(message = "ISBN là bắt buộc.")
+    @Size(max = 20, message = "ISBN không được vượt quá 20 ký tự.")
     private String isbn;
 
     @NotBlank(message = "Bắt buộc phải có tiêu đề.")
@@ -37,6 +37,10 @@ public class BookDTO {
     private String publisher;
 
     private LocalDate publicationDate;
+
+    @Min(value = 1, message = "Năm xuất bản phải từ 1 đến 9999.")
+    @Max(value = 9999, message = "Năm xuất bản phải từ 1 đến 9999.")
+    private Integer publicationYear;
 
     @Size(max = 20, message = "Ngôn ngữ không được vượt quá 20 ký tự.")
     private String language;

@@ -18,6 +18,21 @@ public class BookReviewController {
 
     private final BookReviewService bookReviewService;
 
+    @GetMapping("/admin")
+    public ResponseEntity<PageResponse<BookReviewDTO>> searchAdminReviews(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long bookId,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) throws Exception {
+        return ResponseEntity.ok(bookReviewService.searchAdminReviews(userId, bookId, active, page, size));
+    }
+
+    @PostMapping("/admin/{reviewId}/hide")
+    public ResponseEntity<BookReviewDTO> hideReview(@PathVariable Long reviewId) throws Exception {
+        return ResponseEntity.ok(bookReviewService.hideReview(reviewId));
+    }
+
     @PostMapping
     public ResponseEntity<?> createReview(
             @Valid @RequestBody CreateReviewRequest request
@@ -25,7 +40,7 @@ public class BookReviewController {
 
         BookReviewDTO reviewDTO = bookReviewService.createReview(request);
 
-        return ResponseEntity.ok(reviewDTO);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(reviewDTO);
     }
 
     @PutMapping("/{id}")

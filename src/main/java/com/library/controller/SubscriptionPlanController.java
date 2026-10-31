@@ -19,6 +19,12 @@ public class SubscriptionPlanController {
 
     @GetMapping
     public ResponseEntity<?> getAllSubscriptionPlans() {
+        List<SubscriptionPlanDTO> plans = subscriptionPlanService.getAvailableSubscriptionPlans();
+        return ResponseEntity.ok(plans);
+    }
+
+    @GetMapping("/admin")
+    public ResponseEntity<?> getAdminSubscriptionPlans() {
         List<SubscriptionPlanDTO> plans = subscriptionPlanService.getAllSubscriptionPlan();
         return ResponseEntity.ok(plans);
     }

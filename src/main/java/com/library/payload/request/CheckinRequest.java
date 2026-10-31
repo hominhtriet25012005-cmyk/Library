@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 public class CheckinRequest {
 
@@ -16,5 +15,6 @@ public class CheckinRequest {
 
     private BookLoanStatus condition = BookLoanStatus.RETURNED; // RETURNED, LOST, DAMAGED
 
+    @jakarta.validation.constraints.Size(max = 500)
     private String notes;
 }

@@ -21,11 +21,15 @@ public interface BookService {
 
     void deleteBook(Long bookId) throws BookException;
 
+    BookDTO setBookActive(Long bookId, boolean active) throws BookException;
+
     void hardDeleteBook(Long bookId) throws BookException;
 
     PageResponse<BookDTO> searchBooksWithFilters(
             BookSearchRequest searchRequest
     );
+
+    PageResponse<BookDTO> searchBooksForAdmin(BookSearchRequest searchRequest);
 
     long getTotalActiveBooks();
 

@@ -1,8 +1,8 @@
 export const tabs = [
-  { label: "All", value: null },
-  { label: "Active", value: "CHECKED_OUT" },
-  { label: "Overdue", value: "OVERDUE" },
-  { label: "Returned", value: "RETURNED" },
-  { label: "Lost", value: "LOST" },
-  { label: "Damaged", value: "DAMAGED" },
+  { label: "Tất cả", value: null },
+  { label: "Đang mượn", value: "CHECKED_OUT" },
+  { label: "Quá hạn", value: "OVERDUE" },
+  { label: "Đã trả", value: "RETURNED" },
+  { label: "Bị mất", value: "LOST" },
+  { label: "Hư hỏng", value: "DAMAGED" },
 ];

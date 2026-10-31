@@ -47,7 +47,7 @@ public class FineServiceImpl implements FineService {
 
         // 1. validate book loan exist
         BookLoan bookLoan = bookLoanRepository.findById(createFineRequest.getBookLoanId())
-                .orElseThrow(() -> new RuntimeException("Book loan doesn't exist"));
+                .orElseThrow(() -> new IllegalArgumentException("Book loan doesn't exist"));
 
         // 2. create fine
         Fine fine = Fine.builder()
@@ -92,16 +92,16 @@ public class FineServiceImpl implements FineService {
             throw new org.springframework.security.access.AccessDeniedException("Administrator required");
         }
         Fine fine = fineRepository.findLockedById(waiveFineRequest.getFineId())
-                .orElseThrow(() -> new Exception("Fine not found with id: "));
+                .orElseThrow(() -> new IllegalArgumentException("Fine not found with id: " + waiveFineRequest.getFineId()));
         entityManager.refresh(fine, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 
         // 2. Check if already waived or paid
         if (fine.getStatus() == FineStatus.WAIVED) {
-            throw new Exception("Fine has already been waived");
+            throw new IllegalStateException("Fine has already been waived");
         }
 
         if (fine.getStatus() == FineStatus.PAID) {
-            throw new Exception("Fine has already been paid and cannot be waived");
+            throw new IllegalStateException("Fine has already been paid and cannot be waived");
         }
 
         // 3. Waive the fine

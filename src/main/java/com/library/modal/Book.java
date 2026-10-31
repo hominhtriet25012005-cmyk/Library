@@ -23,7 +23,7 @@ public class Book {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(unique = true, length = 20)
     private String isbn;
 
     @Column(nullable = false)
@@ -41,6 +41,9 @@ public class Book {
 
     @Column(name = "publication_date")
     private LocalDate publishedDate;
+
+    @Column(name = "publication_year", columnDefinition = "SMALLINT UNSIGNED")
+    private Integer publicationYear;
 
     @Column(length = 20)
     private String language;

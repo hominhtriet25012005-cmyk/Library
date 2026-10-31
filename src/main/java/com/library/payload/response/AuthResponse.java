@@ -10,11 +10,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthResponse {
 
-    private String jwt;
+    private String jwt; // Token frontend dùng cho request tiếp theo
 
-    private String message;
+    private String message; // Thông báo
 
-    private String title;
+    private String title;  // Tiêu đề thông báo
 
-    private UserDTO user;
+    private UserDTO user; // Thông tin user
 }

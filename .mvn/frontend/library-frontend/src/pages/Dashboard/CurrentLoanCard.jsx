@@ -1,48 +1,114 @@
-import React from "react";
-import { AccessTime } from "@mui/icons-material";
-import { Button } from "@mui/material";
+import AccessTime from "@mui/icons-material/AccessTimeRounded";
+import MenuBook from "@mui/icons-material/MenuBookRounded";
+import { Box, Button, Paper, Typography } from "@mui/material";
+import { Link } from "react-router-dom";
+import { StatusChip } from "../../components/common";
+import { formatDateVN } from "../../utils/formatters";
+import { effectiveLoanStatus } from "../MyLoans/loanRules.js";
 
-const CurrentLoanCard = ({ loan }) => {
+const CurrentLoanCard = ({ loan, preview = false }) => {
+  const status = effectiveLoanStatus(loan);
+
   return (
-    <div
-      className="flex items-center justify-between p-6 border
-     border-gray-200 rounded-2xl"
+    <Paper
+      variant="outlined"
+      sx={{
+        p: { xs: 2, sm: 2.5 },
+        borderRadius: 2.5,
+        borderColor: "#e2e8f0",
+        display: "flex",
+        flexDirection: { xs: "column", sm: "row" },
+        alignItems: { xs: "flex-start", sm: "center" },
+        justifyContent: "space-between",
+        gap: 2,
+        transition: "all 0.2s ease-in-out",
+        "&:hover": {
+          borderColor: "#cbd5e1",
+          boxShadow: "0 4px 12px rgba(15,23,42,0.04)",
+        },
+      }}
     >
-      <div className="flex items-center space-x-4 flex-1">
-        <div className="">
-          <img
-            src={loan.bookCoverImage}
-            alt={loan.bookTitle}
-            className="w-16 h-24 rounded-lg"
-          />
-        </div>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
+          minWidth: 0,
+          flex: 1,
+        }}
+      >
+        <Box
+          sx={{
+            width: 56,
+            height: 76,
+            borderRadius: 2,
+            bgcolor: "rgba(23,105,255,0.08)",
+            color: "#1769ff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <MenuBook sx={{ fontSize: 28 }} />
+        </Box>
 
-        <div className="">
-          <h4 className="text-lg font-bold text-gray-900 mb-1">
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{ fontWeight: 700, color: "#1e293b", mb: 0.25 }}
+            noWrap
+          >
             {loan.bookTitle}
-          </h4>
-          <p className="text-gray-600 mb-2">by {loan.bookAuthor}</p>
+          </Typography>
+          <Typography variant="body2" sx={{ color: "#64748b", mb: 1 }} noWrap>
+            Tác giả: {loan.bookAuthor || "Không rõ"}
+          </Typography>
 
-          <div className="flex items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-4 text-sm">
-              <AccessTime sx={{ fontSize: 16 }} />
-              <span>Due: {new Date(loan.dueDate).toLocaleDateString()}</span>
-            </div>
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 1.5,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+                color: "#475569",
+              }}
+            >
+              <AccessTime sx={{ fontSize: 16, color: "#64748b" }} />
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                Hạn trả: {formatDateVN(loan.dueDate)}
+              </Typography>
+            </Box>
 
-            <GetStatusChip status={loan.status} />
-            <Chip
-              label={`${loan.remainingDays > 0 ? loan.remainingDays : loan.overdueDays} days ${loan.remainingDays >= 0 ? "remaining" : "overdue"}`}
-              size="small"
-              variant="outline"
-            />
-          </div>
-        </div>
-      </div>
+            <StatusChip type="loan" status={status} />
+          </Box>
+        </Box>
+      </Box>
 
-      <div>
-        <Button variant="outlined">View</Button>
-      </div>
-    </div>
+      <Box sx={{ alignSelf: { xs: "stretch", sm: "center" }, flexShrink: 0 }}>
+        <Button
+          variant="outlined"
+          component={Link}
+          to={preview ? "/demo/books" : `/user/books/${loan.bookId}`}
+          fullWidth
+          sx={{
+            borderRadius: "10px",
+            textTransform: "none",
+            fontWeight: 600,
+            px: 2.5,
+          }}
+        >
+          Xem sách
+        </Button>
+      </Box>
+    </Paper>
   );
 };
 

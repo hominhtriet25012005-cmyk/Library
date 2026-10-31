@@ -30,6 +30,8 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional(
+        rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
 public class BookLoanServiceImpl implements BookLoanService {
 
     private final BookLoanRepository bookLoanRepository;
@@ -37,6 +39,39 @@ public class BookLoanServiceImpl implements BookLoanService {
     private final SubscriptionService subscriptionService;
     private final BookRepository bookRepository;
     private final BookLoanMapper bookLoanMapper;
+    private final com.library.repository.UserRepository userRepository;
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
+    private void requireOwnerOrAdmin(Long ownerId) throws Exception {
+        User actor = userService.getCurrentUser();
+        if (actor.getRole() != com.library.domain.UserRole.ROLE_ADMIN
+                && !java.util.Objects.equals(actor.getId(), ownerId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Loan access denied");
+        }
+    }
+
+    private void requireAdmin() throws Exception {
+        if (userService.getCurrentUser().getRole() != com.library.domain.UserRole.ROLE_ADMIN) {
+            throw new org.springframework.security.access.AccessDeniedException("Admin access required");
+        }
+    }
+
+    private Book lockedBook(Long id) throws BookException {
+        if (id == null) throw new BookException("Book ID is required");
+        Book book = bookRepository.findLockedById(id).orElseThrow(() -> new BookException("Book not found"));
+        // A caller may already have loaded the entity before waiting for the row lock.
+        entityManager.refresh(book, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        return book;
+    }
+
+    private BookLoan ownedLockedLoan(Long id) throws Exception {
+        if (id == null) throw new BookException("Loan ID is required");
+        BookLoan loan = bookLoanRepository.findLockedById(id).orElseThrow(() -> new BookException("Loan not found"));
+        entityManager.refresh(loan, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        requireOwnerOrAdmin(loan.getUser().getId());
+        return loan;
+    }
 
     @Override
     public BookLoanDTO checkoutBook(CheckoutRequest checkoutRequest) throws Exception {
@@ -50,20 +85,27 @@ public class BookLoanServiceImpl implements BookLoanService {
     public BookLoanDTO checkoutBookForUser(Long userId, CheckoutRequest checkoutRequest) throws Exception {
 
         // 1. Xác thực sự tồn tại của người dùng
-        User user = userService.findById(userId);
+        requireOwnerOrAdmin(userId);
+        // Serialize checkout quota checks for this borrower, including different books.
+        User user = userRepository.findLockedById(userId).orElseThrow(() -> new BookException("User not found"));
 
         // 2. Xác thực người dùng có gói đăng ký đang hoạt động.
         SubscriptionDTO subscription = subscriptionService
                 .getUsersActiveSubscription(user.getId());
+        Integer days = checkoutRequest.getCheckoutDays();
+        if (days == null || days < 1 || days > subscription.getMaxDaysPerBook()) {
+            throw new BookException("Checkout days exceed the membership limit or are invalid");
+        }
+        if (checkoutRequest.getNotes() != null && checkoutRequest.getNotes().length() > 500) {
+            throw new BookException("Loan notes exceed 500 characters");
+        }
 
         //  3. Xác thực rằng cuốn sách tồn tại và có sẵn.
-        Book book = bookRepository.findById(checkoutRequest.getBookId())
-                .orElseThrow(() -> new BookException("Không tìm thấy sách với ID này "+ checkoutRequest.getBookId()));
+        Book book = lockedBook(checkoutRequest.getBookId());
 
         if (!book.getActive()) {
             throw new BookException("Sách không ở trạng thái hoạt động.");
         }
-        System.out.println("book copies - " +book.getAvailableCopies());
         if (book.getAvailableCopies() <= 0) {
             throw new BookException("Sách không có sẵn.");
         }
@@ -78,13 +120,13 @@ public class BookLoanServiceImpl implements BookLoanService {
         int maxBooksAllowed = subscription.getMaxBooksAllowed();
 
         if (activeCheckouts >= maxBooksAllowed) {
-            throw new Exception("Bạn đã đạt đến số lượng sách tối đa được phép.");
+            throw new BookException("Bạn đã đạt đến số lượng sách tối đa được phép.");
         }
 
         //  6. Check for overdue books
-        long overdueCount = bookLoanRepository.countOverdueBookLoansByUser(userId);
+        long overdueCount = bookLoanRepository.countOverdueBookLoansByUser(userId, LocalDate.now());
         if (overdueCount > 0) {
-            throw new Exception("Trước tiên, hãy trả lại cuốn sách cũ đã quá hạn.!");
+            throw new BookException("Trước tiên, hãy trả lại cuốn sách cũ đã quá hạn.!");
         }
 
         //  7. tạo khoản cho mượn sách
@@ -117,22 +159,23 @@ public class BookLoanServiceImpl implements BookLoanService {
     public BookLoanDTO checkinBook(CheckinRequest checkinRequest) throws Exception {
 
         // 1. validate book loan exist
-        BookLoan bookLoan = bookLoanRepository.findById(checkinRequest.getBookLoanId())
-                .orElseThrow(() -> new Exception("bookloan not found!"));
+        BookLoan bookLoan = ownedLockedLoan(checkinRequest.getBookLoanId());
 
         //  2. check if already returned
         if (!bookLoan.isActive()) {
             throw new BookException("book loan is not active");
         }
 
-        //  3. set return date
-        bookLoan.setReturnDate(LocalDate.now());
-
         // 4.
         BookLoanStatus condition = checkinRequest.getCondition();
         if (condition == null) {
             condition = BookLoanStatus.RETURNED;
         }
+        if (condition != BookLoanStatus.RETURNED && condition != BookLoanStatus.LOST
+                && condition != BookLoanStatus.DAMAGED) {
+            throw new BookException("Return condition must be RETURNED, LOST or DAMAGED");
+        }
+        bookLoan.setReturnDate(LocalDate.now());
         bookLoan.setStatus(condition);
 
         //      5 fine todo
@@ -145,7 +188,10 @@ public class BookLoanServiceImpl implements BookLoanService {
         //      7. update book avaibility
 
         if (condition != BookLoanStatus.LOST) {
-            Book book = bookLoan.getBook();
+            Book book = lockedBook(bookLoan.getBook().getId());
+            if (book.getAvailableCopies() >= book.getTotalCopies()) {
+                throw new BookException("Book inventory is inconsistent; check inventory before returning");
+            }
             book.setAvailableCopies(book.getAvailableCopies() + 1);
             bookRepository.save(book);
 
@@ -162,8 +208,10 @@ public class BookLoanServiceImpl implements BookLoanService {
     public BookLoanDTO renewCheckout(RenewRequest renewalRequest) throws Exception {
 
         //      1. validate book loan exist
-        BookLoan bookLoan = bookLoanRepository.findById(renewalRequest.getBookLoanId())
-                .orElseThrow(() -> new Exception("bookloan not found!"));
+        BookLoan bookLoan = ownedLockedLoan(renewalRequest.getBookLoanId());
+        if (renewalRequest.getExtensionDays() == null || renewalRequest.getExtensionDays() < 1) {
+            throw new BookException("Extension days must be positive");
+        }
 
         //      2. Check if can be renewed
         if (!bookLoan.canRenew()) {
@@ -171,8 +219,11 @@ public class BookLoanServiceImpl implements BookLoanService {
         }
 
         // update due date
-        bookLoan.setDueDate(bookLoan.getDueDate()
-                .plusDays(renewalRequest.getExtensionDays()));
+        LocalDate renewedDueDate = bookLoan.getDueDate().plusDays(renewalRequest.getExtensionDays());
+        if (renewedDueDate.getYear() > 9999) {
+            throw new BookException("Renewal date exceeds the supported database date range");
+        }
+        bookLoan.setDueDate(renewedDueDate);
 
         bookLoan.setRenewalCount(bookLoan.getRenewalCount() + 1);
 
@@ -185,6 +236,7 @@ public class BookLoanServiceImpl implements BookLoanService {
 
     @Override
     public PageResponse<BookLoanDTO> getMyBookLoans(BookLoanStatus status, int page, int size) throws Exception {
+        if (page < 0 || size < 1) throw new BookException("Invalid pagination");
         User currentUser = userService.getCurrentUser();
         Page<BookLoan> bookLoanPage;
 
@@ -204,8 +256,15 @@ public class BookLoanServiceImpl implements BookLoanService {
 
     @Override
     public PageResponse<BookLoanDTO> getBookLoans(BookLoanSearchRequest searchRequest) {
+        try { requireAdmin(); }
+        catch (org.springframework.security.access.AccessDeniedException ex) { throw ex; }
+        catch (Exception ex) { throw new org.springframework.security.access.AccessDeniedException("Authentication required"); }
 
         // 1 Build pageable with sorting, size, etc.
+        if (searchRequest.getPage() == null || searchRequest.getSize() == null
+                || searchRequest.getSortBy() == null || searchRequest.getSortDirection() == null) {
+            throw new IllegalArgumentException("Pagination fields must not be null");
+        }
         Pageable pageable = createPageable(
                 searchRequest.getPage(),
                 searchRequest.getSize(),
@@ -247,30 +306,40 @@ public class BookLoanServiceImpl implements BookLoanService {
 
     @Override
     public int updateOverdueBookLoan() {
-        Pageable pageable = PageRequest.of(0, 1000); // Process in batch
-        Page<BookLoan> overduePage = bookLoanRepository
-                .findOverdueBookLoans(LocalDate.now(), pageable);
+        try { requireAdmin(); }
+        catch (org.springframework.security.access.AccessDeniedException ex) { throw ex; }
+        catch (Exception ex) { throw new org.springframework.security.access.AccessDeniedException("Authentication required"); }
+        return updateOverdueBookLoan(1000);
+    }
 
+    private int updateOverdueBookLoan(int batchSize) {
+        LocalDate today = LocalDate.now();
+        Pageable pageable = PageRequest.of(0, batchSize);
+        long afterId = 0;
         int updateCount = 0;
-        for (BookLoan bookLoan : overduePage.getContent()) {
-            if (bookLoan.getStatus() == BookLoanStatus.CHECKED_OUT) {
-                bookLoan.setStatus(BookLoanStatus.OVERDUE);
-                bookLoan.setIsOverdue(true);
+        while (true) {
+            List<BookLoan> batch = bookLoanRepository.findOverdueBookLoansAfterId(today, afterId, pageable);
+            if (batch.isEmpty()) break;
+            for (BookLoan candidate : batch) {
+                afterId = candidate.getId();
+                BookLoan bookLoan = bookLoanRepository.findLockedById(afterId).orElse(null);
+                if (bookLoan == null) continue;
+                entityManager.refresh(bookLoan, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+                if (!bookLoan.isActive() || !bookLoan.getDueDate().isBefore(today)) continue;
 
-                // Calculate overdue days
-                 int overdueDays = calculateOverdueDate(
-                         bookLoan.getDueDate(),
-                         LocalDate.now()
-                 );
-
-                // Calculate fine
-                // BigDecimal fine = fineCalculationService.calculateOverdueFine(bookLoan);
-
-                bookLoanRepository.save(bookLoan);
-                updateCount++;
+                int overdueDays = calculateOverdueDate(bookLoan.getDueDate(), today);
+                if (bookLoan.getStatus() != BookLoanStatus.OVERDUE
+                        || !Boolean.TRUE.equals(bookLoan.getIsOverdue())
+                        || !java.util.Objects.equals(bookLoan.getOverdueDays(), overdueDays)) {
+                    bookLoan.setStatus(BookLoanStatus.OVERDUE);
+                    bookLoan.setIsOverdue(true);
+                    bookLoan.setOverdueDays(overdueDays);
+                    bookLoanRepository.save(bookLoan);
+                    updateCount++;
+                }
             }
+            if (batch.size() < batchSize) break;
         }
-
         return updateCount;
     }
 

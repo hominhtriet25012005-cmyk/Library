@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface GenreService {
 
-    GenreDTO createGenre(GenreDTO genre);
+    GenreDTO createGenre(GenreDTO genre) throws GenreException;
 
     List<GenreDTO> getAllGenres();
 
