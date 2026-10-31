@@ -79,6 +79,10 @@ public class FineController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
+        if (page < 0 || size < 1 || size > 100 || (userId != null && userId < 1)) {
+            throw new IllegalArgumentException("Invalid fine search paging or user ID");
+        }
+
         PageResponse<FineDTO> fines = fineService
                 .getAllFines(status, type, userId, page, size);
         return ResponseEntity.ok(fines);

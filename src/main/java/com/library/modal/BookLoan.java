@@ -88,7 +88,8 @@ public class BookLoan {
 
     public boolean canRenew() {
         return status == BookLoanStatus.CHECKED_OUT
-                && !isOverdue
+                && !Boolean.TRUE.equals(isOverdue)
+                && dueDate != null && !dueDate.isBefore(LocalDate.now())
                 && renewalCount < maxRenewals;
     }
 }

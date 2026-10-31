@@ -5,6 +5,7 @@ import com.library.modal.Genre;
 import com.library.payload.dto.GenreDTO;
 import com.library.payload.response.ApiResponse;
 import com.library.service.GenreService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +20,7 @@ public class GenreController {
     private final GenreService genreService;
 
     @PostMapping("/create")
-    public ResponseEntity<GenreDTO> addGenre(@RequestBody GenreDTO genre) {
+    public ResponseEntity<GenreDTO> addGenre(@Valid @RequestBody GenreDTO genre) throws GenreException {
         GenreDTO createdGenre=genreService.createGenre(genre);
         return ResponseEntity.ok(createdGenre);
     }
@@ -41,7 +42,7 @@ public class GenreController {
     @PutMapping("/{genreId}")
     public ResponseEntity<?> updateGenre(
             @PathVariable("genreId") Long genreId,
-            @RequestBody GenreDTO genre
+            @Valid @RequestBody GenreDTO genre
     ) throws GenreException {
         GenreDTO genres = genreService.updateGenre(genreId, genre);
         return ResponseEntity.ok(genres);

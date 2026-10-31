@@ -1,29 +1,52 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, FormControl, InputLabel, MenuItem, Paper, Select, Stack, Table,
-  TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
+  Alert,
+  Avatar,
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Tooltip,
+  Typography,
 } from "@mui/material";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import { adminUsersApi, filterAdminUsers, paginateAdminUsers } from "../../api/adminUsers";
+import PeopleRoundedIcon from "@mui/icons-material/PeopleRounded";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 
-const roleLabel = (role) => role === "ROLE_ADMIN" ? "Quản trị viên" : "Người dùng";
-
-const lastLoginLabel = (value) => {
-  if (!value) return "Chưa đăng nhập";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Không xác định";
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
-  }).format(date);
-};
-
-const DetailField = ({ label, value }) => (
-  <Box>
-    <Typography variant="caption" color="text.secondary">{label}</Typography>
-    <Typography sx={{ overflowWrap: "anywhere" }}>{value}</Typography>
-  </Box>
-);
+import {
+  adminUsersApi,
+  filterAdminUsers,
+  paginateAdminUsers,
+} from "../../api/adminUsers";
+import {
+  PageHeader,
+  SearchFilterBar,
+  StatCard,
+  StatCardGrid,
+  StatusChip,
+  TablePaginationBar,
+} from "../../components/common";
+import { formatDateTimeVN } from "../../utils/formatters";
 
 const AdminUsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -37,89 +60,350 @@ const AdminUsersPage = () => {
 
   useEffect(() => {
     const controller = new AbortController();
-    adminUsersApi.list({ signal: controller.signal })
+    setLoading(true);
+    setError("");
+    adminUsersApi
+      .list({ signal: controller.signal })
       .then((data) => {
-        if (!controller.signal.aborted) { setUsers(data); setError(""); }
+        if (!controller.signal.aborted) setUsers(data);
       })
       .catch((cause) => {
         if (!controller.signal.aborted && cause.name !== "AbortError") {
-          setError(cause.status === 403
-            ? "Tài khoản hiện tại không có quyền xem danh sách người dùng."
-            : cause.message || "Không thể tải danh sách người dùng.");
+          setError(
+            cause.status === 403
+              ? "Tài khoản hiện tại không có quyền xem danh sách người dùng."
+              : cause.message || "Không thể tải danh sách người dùng.",
+          );
         }
       })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
     return () => controller.abort();
   }, [reload]);
 
-  const filtered = useMemo(() => filterAdminUsers(users, { searchTerm, role }), [users, searchTerm, role]);
-  const result = useMemo(() => paginateAdminUsers(filtered, page, 10), [filtered, page]);
-  const retry = () => { setLoading(true); setError(""); setReload((value) => value + 1); };
+  const filtered = useMemo(
+    () => filterAdminUsers(users, { searchTerm, role }),
+    [users, searchTerm, role],
+  );
+
+  const result = useMemo(
+    () => paginateAdminUsers(filtered, page, 10),
+    [filtered, page],
+  );
+
+  const retry = () => {
+    setLoading(true);
+    setError("");
+    setReload((value) => value + 1);
+  };
+
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setRole("ALL");
+    setPage(0);
+  };
 
   return (
-    <Box component="section" aria-label="Quản lý người dùng" sx={{ maxWidth: 1200, mx: "auto", py: { xs: 3, sm: 4 } }}>
-      <Typography variant="overline" sx={{ color: "#1769ff", fontWeight: 800, letterSpacing: 1.2 }}>ADMIN · AD3</Typography>
-      <Typography variant="h4" component="h2" sx={{ fontWeight: 800, color: "#172b4d", mb: 1 }}>Người dùng</Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>Tra cứu thông tin tài khoản. Giai đoạn này chỉ xem, không sửa hoặc xóa người dùng.</Typography>
+    <Box
+      component="section"
+      sx={{ maxWidth: 1240, mx: "auto", py: { xs: 2.5, sm: 3.5 } }}
+    >
+      <PageHeader
+        title="Quản lý người dùng"
+        subtitle="Tra cứu tài khoản, phân quyền vai trò và theo dõi hoạt động đăng nhập trong hệ thống."
+      />
 
-      <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, borderColor: "#dce7f8", mb: 2 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} gap={1.5} alignItems={{ sm: "center" }}>
-          <TextField
-            label="Tìm tên, email, số điện thoại hoặc ID"
-            size="small"
-            value={searchTerm}
-            onChange={(event) => { setSearchTerm(event.target.value); setPage(0); }}
-            slotProps={{ input: { startAdornment: <SearchRoundedIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} /> } }}
-            sx={{ flex: 1 }}
-          />
-          <FormControl size="small" sx={{ minWidth: 170 }}>
-            <InputLabel>Vai trò</InputLabel>
-            <Select label="Vai trò" value={role} onChange={(event) => { setRole(event.target.value); setPage(0); }}>
-              <MenuItem value="ALL">Tất cả</MenuItem>
-              <MenuItem value="ROLE_USER">Người dùng</MenuItem>
-              <MenuItem value="ROLE_ADMIN">Quản trị viên</MenuItem>
-            </Select>
-          </FormControl>
-        </Stack>
-      </Paper>
+      {error && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2, borderRadius: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={retry}>
+              Thử lại
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      )}
 
-      {error && <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" onClick={retry}>Thử lại</Button>}>{error}</Alert>}
-      <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3, borderColor: "#dce7f8" }}>
-        <Table size="small" aria-label="Danh sách người dùng">
-          <TableHead><TableRow><TableCell>ID</TableCell><TableCell>Tài khoản</TableCell><TableCell>Điện thoại</TableCell><TableCell>Vai trò</TableCell><TableCell>Đăng nhập gần nhất</TableCell><TableCell align="right">Xem</TableCell></TableRow></TableHead>
+      {/* Thẻ thống kê người dùng */}
+      <StatCardGrid columns={4}>
+        <StatCard
+          title="Tổng tài khoản"
+          value={users.length}
+          detail="Tất cả tài khoản trong cơ sở dữ liệu"
+          icon={<PeopleRoundedIcon />}
+          color="#1769ff"
+          loading={loading}
+        />
+        <StatCard
+          title="Độc giả thư viện"
+          value={users.filter((u) => u.role === "ROLE_USER").length}
+          detail="Tài khoản độc giả mượn đọc sách"
+          icon={<PersonOutlineRoundedIcon />}
+          color="#16a34a"
+          loading={loading}
+        />
+        <StatCard
+          title="Quản trị viên"
+          value={users.filter((u) => u.role === "ROLE_ADMIN").length}
+          detail="Tài khoản quản lý hệ thống"
+          icon={<AdminPanelSettingsRoundedIcon />}
+          color="#d97706"
+          loading={loading}
+        />
+        <StatCard
+          title="Đã từng đăng nhập"
+          value={users.filter((u) => Boolean(u.lastLogin)).length}
+          detail="Tài khoản đang có hoạt động sử dụng"
+          icon={<LoginRoundedIcon />}
+          color="#0284c7"
+          loading={loading}
+        />
+      </StatCardGrid>
+
+      {/* Thanh tìm kiếm & lọc vai trò */}
+      <SearchFilterBar
+        searchValue={searchTerm}
+        onSearchChange={(val) => {
+          setSearchTerm(val);
+          setPage(0);
+        }}
+        searchPlaceholder="Tìm tên, email, số điện thoại hoặc ID..."
+        onReset={handleResetFilters}
+      >
+        <FormControl size="small" sx={{ minWidth: 160 }}>
+          <InputLabel>Vai trò</InputLabel>
+          <Select
+            label="Vai trò"
+            value={role}
+            onChange={(event) => {
+              setRole(event.target.value);
+              setPage(0);
+            }}
+          >
+            <MenuItem value="ALL">Tất cả vai trò</MenuItem>
+            <MenuItem value="ROLE_USER">Độc giả (ROLE_USER)</MenuItem>
+            <MenuItem value="ROLE_ADMIN">Quản trị viên (ROLE_ADMIN)</MenuItem>
+          </Select>
+        </FormControl>
+      </SearchFilterBar>
+
+      {/* Bảng danh sách người dùng */}
+      <TableContainer
+        component={Paper}
+        variant="outlined"
+        sx={{ borderRadius: 3, borderColor: "#e2e8f0" }}
+      >
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ width: 70 }}>ID</TableCell>
+              <TableCell>Họ và tên / Email</TableCell>
+              <TableCell>Số điện thoại</TableCell>
+              <TableCell align="center">Vai trò</TableCell>
+              <TableCell>Đăng nhập gần nhất</TableCell>
+              <TableCell align="center" sx={{ width: 100 }}>
+                Thao tác
+              </TableCell>
+            </TableRow>
+          </TableHead>
           <TableBody>
-            {loading && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 4 }}><CircularProgress size={24} aria-label="Đang tải người dùng" /></TableCell></TableRow>}
-            {!loading && !error && result.items.map((user) => (
-              <TableRow key={user.id} hover>
-                <TableCell>{user.id}</TableCell>
-                <TableCell><Typography fontWeight={700}>{user.fullName}</Typography><Typography variant="caption" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>{user.email}</Typography></TableCell>
-                <TableCell>{user.phone || "Chưa cập nhật"}</TableCell>
-                <TableCell><Chip size="small" variant="outlined" color={user.role === "ROLE_ADMIN" ? "primary" : "default"} label={roleLabel(user.role)} /></TableCell>
-                <TableCell>{lastLoginLabel(user.lastLogin)}</TableCell>
-                <TableCell align="right"><Button size="small" onClick={() => setSelected(user)}>Chi tiết</Button></TableCell>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                  <CircularProgress size={28} />
+                </TableCell>
               </TableRow>
-            ))}
-            {!loading && !error && result.items.length === 0 && <TableRow><TableCell colSpan={6} align="center" sx={{ py: 4 }}>Không có tài khoản phù hợp.</TableCell></TableRow>}
+            ) : (
+              result.items.map((user) => (
+                <TableRow key={user.id} hover>
+                  <TableCell
+                    sx={{ fontFamily: "monospace", color: "text.secondary" }}
+                  >
+                    #{user.id}
+                  </TableCell>
+
+                  <TableCell>
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 1.5 }}
+                    >
+                      <Avatar
+                        sx={{
+                          width: 34,
+                          height: 34,
+                          fontSize: "0.85rem",
+                          fontWeight: 700,
+                          bgcolor:
+                            user.role === "ROLE_ADMIN" ? "#102d62" : "#1769ff",
+                        }}
+                      >
+                        {user.fullName?.trim()?.[0]?.toUpperCase() ?? "U"}
+                      </Avatar>
+                      <Box>
+                        <Typography
+                          fontWeight={700}
+                          sx={{ color: "#0f172a", fontSize: "0.9rem" }}
+                        >
+                          {user.fullName || "—"}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {user.email}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </TableCell>
+
+                  <TableCell>{user.phone || "—"}</TableCell>
+
+                  <TableCell align="center">
+                    <StatusChip status={user.role} type="role" />
+                  </TableCell>
+
+                  <TableCell
+                    sx={{ fontSize: "0.8125rem", color: "text.secondary" }}
+                  >
+                    {formatDateTimeVN(user.lastLogin)}
+                  </TableCell>
+
+                  <TableCell align="center">
+                    <Tooltip title="Xem thông tin chi tiết">
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => setSelected(user)}
+                      >
+                        <VisibilityOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+
+            {!loading && result.items.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  align="center"
+                  sx={{ py: 6, color: "text.secondary" }}
+                >
+                  Không tìm thấy người dùng phù hợp.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </TableContainer>
-      {!loading && !error && <Stack direction="row" alignItems="center" justifyContent="flex-end" gap={1} sx={{ mt: 2 }}>
-        <Typography variant="body2" color="text.secondary">{result.totalElements} tài khoản · Trang {result.totalPages ? result.page + 1 : 0}/{result.totalPages}</Typography>
-        <Button disabled={result.page === 0} onClick={() => setPage(result.page - 1)}>Trước</Button>
-        <Button disabled={result.page + 1 >= result.totalPages} onClick={() => setPage(result.page + 1)}>Sau</Button>
-      </Stack>}
 
-      <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} fullWidth maxWidth="sm">
-        <DialogTitle>Thông tin tài khoản</DialogTitle>
-        <DialogContent>{selected && <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, pt: 1 }}>
-          <DetailField label="ID" value={selected.id} />
-          <DetailField label="Vai trò" value={roleLabel(selected.role)} />
-          <DetailField label="Họ và tên" value={selected.fullName} />
-          <DetailField label="Email" value={selected.email} />
-          <DetailField label="Số điện thoại" value={selected.phone || "Chưa cập nhật"} />
-          <DetailField label="Đăng nhập gần nhất" value={lastLoginLabel(selected.lastLogin)} />
-        </Box>}</DialogContent>
-        <DialogActions><Button onClick={() => setSelected(null)}>Đóng</Button></DialogActions>
+      {/* Phân trang chuẩn */}
+      <TablePaginationBar
+        page={page}
+        totalPages={result.totalPages}
+        totalElements={result.totalElements}
+        itemLabel="người dùng"
+        loading={loading}
+        onPageChange={(newPage) => setPage(newPage)}
+      />
+
+      {/* Modal Chi tiết tài khoản người dùng */}
+      <Dialog
+        open={Boolean(selected)}
+        onClose={() => setSelected(null)}
+        fullWidth
+        maxWidth="xs"
+        slotProps={{ paper: { sx: { borderRadius: 3.5, p: 0.5 } } }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            pt: 2.5,
+            px: 3,
+            pb: 1,
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+            Hồ sơ tài khoản
+          </Typography>
+          <IconButton size="small" onClick={() => setSelected(null)}>
+            <CloseRoundedIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ px: 3, py: 2 }}>
+          {selected && (
+            <Stack spacing={2.5}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Avatar
+                  sx={{
+                    width: 56,
+                    height: 56,
+                    fontSize: "1.4rem",
+                    fontWeight: 700,
+                    bgcolor:
+                      selected.role === "ROLE_ADMIN" ? "#102d62" : "#1769ff",
+                  }}
+                >
+                  {selected.fullName?.trim()?.[0]?.toUpperCase() ?? "U"}
+                </Avatar>
+                <Box>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={750}
+                    color="#0f172a"
+                  >
+                    {selected.fullName || "—"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {selected.email}
+                  </Typography>
+                  <Box sx={{ mt: 0.5 }}>
+                    <StatusChip status={selected.role} type="role" />
+                  </Box>
+                </Box>
+              </Box>
+
+              <Divider />
+
+              <Stack spacing={1.5}>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    ID người dùng:
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    #{selected.id}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Số điện thoại:
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {selected.phone || "Chưa cập nhật"}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Đăng nhập gần nhất:
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {formatDateTimeVN(selected.lastLogin)}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Stack>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9" }}>
+          <Button onClick={() => setSelected(null)} sx={{ borderRadius: 2 }}>
+            Đóng
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

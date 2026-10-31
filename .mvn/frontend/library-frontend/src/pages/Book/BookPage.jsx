@@ -1,22 +1,43 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import GenreFilter from "./GenreFilter";
 import BookCard from "./BookCard";
 import { booksApi } from "../../api/books";
-import WishlistStatus from "../../wishlist/WishlistStatus";
 import {
   Alert,
+  Box,
   Button,
+  Chip,
+  CircularProgress,
   FormControl,
+  IconButton,
   InputAdornment,
   InputLabel,
   MenuItem,
+  Paper,
   Select,
+  Stack,
   TextField,
-  Pagination,
+  Tooltip,
+  Typography,
 } from "@mui/material";
 import SortIcon from "@mui/icons-material/SortRounded";
 import SearchIcon from "@mui/icons-material/SearchRounded";
+import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import GridViewRoundedIcon from "@mui/icons-material/GridViewRounded";
+import ViewListRoundedIcon from "@mui/icons-material/ViewListRounded";
+import {
+  PageHeader,
+  TablePaginationBar,
+  EmptyState,
+} from "../../components/common";
+import { useAuth } from "../../auth/useAuth";
+import { useUserSettings } from "../../settings/useUserSettings";
+import {
+  addUserSearchHistory,
+  getUserSearchHistory,
+} from "../../settings/userSettings";
 
 const genres = [
   {
@@ -113,6 +134,70 @@ const books = [
 
 const BookPage = ({ preview = false }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const urlQuery = searchParams.get("q") || "";
+  const { user } = useAuth();
+  const { settings } = useUserSettings();
+  const userId = user?.id ?? "guest";
+
+  const pageSize = settings?.appearance?.booksPerPage || 12;
+  const [viewMode, setViewMode] = React.useState(
+    settings?.appearance?.defaultBookView || "grid",
+  );
+
+  React.useEffect(() => {
+    if (settings?.appearance?.defaultBookView) {
+      setViewMode(settings.appearance.defaultBookView);
+    }
+  }, [settings?.appearance?.defaultBookView]);
+
+  React.useEffect(() => {
+    if (urlQuery) {
+      setSearchTerm(urlQuery);
+      setPage(0);
+      if (!preview) setLoading(true);
+    }
+  }, [urlQuery, preview]);
+
+  const [searchHistory, setSearchHistory] = React.useState(() =>
+    settings?.privacy?.saveSearchHistory ? getUserSearchHistory(userId) : [],
+  );
+
+  React.useEffect(() => {
+    if (settings?.privacy?.saveSearchHistory) {
+      setSearchHistory(getUserSearchHistory(userId));
+    } else {
+      setSearchHistory([]);
+    }
+  }, [settings?.privacy?.saveSearchHistory, userId]);
+
+  React.useEffect(() => {
+    const handleHistoryCleared = () => setSearchHistory([]);
+    const handleHistoryUpdated = (e) => {
+      if (e.detail?.userId === userId) {
+        setSearchHistory(e.detail.history || []);
+      }
+    };
+    window.addEventListener(
+      "library:search-history-cleared",
+      handleHistoryCleared,
+    );
+    window.addEventListener(
+      "library:search-history-updated",
+      handleHistoryUpdated,
+    );
+    return () => {
+      window.removeEventListener(
+        "library:search-history-cleared",
+        handleHistoryCleared,
+      );
+      window.removeEventListener(
+        "library:search-history-updated",
+        handleHistoryUpdated,
+      );
+    };
+  }, [userId]);
+
   const [selectedGenreId, setSelectedGenreId] = React.useState(null);
   const [availabilityFilter, setAvailabilityFilter] = React.useState("ALL");
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -132,7 +217,13 @@ const BookPage = ({ preview = false }) => {
     booksApi
       .genres({ signal: controller.signal })
       .then((data) => {
-        setLoadedGenres(data.filter((genre) => genre.active));
+        const activeGenres = data.filter((genre) => genre.active);
+        activeGenres.sort(
+          (a, b) =>
+            (a.displayOrder ?? 0) - (b.displayOrder ?? 0) ||
+            (a.name || "").localeCompare(b.name || "", "vi"),
+        );
+        setLoadedGenres(activeGenres);
         setGenreError("");
       })
       .catch((error) => {
@@ -146,6 +237,9 @@ const BookPage = ({ preview = false }) => {
     const controller = new AbortController();
     const timer = setTimeout(
       () => {
+        if (searchTerm.trim() && settings?.privacy?.saveSearchHistory) {
+          addUserSearchHistory(userId, searchTerm.trim());
+        }
         booksApi
           .search(
             {
@@ -153,6 +247,7 @@ const BookPage = ({ preview = false }) => {
               genreId: selectedGenreId,
               availability: availabilityFilter,
               page,
+              size: pageSize,
               sortBy,
               sortDirection,
             },
@@ -181,9 +276,12 @@ const BookPage = ({ preview = false }) => {
     selectedGenreId,
     availabilityFilter,
     page,
+    pageSize,
     sortBy,
     sortDirection,
     retry,
+    settings?.privacy?.saveSearchHistory,
+    userId,
   ]);
 
   const handleGenreChange = (event) => {
@@ -194,7 +292,6 @@ const BookPage = ({ preview = false }) => {
 
   const handleSortChange = (value) => {
     const [field, direction] = value.split("-");
-
     setSortBy(field);
     setSortDirection(direction.toUpperCase());
     setPage(0);
@@ -231,171 +328,326 @@ const BookPage = ({ preview = false }) => {
     : (catalog?.content ?? []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-50">
-      {/* header */}
-      <div className="bg-white border-b border-gray-200 text-center">
-        <div className="px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-4xl text-gray-900 mb-2">
-            <h1 className="font-bold">
-              Khám phá{" "}
-              <span className="bg-gradient-to-r from-blue-700 to-sky-700 bg-clip-text text-transparent">
-                kho sách
-              </span>
-            </h1>
+    <Box
+      component="section"
+      aria-label="Khám phá kho sách"
+      sx={{
+        width: "100%",
+        maxWidth: 1440,
+        mx: "auto",
+      }}
+    >
+      {/* Header */}
+      <PageHeader
+        title="Khám phá kho sách"
+        subtitle="Tìm kiếm theo thể loại, tác giả và tình trạng mượn trả từ kho tài nguyên thư viện"
+        icon={AutoStoriesRoundedIcon}
+      />
 
-            <p className="text-lg text-gray-600">
-              Tìm sách theo thể loại, tác giả và tình trạng còn sách
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Main Content Layout */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", lg: "row" },
+          gap: 3.5,
+          alignItems: "flex-start",
+        }}
+      >
+        {/* Left Sidebar Filter */}
+        <Box
+          sx={{
+            width: { xs: "100%", lg: 280 },
+            flexShrink: 0,
+            display: "grid",
+            gap: 2.5,
+          }}
+        >
+          {/* Thể loại */}
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              borderRadius: 2.5,
+              borderColor: "divider",
+              bgcolor: "background.paper",
+            }}
+          >
+            <GenreFilter
+              onGenreSelect={handleGenreChange}
+              genres={preview ? genres : loadedGenres}
+              selectedGenreId={selectedGenreId}
+            />
+            {genreError && (
+              <Alert severity="warning" sx={{ mt: 1.5, borderRadius: 2 }}>
+                Không tải được thể loại: {genreError}
+              </Alert>
+            )}
+          </Paper>
 
-      {/* Main Content */}
+          {/* Tình trạng sách */}
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2.5,
+              borderRadius: 2.5,
+              borderColor: "divider",
+              bgcolor: "background.paper",
+            }}
+          >
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 700, color: "text.primary", mb: 2 }}
+            >
+              Tình trạng sách
+            </Typography>
+            <FormControl fullWidth size="small">
+              <Select
+                value={availabilityFilter}
+                onChange={(e) => {
+                  setAvailabilityFilter(e.target.value);
+                  setPage(0);
+                  if (!preview) setLoading(true);
+                }}
+                sx={{ borderRadius: "10px" }}
+              >
+                <MenuItem value="ALL">Tất cả sách</MenuItem>
+                <MenuItem value="AVAILABLE">Còn sách mượn</MenuItem>
+                <MenuItem value="CHECKED_OUT">Đang được mượn hết</MenuItem>
+              </Select>
+            </FormControl>
+          </Paper>
+        </Box>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* sidebar -filter */}
-          <aside className="lg:w-72 space-y-6">
-            {/* filterr container */}
-            <div className="space-y-6">
-              {/* Genre Filter */}
-              <GenreFilter
-                onGenreSelect={handleGenreChange}
-                genres={preview ? genres : loadedGenres}
-                selectedGenreId={selectedGenreId}
+        {/* Right Books Main Area */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            width: "100%",
+            display: "grid",
+            gap: 2.5,
+          }}
+        >
+          {/* Search & Sort Bar */}
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2,
+              borderRadius: 2.5,
+              borderColor: "divider",
+              bgcolor: "background.paper",
+              display: "flex",
+              flexDirection: "column",
+              gap: 1.5,
+            }}
+          >
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              alignItems="center"
+              sx={{ width: "100%" }}
+            >
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Tìm theo tên sách, tác giả hoặc ISBN..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(0);
+                  if (!preview) setLoading(true);
+                }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ color: "#94a3b8" }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                sx={{
+                  flex: 1,
+                  "& .MuiOutlinedInput-root": { borderRadius: "10px" },
+                }}
               />
-              {genreError && (
-                <Alert severity="warning">
-                  Không tải được thể loại: {genreError}
-                </Alert>
-              )}
 
-              {/* Availability Filter */}
-              <div className="bg-white rounded-xl shadow-md p-4 border border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 pb-3 border-b border-gray-200">
-                  Tình trạng sách
-                </h3>
+              <FormControl
+                size="small"
+                sx={{ width: { xs: "100%", sm: 220 }, flexShrink: 0 }}
+              >
+                <InputLabel id="book-sort-label">Sắp xếp theo</InputLabel>
+                <Select
+                  labelId="book-sort-label"
+                  value={getCurrentSortValue()}
+                  onChange={(e) => handleSortChange(e.target.value)}
+                  label="Sắp xếp theo"
+                  startAdornment={
+                    <InputAdornment position="start">
+                      <SortIcon sx={{ color: "#94a3b8" }} />
+                    </InputAdornment>
+                  }
+                  sx={{ borderRadius: "10px" }}
+                >
+                  <MenuItem value="title-asc">Tên sách (A–Z)</MenuItem>
+                  <MenuItem value="title-desc">Tên sách (Z–A)</MenuItem>
+                  <MenuItem value="author-asc">Tác giả (A–Z)</MenuItem>
+                  <MenuItem value="author-desc">Tác giả (Z–A)</MenuItem>
+                  <MenuItem value="createdAt-desc">Mới cập nhật</MenuItem>
+                  <MenuItem value="createdAt-asc">Cũ nhất</MenuItem>
+                </Select>
+              </FormControl>
 
-                <FormControl fullWidth>
-                  <Select
-                    value={availabilityFilter}
-                    onChange={(e) => {
-                      setAvailabilityFilter(e.target.value);
+              {/* Chế độ xem: Lưới (Grid) hoặc Danh sách (List) */}
+              <Stack
+                direction="row"
+                spacing={0.5}
+                sx={{
+                  bgcolor: (theme) =>
+                    theme.palette.mode === "dark" ? "#17243a" : "#f1f5f9",
+                  p: 0.5,
+                  borderRadius: 2,
+                  flexShrink: 0,
+                  alignSelf: { xs: "flex-end", sm: "center" },
+                }}
+              >
+                <Tooltip title="Xem dạng lưới (Grid)" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => setViewMode("grid")}
+                    color={viewMode === "grid" ? "primary" : "default"}
+                    sx={{
+                      bgcolor: (theme) =>
+                        viewMode === "grid"
+                          ? theme.palette.mode === "dark"
+                            ? "#0f172a"
+                            : "#ffffff"
+                          : "transparent",
+                      boxShadow:
+                        viewMode === "grid"
+                          ? "0 1px 3px rgba(0,0,0,0.1)"
+                          : "none",
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    <GridViewRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Xem dạng danh sách (List)" arrow>
+                  <IconButton
+                    size="small"
+                    onClick={() => setViewMode("list")}
+                    color={viewMode === "list" ? "primary" : "default"}
+                    sx={{
+                      bgcolor: (theme) =>
+                        viewMode === "list"
+                          ? theme.palette.mode === "dark"
+                            ? "#0f172a"
+                            : "#ffffff"
+                          : "transparent",
+                      boxShadow:
+                        viewMode === "list"
+                          ? "0 1px 3px rgba(0,0,0,0.1)"
+                          : "none",
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    <ViewListRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Stack>
+            </Stack>
+
+            {/* Gợi ý lịch sử tìm kiếm gần đây */}
+            {searchHistory.length > 0 && !searchTerm && (
+              <Stack
+                direction="row"
+                spacing={1}
+                alignItems="center"
+                sx={{ flexWrap: "wrap", gap: 0.75, pt: 0.5 }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{ color: "#64748b", fontWeight: 600 }}
+                >
+                  Tìm gần đây:
+                </Typography>
+                {searchHistory.map((term, idx) => (
+                  <Chip
+                    key={idx}
+                    label={term}
+                    size="small"
+                    clickable
+                    onClick={() => {
+                      setSearchTerm(term);
                       setPage(0);
                       if (!preview) setLoading(true);
                     }}
-                  >
-                    <MenuItem value={"ALL"}>Tất cả sách</MenuItem>
-                    <MenuItem value="AVAILABLE">Còn sách</MenuItem>
-                    <MenuItem value="CHECKED_OUT">Đã hết sách</MenuItem>
-                  </Select>
-                </FormControl>
-              </div>
-            </div>
-            {/* */}
-          </aside>
-
-          {/* Main Content Area */}
-
-          <main className="flex-1 space-y-6">
-            {!preview && <WishlistStatus />}
-            {/* search and sort  */}
-            <div className="flex flex-col md:flex-row gap-4">
-              {/* Search Input */}
-              <div className="flex-1">
-                <TextField
-                  fullWidth
-                  placeholder="Tìm theo tên sách, tác giả hoặc ISBN..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setPage(0);
-                    if (!preview) setLoading(true);
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon className="text-gray-400" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      "&:hover fieldset": {
-                        borderColor: "#1769ff",
-                      },
-                      "&.Mui-focused fieldset": {
-                        borderColor: "#1769ff",
-                      },
-                    },
-                  }}
-                />
-              </div>
-
-              {/* Sort Dropdown */}
-              <div className="md:w-64">
-                <FormControl fullWidth>
-                  <InputLabel>Sắp xếp theo</InputLabel>
-
-                  <Select
-                    value={getCurrentSortValue()}
-                    onChange={(e) => handleSortChange(e.target.value)}
-                    label="Sắp xếp theo"
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <SortIcon className="text-gray-400" />
-                      </InputAdornment>
-                    }
                     sx={{
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#E5E7EB",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#1769ff",
-                      },
-                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#1769ff",
-                      },
+                      height: 24,
+                      fontSize: "0.75rem",
+                      bgcolor: "#f1f5f9",
+                      "&:hover": { bgcolor: "#e2e8f0" },
                     }}
-                  >
-                    <MenuItem value="title-asc">Tên sách (A–Z)</MenuItem>
-                    <MenuItem value="title-desc">Tên sách (Z–A)</MenuItem>
-                    <MenuItem value="author-asc">Tác giả (A–Z)</MenuItem>
-                    <MenuItem value="author-desc">Tác giả (Z–A)</MenuItem>
-                    <MenuItem value="createdAt-desc">Mới nhất</MenuItem>
-                    <MenuItem value="createdAt-asc">Cũ nhất</MenuItem>
-                  </Select>
-                </FormControl>
-              </div>
-            </div>
+                  />
+                ))}
+              </Stack>
+            )}
+          </Paper>
 
-            {/* Books Grid */}
-            {!preview && catalogError ? (
-              <Alert
-                severity="error"
-                action={
-                  <Button
-                    color="inherit"
-                    onClick={() => {
-                      setLoading(true);
-                      setRetry((value) => value + 1);
-                    }}
-                  >
-                    Thử lại
-                  </Button>
-                }
+          {/* Error Message */}
+          {!preview && catalogError && (
+            <Alert
+              severity="error"
+              action={
+                <Button
+                  color="inherit"
+                  size="small"
+                  onClick={() => {
+                    setLoading(true);
+                    setRetry((value) => value + 1);
+                  }}
+                >
+                  Thử lại
+                </Button>
+              }
+              sx={{ borderRadius: 2 }}
+            >
+              Không tải được danh sách sách: {catalogError}
+            </Alert>
+          )}
+
+          {/* Loading Indicator */}
+          {loading && !preview ? (
+            <Box
+              sx={{
+                py: 10,
+                textAlign: "center",
+                bgcolor: "background.paper",
+                borderRadius: 2.5,
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <CircularProgress size={32} />
+              <Typography variant="body2" sx={{ mt: 1.5, color: "#64748b" }}>
+                Đang tìm kiếm kho sách...
+              </Typography>
+            </Box>
+          ) : visibleBooks.length > 0 ? (
+            viewMode === "grid" ? (
+              /* Books Grid */
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, minmax(0, 1fr))",
+                    xl: "repeat(3, minmax(0, 1fr))",
+                  },
+                  gap: 2.5,
+                }}
               >
-                Không tải được danh sách sách: {catalogError}
-              </Alert>
-            ) : loading && !preview ? (
-              <p
-                role="status"
-                className="rounded-xl bg-white p-6 text-gray-600"
-              >
-                Đang tải sách...
-              </p>
-            ) : visibleBooks.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {visibleBooks.map((book) => (
                   <BookCard
                     key={book.id}
@@ -407,32 +659,171 @@ const BookPage = ({ preview = false }) => {
                     }
                   />
                 ))}
-              </div>
+              </Box>
             ) : (
-              <p className="rounded-xl bg-white p-6 text-gray-600">
-                Không tìm thấy sách phù hợp với bộ lọc.
-              </p>
-            )}
-            {!preview &&
-              !loading &&
-              !catalogError &&
-              catalog?.totalPages > 1 && (
-                <div className="flex justify-center pt-4">
-                  <Pagination
-                    color="primary"
-                    page={page + 1}
-                    count={catalog.totalPages}
-                    onChange={(_, value) => {
-                      setPage(value - 1);
-                      setLoading(true);
+              /* Books List View */
+              <Stack spacing={2}>
+                {visibleBooks.map((book) => (
+                  <Paper
+                    key={book.id}
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      borderRadius: 2.5,
+                      borderColor: "divider",
+                      bgcolor: "background.paper",
+                      display: "flex",
+                      flexDirection: { xs: "column", sm: "row" },
+                      gap: 2.5,
+                      alignItems: { xs: "flex-start", sm: "center" },
+                      transition: "all 0.2s ease",
+                      "&:hover": {
+                        borderColor: "#1769ff",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                      },
                     }}
-                  />
-                </div>
-              )}
-          </main>
-        </div>
-      </div>
-    </div>
+                  >
+                    <Box
+                      component="img"
+                      src={
+                        book.coverImageUrl ||
+                        "https://placehold.co/100x140?text=No+Cover"
+                      }
+                      alt={book.title}
+                      sx={{
+                        width: { xs: 80, sm: 80 },
+                        height: { xs: 112, sm: 112 },
+                        borderRadius: 1.5,
+                        objectFit: "cover",
+                        flexShrink: 0,
+                        bgcolor: "#f1f5f9",
+                      }}
+                    />
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        alignItems="center"
+                        sx={{ mb: 0.5, flexWrap: "wrap", gap: 0.5 }}
+                      >
+                        {book.genreName && (
+                          <Chip
+                            label={book.genreName}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            sx={{
+                              height: 20,
+                              fontSize: "0.7rem",
+                              fontWeight: 600,
+                            }}
+                          />
+                        )}
+                        <Chip
+                          label={
+                            book.availableCopies > 0
+                              ? `Còn ${book.availableCopies}/${book.totalCopies} cuốn`
+                              : "Hết sách"
+                          }
+                          size="small"
+                          color={
+                            book.availableCopies > 0 ? "success" : "default"
+                          }
+                          sx={{
+                            height: 20,
+                            fontSize: "0.7rem",
+                            fontWeight: 700,
+                          }}
+                        />
+                      </Stack>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          fontWeight: 750,
+                          color: "#0f172a",
+                          lineHeight: 1.3,
+                          mb: 0.25,
+                        }}
+                      >
+                        {book.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 0.75 }}
+                      >
+                        Tác giả: <strong>{book.author}</strong>{" "}
+                        {book.publisher ? `• NXB: ${book.publisher}` : ""}
+                      </Typography>
+                      {book.description && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {book.description}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() =>
+                        preview ? undefined : navigate(`/user/books/${book.id}`)
+                      }
+                      sx={{
+                        borderRadius: 2,
+                        textTransform: "none",
+                        fontWeight: 700,
+                        px: 2.5,
+                        whiteSpace: "nowrap",
+                        alignSelf: { xs: "stretch", sm: "center" },
+                      }}
+                    >
+                      Xem chi tiết
+                    </Button>
+                  </Paper>
+                ))}
+              </Stack>
+            )
+          ) : (
+            /* Empty State */
+            <EmptyState
+              icon={MenuBookRoundedIcon}
+              title="Không tìm thấy sách phù hợp"
+              description="Thử tìm kiếm với từ khóa khác hoặc xóa bớt các bộ lọc thể loại."
+              actionText="Xóa bộ lọc"
+              onAction={() => {
+                setSearchTerm("");
+                setSelectedGenreId(null);
+                setAvailabilityFilter("ALL");
+              }}
+            />
+          )}
+
+          {/* Server-side Pagination */}
+          {!preview && !loading && !catalogError && catalog?.totalPages > 1 && (
+            <TablePaginationBar
+              page={page}
+              totalPages={catalog.totalPages}
+              totalElements={catalog.totalElements}
+              pageSize={pageSize}
+              onPageChange={(newPage) => {
+                setPage(newPage);
+                setLoading(true);
+              }}
+              itemLabel="đầu sách"
+            />
+          )}
+        </Box>
+      </Box>
+    </Box>
   );
 };
 

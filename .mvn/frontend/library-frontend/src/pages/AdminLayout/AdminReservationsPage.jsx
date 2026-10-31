@@ -1,33 +1,92 @@
 import { useEffect, useState } from "react";
 import {
-  Alert, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions,
-  DialogContent, DialogTitle, FormControl, FormControlLabel, InputLabel,
-  MenuItem, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, TextField, Typography,
+  Alert,
+  Box,
+  Button,
+  Checkbox,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  FormControlLabel,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
 } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
+import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import QueueRoundedIcon from "@mui/icons-material/QueueRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+
 import {
-  adminReservationsApi, canAdminCancel, canAdminFulfill,
+  adminReservationsApi,
+  canAdminCancel,
+  canAdminFulfill,
 } from "../../api/adminReservations";
+import {
+  ConfirmDialog,
+  PageHeader,
+  SearchFilterBar,
+  StatusChip,
+  TablePaginationBar,
+} from "../../components/common";
+import { formatDateTimeVN } from "../../utils/formatters";
 
 const statusNames = {
-  PENDING: "Đang chờ", AVAILABLE: "Sẵn sàng nhận", FULFILLED: "Đã giao sách",
-  CANCELLED: "Đã hủy", EXPIRED: "Hết hạn",
+  PENDING: "Đang chờ",
+  AVAILABLE: "Sẵn sàng nhận",
+  FULFILLED: "Đã giao sách",
+  CANCELLED: "Đã hủy",
+  EXPIRED: "Hết hạn",
 };
-const dateTimeLabel = (value) => {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Không xác định";
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
-  }).format(date);
-};
-const emptyFilter = { userId: "", bookId: "", status: "ALL", activeOnly: false, sortDirection: "DESC" };
 
-const Detail = ({ label, value }) => <Box>
-  <Typography variant="caption" color="text.secondary">{label}</Typography>
-  <Typography sx={{ overflowWrap: "anywhere" }}>{value ?? "—"}</Typography>
-</Box>;
+const emptyFilter = {
+  userId: "",
+  bookId: "",
+  status: "ALL",
+  activeOnly: false,
+  sortDirection: "DESC",
+};
+
+const Detail = ({ label, value }) => (
+  <Box>
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      sx={{ fontWeight: 600 }}
+    >
+      {label}
+    </Typography>
+    <Typography
+      variant="body2"
+      sx={{
+        overflowWrap: "anywhere",
+        fontWeight: 500,
+        color: "#0f172a",
+        mt: 0.25,
+      }}
+    >
+      {value ?? "—"}
+    </Typography>
+  </Box>
+);
 
 const AdminReservationsPage = () => {
   const [draft, setDraft] = useState(emptyFilter);
@@ -46,35 +105,68 @@ const AdminReservationsPage = () => {
 
   useEffect(() => {
     const controller = new AbortController();
-    adminReservationsApi.search({ ...filter, page }, { signal: controller.signal })
+    adminReservationsApi
+      .search({ ...filter, page }, { signal: controller.signal })
       .then((data) => {
         if (controller.signal.aborted) return;
-        if (page > 0 && page >= data.totalPages) { setPage(Math.max(0, data.totalPages - 1)); return; }
-        setResult(data); setLoadError("");
+        if (page > 0 && page >= data.totalPages) {
+          setPage(Math.max(0, data.totalPages - 1));
+          return;
+        }
+        setResult(data);
+        setLoadError("");
       })
       .catch((error) => {
         if (!controller.signal.aborted && error.name !== "AbortError")
           setLoadError(error.message || "Không thể tải danh sách đặt giữ.");
       })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
     return () => controller.abort();
   }, [filter, page, reload]);
 
   const applyFilter = (next) => {
-    setDraft(next); setFilter(next); setPage(0); setResult(null);
-    setLoading(true); setLoadError(""); setNotice("");
+    setDraft(next);
+    setFilter(next);
+    setPage(0);
+    setResult(null);
+    setLoading(true);
+    setLoadError("");
+    setNotice("");
   };
-  const showQueue = (bookId) => applyFilter({ userId: "", bookId: String(bookId),
-    status: "ALL", activeOnly: true, sortDirection: "ASC" });
-  const retry = () => { setLoading(true); setLoadError(""); setReload((value) => value + 1); };
+
+  const showQueue = (bookId) =>
+    applyFilter({
+      userId: "",
+      bookId: String(bookId),
+      status: "ALL",
+      activeOnly: true,
+      sortDirection: "ASC",
+    });
+
+  const retry = () => {
+    setLoading(true);
+    setLoadError("");
+    setReload((value) => value + 1);
+  };
+
   const openAction = (kind, reservation = null) => {
-    setSelected(null); setAction({ kind, reservation }); setActionError("");
+    setSelected(null);
+    setAction({ kind, reservation });
+    setActionError("");
     setForm({ userId: "", bookId: "", notes: "" });
   };
-  const closeAction = () => { if (!busy) setAction(null); };
+
+  const closeAction = () => {
+    if (!busy) setAction(null);
+  };
+
   const submitAction = async () => {
     if (!action || busy) return;
-    setBusy(true); setActionError(""); setNotice("");
+    setBusy(true);
+    setActionError("");
+    setNotice("");
     try {
       let updated;
       if (action.kind === "create") {
@@ -85,122 +177,538 @@ const AdminReservationsPage = () => {
         setNotice(`Đã hủy đặt giữ #${updated.id}.`);
       } else {
         updated = await adminReservationsApi.fulfill(action.reservation.id);
-        setNotice(`Đã xác nhận giao sách và tạo lượt mượn từ đặt giữ #${updated.id}.`);
+        setNotice(`Đã xác nhận giao sách cho đặt giữ #${updated.id}.`);
       }
-      setAction(null); setSelected(updated); setLoading(true); setReload((value) => value + 1);
+      setSelected(updated);
+      setAction(null);
+      setLoading(true);
+      setReload((value) => value + 1);
     } catch (error) {
-      setActionError(error.message || "Thao tác không thành công. Vui lòng thử lại.");
-    } finally { setBusy(false); }
+      setActionError(
+        error.message || "Thao tác không thành công. Vui lòng thử lại.",
+      );
+    } finally {
+      setBusy(false);
+    }
   };
 
-  return <Box component="section" aria-label="Quản lý đặt giữ" sx={{ maxWidth: 1250, mx: "auto", py: { xs: 3, sm: 4 } }}>
-    <Typography variant="overline" sx={{ color: "#1769ff", fontWeight: 800 }}>ADMIN · AD5</Typography>
-    <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ sm: "center" }} gap={2} sx={{ mb: 1 }}>
-      <Typography component="h2" variant="h4" sx={{ color: "#172b4d", fontWeight: 800 }}>Đặt giữ</Typography>
-      <Button variant="contained" onClick={() => openAction("create")}>Tạo đặt giữ</Button>
-    </Stack>
-    <Typography color="text.secondary" sx={{ mb: 3 }}>
-      Xem toàn hệ thống và hàng đợi theo sách. Chỉ ADMIN xác nhận giao sách cho người đứng đầu khi sách có bản sẵn.
-    </Typography>
+  return (
+    <Box
+      component="section"
+      sx={{ maxWidth: 1240, mx: "auto", py: { xs: 2.5, sm: 3.5 } }}
+    >
+      <PageHeader
+        title="Quản lý đặt giữ sách"
+        subtitle="Theo dõi hàng đợi đặt giữ, tiếp nhận yêu cầu tại quầy, hủy hoặc xác nhận giao sách cho độc giả."
+        action={
+          <Button
+            variant="contained"
+            startIcon={<AddRoundedIcon />}
+            onClick={() => openAction("create")}
+          >
+            Tạo đặt giữ
+          </Button>
+        }
+      />
 
-    <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, borderColor: "#dce7f8", mb: 2 }}>
-      <Stack direction={{ xs: "column", md: "row" }} gap={1.5} alignItems={{ md: "center" }}>
-        <TextField size="small" type="number" label="ID người dùng" value={draft.userId}
-          onChange={(event) => setDraft({ ...draft, userId: event.target.value })} sx={{ flex: 1 }} />
-        <TextField size="small" type="number" label="ID sách" value={draft.bookId}
-          onChange={(event) => setDraft({ ...draft, bookId: event.target.value })} sx={{ flex: 1 }} />
-        <FormControl size="small" sx={{ minWidth: 170 }}><InputLabel>Trạng thái</InputLabel>
-          <Select label="Trạng thái" value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value })}>
-            <MenuItem value="ALL">Tất cả</MenuItem>
-            {Object.entries(statusNames).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
-          </Select></FormControl>
-        <Button variant="outlined" onClick={() => applyFilter({ ...draft })}>Tra cứu</Button>
-      </Stack>
-      <FormControlLabel control={<Checkbox checked={draft.activeOnly} onChange={(event) => setDraft({ ...draft, activeOnly: event.target.checked, sortDirection: event.target.checked ? "ASC" : "DESC" })} />}
-        label="Chỉ hàng đợi đang hoạt động" />
-      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-        Lọc và phân trang ở backend. Chọn “Hàng đợi sách” trong danh sách để xem đúng thứ tự của một đầu sách.
-      </Typography>
-    </Paper>
+      {/* Thanh bộ lọc */}
+      <SearchFilterBar
+        onReset={() => applyFilter(emptyFilter)}
+        actions={
+          <Button
+            variant="outlined"
+            onClick={() => applyFilter(draft)}
+            sx={{ height: 40, px: 2.5, borderRadius: 2 }}
+          >
+            Lọc dữ liệu
+          </Button>
+        }
+      >
+        <TextField
+          size="small"
+          type="number"
+          label="ID người dùng"
+          placeholder="Nhập User ID..."
+          value={draft.userId}
+          onChange={(event) =>
+            setDraft({ ...draft, userId: event.target.value })
+          }
+          sx={{ minWidth: 140 }}
+        />
 
-    {notice && <Alert severity="success" onClose={() => setNotice("")} sx={{ mb: 2 }}>{notice}</Alert>}
-    {loadError && <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" onClick={retry}>Thử lại</Button>}>{loadError}</Alert>}
-    <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 3, borderColor: "#dce7f8" }}>
-      <Table size="small" aria-label="Danh sách đặt giữ" sx={{ minWidth: 800 }}>
-        <TableHead><TableRow>
-          <TableCell>ID</TableCell><TableCell>Người đặt</TableCell><TableCell>Sách</TableCell>
-          <TableCell>Trạng thái</TableCell><TableCell>Vị trí</TableCell><TableCell>Đặt lúc</TableCell><TableCell align="right">Thao tác</TableCell>
-        </TableRow></TableHead>
-        <TableBody>
-          {loading && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}><CircularProgress size={24} aria-label="Đang tải đặt giữ" /></TableCell></TableRow>}
-          {!loading && !loadError && result?.content.map((entry) => <TableRow key={entry.id} hover>
-            <TableCell>#{entry.id}</TableCell>
-            <TableCell><Typography fontWeight={700}>{entry.userName || `Người dùng #${entry.userId}`}</Typography><Typography variant="caption" color="text.secondary">{entry.userEmail}</Typography></TableCell>
-            <TableCell><Typography fontWeight={700}>{entry.bookTitle || `Sách #${entry.bookId}`}</Typography><Typography variant="caption" color="text.secondary">{entry.bookIsbn}</Typography></TableCell>
-            <TableCell><Chip size="small" variant="outlined" color={entry.status === "AVAILABLE" ? "success" : entry.status === "PENDING" ? "primary" : "default"} label={statusNames[entry.status] || entry.status} /></TableCell>
-            <TableCell>{["PENDING", "AVAILABLE"].includes(entry.status) ? entry.queuePosition ?? "—" : "—"}</TableCell>
-            <TableCell>{dateTimeLabel(entry.reservedAt)}</TableCell>
-            <TableCell align="right"><Stack direction="row" justifyContent="flex-end" gap={0.5}>
-              <Button size="small" onClick={() => setSelected(entry)}>Xem</Button>
-              {entry.bookId && <Button size="small" onClick={() => showQueue(entry.bookId)}>Hàng đợi sách</Button>}
-            </Stack></TableCell>
-          </TableRow>)}
-          {!loading && !loadError && result?.content.length === 0 && <TableRow><TableCell colSpan={7} align="center" sx={{ py: 4 }}>Không có đặt giữ phù hợp.</TableCell></TableRow>}
-        </TableBody>
-      </Table>
-    </TableContainer>
-    {!loading && !loadError && result && <Stack direction="row" justifyContent="flex-end" alignItems="center" gap={1} sx={{ mt: 2 }}>
-      <Typography variant="body2" color="text.secondary">{result.totalElements} lượt · Trang {result.totalPages ? page + 1 : 0}/{result.totalPages}</Typography>
-      <Button disabled={page === 0} onClick={() => { setLoading(true); setPage(page - 1); }}>Trước</Button>
-      <Button disabled={page + 1 >= result.totalPages} onClick={() => { setLoading(true); setPage(page + 1); }}>Sau</Button>
-    </Stack>}
+        <TextField
+          size="small"
+          type="number"
+          label="ID sách"
+          placeholder="Nhập Book ID..."
+          value={draft.bookId}
+          onChange={(event) =>
+            setDraft({ ...draft, bookId: event.target.value })
+          }
+          sx={{ minWidth: 140 }}
+        />
 
-    <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} fullWidth maxWidth="sm">
-      <DialogTitle>Chi tiết đặt giữ #{selected?.id}</DialogTitle>
-      <DialogContent>{selected && <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, pt: 1 }}>
-        <Detail label="Người đặt" value={`${selected.userName || "—"} · #${selected.userId}`} />
-        <Detail label="Email" value={selected.userEmail} />
-        <Detail label="Sách" value={`${selected.bookTitle || "—"} · #${selected.bookId}`} />
-        <Detail label="ISBN" value={selected.bookIsbn} />
-        <Detail label="Trạng thái" value={statusNames[selected.status] || selected.status} />
-        <Detail label="Vị trí hàng đợi" value={selected.queuePosition} />
-        <Detail label="Ngày đặt" value={dateTimeLabel(selected.reservedAt)} />
-        <Detail label="Sẵn sàng từ" value={dateTimeLabel(selected.availableAt)} />
-        <Detail label="Hạn nhận" value={dateTimeLabel(selected.availableUntil)} />
-        <Detail label="Đã giao lúc" value={dateTimeLabel(selected.fulfilledAt)} />
-        <Detail label="Sách còn bản" value={selected.isBookAvailable ? "Có" : "Không"} />
-        <Detail label="Ghi chú" value={selected.notes || "Không có"} />
-      </Box>}</DialogContent>
-      <DialogActions>
-        {canAdminCancel(selected) && <Button color="error" onClick={() => openAction("cancel", selected)}>Hủy đặt giữ</Button>}
-        {canAdminFulfill(selected) && <Button onClick={() => openAction("fulfill", selected)}>Xác nhận giao sách</Button>}
-        <Button onClick={() => setSelected(null)}>Đóng</Button>
-      </DialogActions>
-    </Dialog>
+        <FormControl size="small" sx={{ minWidth: 160 }}>
+          <InputLabel>Trạng thái</InputLabel>
+          <Select
+            label="Trạng thái"
+            value={draft.status}
+            onChange={(event) =>
+              setDraft({ ...draft, status: event.target.value })
+            }
+          >
+            <MenuItem value="ALL">Tất cả trạng thái</MenuItem>
+            {Object.entries(statusNames).map(([value, label]) => (
+              <MenuItem key={value} value={value}>
+                {label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-    <Dialog open={Boolean(action)} onClose={closeAction} fullWidth maxWidth="sm">
-      <DialogTitle>{action?.kind === "create" ? "Tạo đặt giữ cho người dùng"
-        : action?.kind === "cancel" ? `Hủy đặt giữ #${action.reservation.id}`
-          : `Xác nhận giao sách · đặt giữ #${action?.reservation?.id}`}</DialogTitle>
-      <DialogContent><Stack gap={2} sx={{ pt: 1 }}>
-        {action?.kind === "create" && <>
-          <Typography variant="body2" color="text.secondary">Dùng ID ở trang <Button component={RouterLink} to="/admin/users" size="small">Người dùng</Button> và <Button component={RouterLink} to="/admin/books" size="small">Sách</Button>. Backend chỉ nhận đặt giữ khi sách hết bản và còn hạn mức.</Typography>
-          <TextField type="number" label="ID người dùng" required value={form.userId} onChange={(event) => setForm({ ...form, userId: event.target.value })} />
-          <TextField type="number" label="ID sách" required value={form.bookId} onChange={(event) => setForm({ ...form, bookId: event.target.value })} />
-          <TextField label="Ghi chú (không bắt buộc)" multiline maxRows={3} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
-        </>}
-        {action?.kind === "cancel" && <Typography>Bạn sẽ hủy lượt đặt giữ này và hàng đợi sẽ được sắp lại. Không thể khôi phục vị trí cũ.</Typography>}
-        {action?.kind === "fulfill" && <>
-          <Typography>Xác nhận sách đã được giao cho người đứng đầu hàng đợi. Backend sẽ tạo lượt mượn, kiểm tra gói thành viên/tồn kho và cập nhật đặt giữ trong cùng giao dịch.</Typography>
-          <Alert severity="warning">Chỉ bấm sau khi đã giao sách thực tế cho người dùng. Nếu điều kiện thay đổi, backend sẽ từ chối và không báo thành công.</Alert>
-        </>}
-        {actionError && <Alert severity="error">{actionError}</Alert>}
-      </Stack></DialogContent>
-      <DialogActions><Button disabled={busy} onClick={closeAction}>Đóng</Button>
-        <Button disabled={busy} variant="contained" color={action?.kind === "cancel" ? "error" : "primary"} onClick={submitAction}>{busy ? "Đang xử lý…" : "Xác nhận"}</Button>
-      </DialogActions>
-    </Dialog>
-  </Box>;
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={draft.activeOnly}
+              onChange={(event) =>
+                setDraft({ ...draft, activeOnly: event.target.checked })
+              }
+            />
+          }
+          label={
+            <Typography variant="body2">
+              Chỉ xem hàng đợi (chờ/sẵn sàng)
+            </Typography>
+          }
+        />
+      </SearchFilterBar>
+
+      {notice && (
+        <Alert
+          severity="success"
+          onClose={() => setNotice("")}
+          sx={{ mb: 2, borderRadius: 2 }}
+        >
+          {notice}
+        </Alert>
+      )}
+
+      {loadError && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2, borderRadius: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={retry}>
+              Thử lại
+            </Button>
+          }
+        >
+          {loadError}
+        </Alert>
+      )}
+
+      {/* Bảng danh sách đặt giữ */}
+      <TableContainer
+        component={Paper}
+        variant="outlined"
+        sx={{ borderRadius: 3, borderColor: "#e2e8f0" }}
+      >
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ width: 80 }}>Mã ĐG</TableCell>
+              <TableCell>Độc giả</TableCell>
+              <TableCell>Sách đặt trước</TableCell>
+              <TableCell align="center">Trạng thái</TableCell>
+              <TableCell align="center">Vị trí hàng đợi</TableCell>
+              <TableCell>Hạn nhận sách</TableCell>
+              <TableCell align="center" sx={{ width: 140 }}>
+                Thao tác
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <CircularProgress size={28} />
+                </TableCell>
+              </TableRow>
+            ) : (
+              (result?.content ?? []).map((res) => (
+                <TableRow key={res.id} hover>
+                  <TableCell
+                    sx={{ fontFamily: "monospace", color: "text.secondary" }}
+                  >
+                    #{res.id}
+                  </TableCell>
+
+                  <TableCell>
+                    <Typography
+                      fontWeight={700}
+                      sx={{ color: "#0f172a", fontSize: "0.875rem" }}
+                    >
+                      {res.userName || `Độc giả #${res.userId}`}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {res.userEmail || `ID: #${res.userId}`}
+                    </Typography>
+                  </TableCell>
+
+                  <TableCell>
+                    <Typography
+                      fontWeight={650}
+                      sx={{ color: "#0f172a", fontSize: "0.875rem" }}
+                    >
+                      {res.bookTitle || `Sách #${res.bookId}`}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mt: 0.25,
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        ISBN: {res.bookIsbn || "—"}
+                      </Typography>
+                      {res.bookId && (
+                        <Tooltip title="Xem hàng đợi của cuốn sách này">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => showQueue(res.bookId)}
+                            sx={{ p: 0.25 }}
+                          >
+                            <QueueRoundedIcon sx={{ fontSize: 15 }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  </TableCell>
+
+                  <TableCell align="center">
+                    <StatusChip status={res.status} type="reservation" />
+                  </TableCell>
+
+                  <TableCell align="center">
+                    <Typography
+                      fontWeight={700}
+                      color={
+                        res.queuePosition === 1
+                          ? "primary.main"
+                          : "text.secondary"
+                      }
+                    >
+                      {res.queuePosition ? `#${res.queuePosition}` : "—"}
+                    </Typography>
+                  </TableCell>
+
+                  <TableCell
+                    sx={{ fontSize: "0.8125rem", color: "text.secondary" }}
+                  >
+                    {formatDateTimeVN(res.availableUntil)}
+                  </TableCell>
+
+                  <TableCell align="center">
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      justifyContent="center"
+                    >
+                      <Tooltip title="Xem chi tiết">
+                        <IconButton
+                          size="small"
+                          color="info"
+                          onClick={() => setSelected(res)}
+                        >
+                          <VisibilityOutlinedIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      {canAdminFulfill(res) && (
+                        <Tooltip title="Xác nhận giao sách">
+                          <IconButton
+                            size="small"
+                            color="success"
+                            onClick={() => openAction("fulfill", res)}
+                          >
+                            <CheckCircleOutlineRoundedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+
+                      {canAdminCancel(res) && (
+                        <Tooltip title="Hủy đặt giữ">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => openAction("cancel", res)}
+                          >
+                            <CancelOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+
+            {!loading && !loadError && result?.content?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  align="center"
+                  sx={{ py: 6, color: "text.secondary" }}
+                >
+                  Không tìm thấy lượt đặt giữ phù hợp.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Phân trang */}
+      <TablePaginationBar
+        page={page}
+        totalPages={result?.totalPages ?? 1}
+        totalElements={result?.totalElements ?? 0}
+        itemLabel="đặt giữ"
+        loading={loading}
+        onPageChange={(newPage) => {
+          setLoading(true);
+          setPage(newPage);
+        }}
+      />
+
+      {/* Modal Chi tiết đặt giữ */}
+      <Dialog
+        open={Boolean(selected)}
+        onClose={() => setSelected(null)}
+        fullWidth
+        maxWidth="sm"
+        slotProps={{ paper: { sx: { borderRadius: 3.5, p: 0.5 } } }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            pt: 2.5,
+            px: 3,
+            pb: 1,
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+            Chi tiết đặt giữ #{selected?.id}
+          </Typography>
+          <IconButton size="small" onClick={() => setSelected(null)}>
+            <CloseRoundedIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ px: 3, py: 2 }}>
+          {selected && (
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                gap: 2,
+                pt: 1,
+              }}
+            >
+              <Detail
+                label="Độc giả"
+                value={`${selected.userName || "—"} · #${selected.userId}`}
+              />
+              <Detail label="Email" value={selected.userEmail} />
+              <Detail
+                label="Sách"
+                value={`${selected.bookTitle || "—"} · #${selected.bookId}`}
+              />
+              <Detail label="ISBN" value={selected.bookIsbn} />
+              <Box>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontWeight: 600 }}
+                >
+                  Trạng thái
+                </Typography>
+                <Box sx={{ mt: 0.5 }}>
+                  <StatusChip status={selected.status} type="reservation" />
+                </Box>
+              </Box>
+              <Detail
+                label="Vị trí hàng đợi"
+                value={
+                  selected.queuePosition ? `#${selected.queuePosition}` : "—"
+                }
+              />
+              <Detail
+                label="Ngày tạo"
+                value={formatDateTimeVN(selected.createdAt)}
+              />
+              <Detail
+                label="Hạn nhận sách"
+                value={formatDateTimeVN(selected.availableUntil)}
+              />
+              <Box sx={{ gridColumn: { sm: "1 / -1" } }}>
+                <Detail
+                  label="Ghi chú"
+                  value={selected.notes || "Không có ghi chú"}
+                />
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+
+        <DialogActions
+          sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9", gap: 1 }}
+        >
+          {canAdminFulfill(selected) && (
+            <Button
+              variant="contained"
+              color="success"
+              onClick={() => openAction("fulfill", selected)}
+            >
+              Xác nhận giao sách
+            </Button>
+          )}
+          {canAdminCancel(selected) && (
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={() => openAction("cancel", selected)}
+            >
+              Hủy đặt giữ
+            </Button>
+          )}
+          <Button onClick={() => setSelected(null)}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal Thao tác Tạo mới / Hủy / Giao sách */}
+      <Dialog
+        open={Boolean(action)}
+        onClose={closeAction}
+        fullWidth
+        maxWidth="sm"
+        slotProps={{ paper: { sx: { borderRadius: 3.5, p: 0.5 } } }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            pt: 2.5,
+            px: 3,
+            pb: 1,
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+            {action?.kind === "create"
+              ? "Tạo đặt giữ mới cho độc giả"
+              : action?.kind === "cancel"
+                ? `Xác nhận hủy đặt giữ · #${action?.reservation?.id}`
+                : `Xác nhận giao sách · #${action?.reservation?.id}`}
+          </Typography>
+          <IconButton size="small" onClick={closeAction} disabled={busy}>
+            <CloseRoundedIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ px: 3, py: 2 }}>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            {action?.kind === "create" && (
+              <>
+                <Typography variant="body2" color="text.secondary">
+                  Đặt giữ chỉ hợp lệ khi sách đã hết bản sẵn. Độc giả phải chưa
+                  mượn hoặc chưa đặt giữ cuốn sách này.
+                </Typography>
+                <TextField
+                  label="ID người dùng (User ID)"
+                  type="number"
+                  required
+                  placeholder="VD: 2"
+                  value={form.userId}
+                  onChange={(event) =>
+                    setForm({ ...form, userId: event.target.value })
+                  }
+                />
+                <TextField
+                  label="ID sách (Book ID)"
+                  type="number"
+                  required
+                  placeholder="VD: 12"
+                  value={form.bookId}
+                  onChange={(event) =>
+                    setForm({ ...form, bookId: event.target.value })
+                  }
+                />
+                <TextField
+                  label="Ghi chú (không bắt buộc)"
+                  multiline
+                  maxRows={3}
+                  value={form.notes}
+                  onChange={(event) =>
+                    setForm({ ...form, notes: event.target.value })
+                  }
+                />
+              </>
+            )}
+
+            {action?.kind === "cancel" && (
+              <Typography variant="body2" color="text.secondary">
+                Bạn có chắc chắn muốn hủy đặt giữ{" "}
+                <strong>#{action?.reservation?.id}</strong> cho cuốn sách{" "}
+                <strong>"{action?.reservation?.bookTitle}"</strong>? Thao tác
+                này sẽ giải phóng thứ tự hàng đợi cho người tiếp theo.
+              </Typography>
+            )}
+
+            {action?.kind === "fulfill" && (
+              <Typography variant="body2" color="text.secondary">
+                Xác nhận đã bàn giao cuốn sách{" "}
+                <strong>"{action?.reservation?.bookTitle}"</strong> cho độc giả{" "}
+                <strong>{action?.reservation?.userName}</strong>. Hệ thống sẽ
+                chuyển đổi đặt giữ này sang lượt mượn chính thức.
+              </Typography>
+            )}
+
+            {actionError && (
+              <Alert severity="error" sx={{ borderRadius: 2 }}>
+                {actionError}
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+
+        <DialogActions
+          sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9", gap: 1 }}
+        >
+          <Button
+            disabled={busy}
+            onClick={closeAction}
+            sx={{ color: "#64748b" }}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            color={action?.kind === "cancel" ? "error" : "primary"}
+            disabled={busy}
+            onClick={submitAction}
+          >
+            {busy ? "Đang xử lý…" : "Xác nhận"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
 };
 
 export default AdminReservationsPage;

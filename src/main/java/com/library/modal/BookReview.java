@@ -8,6 +8,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "book_reviews", uniqueConstraints = @UniqueConstraint(
+        name = "uq_book_reviews_user_book", columnNames = {"user_id", "book_id"}))
 @Getter
 @Setter
 @AllArgsConstructor
@@ -16,30 +18,35 @@ import java.time.LocalDateTime;
 public class BookReview {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne
-    @JoinColumn(nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
     @Column(nullable = false)
     private Integer rating;
 
-    @Column(nullable = false)
+    @Column(name = "review_text", length = 2000)
     private String reviewText;
 
+    @Column(length = 200)
     private String title;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }

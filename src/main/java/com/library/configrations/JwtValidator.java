@@ -1,59 +1,60 @@
 package com.library.configrations;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.util.List;
 
 public class JwtValidator extends OncePerRequestFilter {
+
+    private final JwtProvider jwtProvider;
+    private final UserDetailsService userDetailsService;
+
+    public JwtValidator(JwtProvider jwtProvider, UserDetailsService userDetailsService) {
+        this.jwtProvider = jwtProvider;
+        this.userDetailsService = userDetailsService;
+    }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return "POST".equals(request.getMethod()) && "/api/payments/webhook/payos".equals(request.getServletPath());
+        return "POST".equals(request.getMethod())
+                && "/api/payments/webhook/payos".equals(request.getServletPath());
     }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+        String authorization = request.getHeader(JwtConstant.JWT_HEADER);
+        if (authorization == null || authorization.isBlank()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-        String jwt = request.getHeader(JwtConstant.JWT_HEADER);
-        // Bearer kjasdfjaoisduwer
-        if (jwt != null) {
-            try {
-                if (!jwt.startsWith("Bearer ") || jwt.length() <= 7) throw new IllegalArgumentException();
-                jwt = jwt.substring(7);
-                SecretKey key = Keys.hmacShaKeyFor(JwtConstant.SECRET_KEY.getBytes());
-                Claims claims = Jwts.parser().verifyWith(key).build()
-                        .parseSignedClaims(jwt).getPayload();
-
-                String email=String.valueOf(claims.get("email"));
-                String authorities=String.valueOf(claims.get("authorities"));
-
-                List<GrantedAuthority> authoritiesList= AuthorityUtils
-                        .commaSeparatedStringToAuthorityList(authorities);
-                Authentication auth=new UsernamePasswordAuthenticationToken(
-                        email, null, authoritiesList);
-                SecurityContextHolder.getContext().setAuthentication(auth);
-
-            } catch (Exception e) {
-                SecurityContextHolder.clearContext();
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid bearer token");
-                return;
+        try {
+            if (!authorization.startsWith(JwtConstant.BEARER_PREFIX)
+                    || authorization.length() <= JwtConstant.BEARER_PREFIX.length()) {
+                throw new IllegalArgumentException("Invalid bearer token");
             }
+
+            String email = jwtProvider.getEmailFromJwtToken(authorization);
+            UserDetails currentUser = userDetailsService.loadUserByUsername(email);
+            var authentication = new UsernamePasswordAuthenticationToken(
+                    currentUser,
+                    null,
+                    currentUser.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        } catch (Exception exception) {
+            SecurityContextHolder.clearContext();
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid bearer token");
+            return;
         }
         filterChain.doFilter(request, response);
     }

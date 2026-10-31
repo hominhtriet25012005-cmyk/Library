@@ -83,3 +83,23 @@ test("API PUT gửi JSON và Bearer token", async () => {
   assert.equal(captured.options.headers.Authorization, "Bearer abc");
   assert.equal(captured.options.body, '{"rating":4}');
 });
+
+test("API POST FormData gửi Bearer token và không ghi đè Content-Type", async () => {
+  let captured;
+  const client = createApiClient({
+    getToken: () => "token-xyz",
+    fetchImpl: async (url, options) => {
+      captured = { url, options };
+      return new Response(JSON.stringify({ imageUrl: "http://localhost/cover.jpg" }), { status: 201 });
+    },
+  });
+  const formData = new FormData();
+  formData.append("file", "fake-binary");
+  const result = await client.post("/api/admin/books/covers", formData);
+  assert.deepEqual(result, { imageUrl: "http://localhost/cover.jpg" });
+  assert.equal(captured.url, "/api/admin/books/covers");
+  assert.equal(captured.options.method, "POST");
+  assert.equal(captured.options.headers.Authorization, "Bearer token-xyz");
+  assert.equal(captured.options.headers["Content-Type"], undefined);
+  assert.equal(captured.options.body, formData);
+});

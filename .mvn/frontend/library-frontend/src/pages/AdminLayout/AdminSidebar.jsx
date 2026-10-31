@@ -1,4 +1,12 @@
-import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Typography } from "@mui/material";
+import {
+  Box,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Typography,
+} from "@mui/material";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
@@ -43,14 +51,44 @@ const AdminSidebarContent = ({ onNavigate }) => {
   };
 
   return (
-    <Box sx={{ height: "100dvh", display: "flex", flexDirection: "column", bgcolor: "#102d62", color: "white" }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, px: 2.25, py: 2.5, flexShrink: 0 }}>
-        <Box sx={{ width: 40, height: 40, borderRadius: 2, display: "grid", placeItems: "center", bgcolor: "#1769ff" }}>
+    <Box
+      sx={{
+        height: "100dvh",
+        display: "flex",
+        flexDirection: "column",
+        bgcolor: "#102d62",
+        color: "white",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.25,
+          px: 2.25,
+          py: 2.5,
+          flexShrink: 0,
+        }}
+      >
+        <Box
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: 2,
+            display: "grid",
+            placeItems: "center",
+            bgcolor: "#1769ff",
+          }}
+        >
           <MenuBookRoundedIcon />
         </Box>
         <Box>
-          <Typography sx={{ fontWeight: 700, lineHeight: 1.2 }}>Thư viện</Typography>
-          <Typography variant="caption" sx={{ color: "#a9c5f4" }}>KHU QUẢN TRỊ</Typography>
+          <Typography sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+            Thư viện
+          </Typography>
+          <Typography variant="caption" sx={{ color: "#a9c5f4" }}>
+            KHU QUẢN TRỊ
+          </Typography>
         </Box>
       </Box>
 
@@ -71,7 +109,17 @@ const AdminSidebarContent = ({ onNavigate }) => {
       >
         {adminNavigationSections.map((section) => (
           <Box key={section.title} sx={{ mb: 1.5 }}>
-            <Typography variant="overline" sx={{ display: "block", px: 1.5, py: 0.5, color: "#91b2eb", fontWeight: 700, letterSpacing: 1 }}>
+            <Typography
+              variant="overline"
+              sx={{
+                display: "block",
+                px: 1.5,
+                py: 0.5,
+                color: "#91b2eb",
+                fontWeight: 700,
+                letterSpacing: 1,
+              }}
+            >
               {section.title}
             </Typography>
             <List disablePadding>
@@ -89,13 +137,21 @@ const AdminSidebarContent = ({ onNavigate }) => {
                     px: 1.5,
                     color: "#e5eeff",
                     "& .MuiListItemIcon-root": { color: "#abc7f3" },
-                    "&.Mui-selected, &.Mui-selected:hover": { bgcolor: "rgba(88, 151, 255, 0.24)", color: "white" },
+                    "&.Mui-selected, &.Mui-selected:hover": {
+                      bgcolor: "rgba(88, 151, 255, 0.24)",
+                      color: "white",
+                    },
                     "&.Mui-selected .MuiListItemIcon-root": { color: "white" },
                     "&:hover": { bgcolor: "rgba(255,255,255,0.08)" },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 38 }}>{icons[item.icon]}</ListItemIcon>
-                  <ListItemText primary={item.title} primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
+                  <ListItemIcon sx={{ minWidth: 38 }}>
+                    {icons[item.icon]}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.title}
+                    primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }}
+                  />
                 </ListItemButton>
               ))}
             </List>
@@ -103,14 +159,39 @@ const AdminSidebarContent = ({ onNavigate }) => {
         ))}
       </Box>
 
-      <Box sx={{ px: 1.25, py: 1.25, borderTop: "1px solid rgba(255,255,255,0.14)", flexShrink: 0 }}>
-        <ListItemButton component={RouterLink} to="/user" onClick={onNavigate} sx={{ borderRadius: 2, color: "#e5eeff" }}>
-          <ListItemIcon sx={{ minWidth: 38, color: "#abc7f3" }}><SwapHorizRoundedIcon /></ListItemIcon>
-          <ListItemText primary="Giao diện người dùng" primaryTypographyProps={{ fontSize: 14 }} />
+      <Box
+        sx={{
+          px: 1.25,
+          py: 1.25,
+          borderTop: "1px solid rgba(255,255,255,0.14)",
+          flexShrink: 0,
+        }}
+      >
+        <ListItemButton
+          component={RouterLink}
+          to="/user"
+          onClick={onNavigate}
+          sx={{ borderRadius: 2, color: "#e5eeff" }}
+        >
+          <ListItemIcon sx={{ minWidth: 38, color: "#abc7f3" }}>
+            <SwapHorizRoundedIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="Giao diện người dùng"
+            primaryTypographyProps={{ fontSize: 14 }}
+          />
         </ListItemButton>
-        <ListItemButton onClick={logout} sx={{ borderRadius: 2, color: "#e5eeff" }}>
-          <ListItemIcon sx={{ minWidth: 38, color: "#abc7f3" }}><LogoutIcon /></ListItemIcon>
-          <ListItemText primary="Đăng xuất" primaryTypographyProps={{ fontSize: 14 }} />
+        <ListItemButton
+          onClick={logout}
+          sx={{ borderRadius: 2, color: "#e5eeff" }}
+        >
+          <ListItemIcon sx={{ minWidth: 38, color: "#abc7f3" }}>
+            <LogoutIcon />
+          </ListItemIcon>
+          <ListItemText
+            primary="Đăng xuất"
+            primaryTypographyProps={{ fontSize: 14 }}
+          />
         </ListItemButton>
       </Box>
     </Box>
@@ -118,20 +199,36 @@ const AdminSidebarContent = ({ onNavigate }) => {
 };
 
 const AdminSidebar = ({ mobileOpen, onClose }) => (
-  <Box component="aside" sx={{ width: { md: adminDrawerWidth }, flexShrink: { md: 0 } }}>
+  <Box
+    component="aside"
+    sx={{ width: { md: adminDrawerWidth }, flexShrink: { md: 0 } }}
+  >
     <Drawer
       variant="temporary"
       open={mobileOpen}
       onClose={onClose}
       ModalProps={{ keepMounted: true }}
-      sx={{ display: { xs: "block", md: "none" }, "& .MuiDrawer-paper": { width: adminDrawerWidth, boxSizing: "border-box" } }}
+      sx={{
+        display: { xs: "block", md: "none" },
+        "& .MuiDrawer-paper": {
+          width: adminDrawerWidth,
+          boxSizing: "border-box",
+        },
+      }}
     >
       <AdminSidebarContent onNavigate={onClose} />
     </Drawer>
     <Drawer
       variant="permanent"
       open
-      sx={{ display: { xs: "none", md: "block" }, "& .MuiDrawer-paper": { width: adminDrawerWidth, boxSizing: "border-box", border: 0 } }}
+      sx={{
+        display: { xs: "none", md: "block" },
+        "& .MuiDrawer-paper": {
+          width: adminDrawerWidth,
+          boxSizing: "border-box",
+          border: 0,
+        },
+      }}
     >
       <AdminSidebarContent />
     </Drawer>

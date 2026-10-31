@@ -21,6 +21,7 @@ public class BookReviewMapper {
                 .rating(bookReview.getRating())
                 .reviewText(bookReview.getReviewText())
                 .title(bookReview.getTitle())
+                .isActive(bookReview.getIsActive())
                 .createdAt(bookReview.getCreatedAt())
                 .updatedAt(bookReview.getUpdatedAt())
                 .build();

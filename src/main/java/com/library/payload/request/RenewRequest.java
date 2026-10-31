@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 public class RenewRequest {
 
@@ -15,7 +14,9 @@ public class RenewRequest {
     private Long bookLoanId;
 
     @Min(value = 1, message = "Số ngày gia hạn phải ít nhất là 1.")
+    @NotNull
     private Integer extensionDays = 14; // Mặc định: gia hạn thêm 14 ngày
 
+    @jakarta.validation.constraints.Size(max = 500)
     private String notes;
 }

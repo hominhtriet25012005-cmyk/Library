@@ -46,7 +46,9 @@ test("chỉ người có lượt mượn RETURNED và chưa có đánh giá ho�
 
 test("validation khớp giới hạn request backend", () => {
   assert.equal(validateReview({ rating: 0, title: "", reviewText: "Đủ mười ký tự" }), "Điểm đánh giá phải từ 1 đến 5 sao.");
-  assert.equal(validateReview({ rating: 5, title: "", reviewText: "Ngắn" }), "Nội dung đánh giá phải từ 10 đến 2000 ký tự.");
-  assert.equal(validateReview({ rating: 5, title: "x".repeat(201), reviewText: "Nội dung đủ dài" }), "Tiêu đề tối đa 200 ký tự.");
+  assert.equal(validateReview({ rating: 5, title: "", reviewText: "Ok" }), null);
+  assert.equal(validateReview({ rating: 5, title: "", reviewText: "" }), null);
+  assert.equal(validateReview({ rating: 5, title: "x".repeat(201), reviewText: "Nội dung" }), "Tiêu đề tối đa 200 ký tự.");
+  assert.equal(validateReview({ rating: 5, title: "Hay", reviewText: "x".repeat(2001) }), "Nội dung đánh giá tối đa 2000 ký tự.");
   assert.equal(validateReview({ rating: 5, title: "Hay", reviewText: "Nội dung đủ dài" }), null);
 });

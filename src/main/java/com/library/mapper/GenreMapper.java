@@ -2,21 +2,26 @@ package com.library.mapper;
 
 import com.library.modal.Genre;
 import com.library.payload.dto.GenreDTO;
-import com.library.repository.GenreRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.stream.Collectors;
 
 @Component
-@RequiredArgsConstructor
 public class GenreMapper {
 
-    private final GenreRepository genreRepository;
-
     public GenreDTO toDTO(Genre savedGenre) {
+        return toDTO(savedGenre, Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    private GenreDTO toDTO(Genre savedGenre, Set<Genre> visiting) {
         if (savedGenre == null) {
+            return null;
+        }
+        if (!visiting.add(savedGenre)) {
             return null;
         }
         GenreDTO dto = GenreDTO.builder()
@@ -38,8 +43,11 @@ public class GenreMapper {
         if (savedGenre.getSubGenres() != null && !savedGenre.getSubGenres().isEmpty()) {
             dto.setSubGenre(savedGenre.getSubGenres().stream()
                     .filter(subGenre -> subGenre.getActive())
-                    .map(subGenre -> toDTO(subGenre)).collect(Collectors.toList()));
+                    .filter(subGenre -> !visiting.contains(subGenre))
+                    .map(subGenre -> toDTO(subGenre, visiting)).collect(Collectors.toList()));
         }
+
+        visiting.remove(savedGenre);
 
 //        dto.setBookCount((long) (savedGenre.getB));
 
@@ -56,13 +64,8 @@ public class GenreMapper {
                 .name(genreDTO.getName())
                 .description(genreDTO.getDescription())
                 .displayOrder(genreDTO.getDisplayOrder())
-                .active(true)
+                .active(genreDTO.getActive() != null ? genreDTO.getActive() : true)
                 .build();
-
-        if (genreDTO.getParentGenreId() != null) {
-            genreRepository.findById(genreDTO.getParentGenreId())
-                    .ifPresent(genre::setParentGenre);
-        }
 
         return genre;
     }
@@ -78,10 +81,6 @@ public class GenreMapper {
         existingGenre.setDisplayOrder(dto.getDisplayOrder() != null ? dto.getDisplayOrder() : 0);
         if (dto.getActive() != null) {
             existingGenre.setActive(dto.getActive());
-        }
-        if (dto.getParentGenreId() != null) {
-            genreRepository.findById(dto.getParentGenreId())
-                    .ifPresent(existingGenre::setParentGenre);
         }
     }
 

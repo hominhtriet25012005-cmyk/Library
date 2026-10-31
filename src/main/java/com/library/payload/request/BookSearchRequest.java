@@ -15,6 +15,10 @@ public class BookSearchRequest {
 
     private Boolean availableOnly;
 
+    private Boolean unavailableOnly;
+
+    private Boolean active;
+
     private Integer page=0;
 
     private Integer size=20;

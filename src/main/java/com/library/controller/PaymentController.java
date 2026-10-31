@@ -11,11 +11,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/payments")
 public class PaymentController {
+
+    private static final Set<String> PAYMENT_SORT_FIELDS = Set.of(
+            "id", "createdAt", "amount", "status", "paymentType", "gateway", "currency");
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final PaymentService paymentService;
 
@@ -31,6 +36,11 @@ public class PaymentController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") String sortDir) {
+
+        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE || !PAYMENT_SORT_FIELDS.contains(sortBy)
+                || (!sortDir.equalsIgnoreCase("ASC") && !sortDir.equalsIgnoreCase("DESC"))) {
+            return ResponseEntity.badRequest().body(new ApiResponse("Invalid payment history paging or sort", false));
+        }
 
         Sort sort = sortDir.equalsIgnoreCase("DESC")
                 ? Sort.by(sortBy).descending()

@@ -1,13 +1,18 @@
 import { useState } from "react";
 import {
   Alert,
+  Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   TextField,
+  Typography,
 } from "@mui/material";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import { Link } from "react-router-dom";
 import { reservationsApi } from "../../api/reservations.js";
 import { canCreateReservation } from "../My Reservation/reservationRules.js";
@@ -36,58 +41,140 @@ const ReservationAction = ({ book }) => {
   };
 
   return (
-    <div className="mt-4">
+    <Box>
       {completed ? (
-        <Alert severity="success">
-          Đã tạo đặt giữ.{" "}
-          <Link to="/user/my-reservations" className="font-semibold underline">
-            Xem hàng đợi
-          </Link>
+        <Alert severity="success" sx={{ borderRadius: 2 }}>
+          Đã tạo đặt giữ thành công!{" "}
+          <Button
+            component={Link}
+            to="/user/my-reservations"
+            size="small"
+            sx={{ fontWeight: 750, textTransform: "none", ml: 1 }}
+          >
+            Xem vị trí hàng đợi →
+          </Button>
         </Alert>
       ) : (
         <Button
-          variant="outlined"
+          variant="contained"
+          color="primary"
+          startIcon={<EventAvailableRoundedIcon />}
           onClick={() => {
             setError("");
             setOpen(true);
           }}
+          sx={{
+            borderRadius: "10px",
+            textTransform: "none",
+            fontWeight: 700,
+            px: 2.5,
+            py: 1,
+            boxShadow: "0 2px 8px rgba(23,105,255,0.25)",
+          }}
         >
-          Đặt giữ sách
+          Đặt giữ sách (Xếp hàng)
         </Button>
       )}
+
+      {/* Dialog đặt giữ */}
       <Dialog
         open={open}
         onClose={busy ? undefined : () => setOpen(false)}
         fullWidth
         maxWidth="xs"
+        slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
       >
-        <DialogTitle>Đặt giữ sách</DialogTitle>
-        <DialogContent className="space-y-4">
-          <p className="text-slate-700">{book.title}</p>
-          <p className="text-sm text-slate-600">
-            Sách hiện hết bản. Backend sẽ kiểm tra lại tình trạng sách, lượt đặt
-            giữ trùng và giới hạn của tài khoản khi bạn xác nhận.
-          </p>
-          <TextField
-            fullWidth
-            multiline
-            minRows={2}
-            label="Ghi chú (không bắt buộc)"
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-          />
-          {error && <Alert severity="error">{error}</Alert>}
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            pb: 1,
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 750, color: "#102d62" }}>
+            Đặt giữ cuốn sách này
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => setOpen(false)}
+            disabled={busy}
+          >
+            <CloseRoundedIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ py: 2 }}>
+          <Box sx={{ display: "grid", gap: 2 }}>
+            <Box
+              sx={{
+                p: 1.5,
+                bgcolor: "#f8fafc",
+                borderRadius: 2,
+                border: "1px solid #e2e8f0",
+              }}
+            >
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: 750, color: "#1e293b" }}
+              >
+                {book.title}
+              </Typography>
+              <Typography variant="caption" sx={{ color: "#64748b" }}>
+                Tác giả: {book.author}
+              </Typography>
+            </Box>
+
+            <Alert
+              severity="info"
+              sx={{ borderRadius: 2, fontSize: "0.8125rem" }}
+            >
+              Sách hiện đã hết bản sao sẵn có. Khi bạn xác nhận, hệ thống sẽ tự
+              động xếp bạn vào danh sách chờ nhận sách khi có độc giả hoàn trả.
+            </Alert>
+
+            <TextField
+              fullWidth
+              size="small"
+              multiline
+              minRows={2}
+              label="Ghi chú (không bắt buộc)"
+              placeholder="Ghi chú thêm nếu cần..."
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+            />
+
+            {error && (
+              <Alert severity="error" sx={{ borderRadius: 2 }}>
+                {error}
+              </Alert>
+            )}
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button disabled={busy} onClick={() => setOpen(false)}>
-            Đóng
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            disabled={busy}
+            onClick={() => setOpen(false)}
+            sx={{ textTransform: "none", fontWeight: 600, color: "#64748b" }}
+          >
+            Hủy
           </Button>
-          <Button disabled={busy} variant="contained" onClick={create}>
-            {busy ? "Đang xử lý..." : "Xác nhận đặt giữ"}
+          <Button
+            disabled={busy}
+            variant="contained"
+            onClick={create}
+            sx={{
+              borderRadius: "10px",
+              textTransform: "none",
+              fontWeight: 700,
+              px: 2.5,
+            }}
+          >
+            {busy ? "Đang xử lý…" : "Xác nhận đặt giữ"}
           </Button>
         </DialogActions>
       </Dialog>
-    </div>
+    </Box>
   );
 };
 

@@ -9,7 +9,9 @@ import com.library.service.BookService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -59,13 +61,14 @@ public class BookController {
     public ResponseEntity<ApiResponse> hardDeleteBook(
             @PathVariable Long id) throws BookException {
         bookService.hardDeleteBook(id);
-        return ResponseEntity.ok(new ApiResponse("Book permanently deleted", true));
+        return ResponseEntity.ok(new ApiResponse("Đã xóa sách vĩnh viễn", true));
     }
 
     @GetMapping
     public ResponseEntity<PageResponse<BookDTO>> searchBooks(
             @RequestParam(required = false) Long genreId,
             @RequestParam(required = false, defaultValue = "false") Boolean availableOnly,
+            @RequestParam(required = false, defaultValue = "false") Boolean unavailableOnly,
             @RequestParam(defaultValue = "true") boolean activeOnly,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -76,6 +79,7 @@ public class BookController {
         BookSearchRequest searchRequest = new BookSearchRequest();
         searchRequest.setGenreId(genreId);
         searchRequest.setAvailableOnly(availableOnly);
+        searchRequest.setUnavailableOnly(unavailableOnly);
 
         // searchRequest
         searchRequest.setPage(page);
@@ -93,6 +97,19 @@ public class BookController {
 
         PageResponse<BookDTO> books = bookService.searchBooksWithFilters(searchRequest);
         return ResponseEntity.ok(books);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BookDTO> getBook(@PathVariable Long id) {
+        try {
+            BookDTO book = bookService.getBookById(id);
+            if (!Boolean.TRUE.equals(book.getActive())) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sách đang hoạt động");
+            }
+            return ResponseEntity.ok(book);
+        } catch (BookException error) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, error.getMessage(), error);
+        }
     }
 
     @GetMapping("/stats")

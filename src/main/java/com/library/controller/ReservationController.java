@@ -89,4 +89,10 @@ public class ReservationController {
         return ResponseEntity.ok(reservations);
     }
 
+    @PostMapping("/search")
+    public ResponseEntity<PageResponse<ReservationDTO>> searchReservations(
+            @RequestBody ReservationSearchRequest searchRequest) {
+        return ResponseEntity.ok(reservationService.searchReservations(searchRequest));
+    }
+
 }

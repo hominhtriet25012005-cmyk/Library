@@ -4,6 +4,7 @@ import com.library.domain.*;
 import com.library.modal.Payment;
 import com.library.repository.PaymentRepository;
 import com.library.repository.SubscriptionRepository;
+import com.library.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.Objects;
 public class PayOSSettlementService {
     private final PaymentRepository payments;
     private final SubscriptionRepository subscriptions;
+    private final UserRepository users;
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
 
@@ -26,7 +28,8 @@ public class PayOSSettlementService {
     public void complete(Long id, String linkId, Long amount, String currency, String reference) {
         Payment observed = payments.findById(id).orElseThrow(() -> new IllegalArgumentException("Unknown payment"));
         if (observed.getSubscription() == null) throw new IllegalArgumentException("Membership payment required");
-        // Same lock order as creation: subscription then payment.
+        // Serialize all membership settlements for the user before locking the target subscription/payment.
+        users.findLockedById(observed.getUser().getId()).orElseThrow();
         var subscription = subscriptions.findLockedById(observed.getSubscription().getId()).orElseThrow();
         Payment payment = payments.findLockedById(id).orElseThrow();
         // OSIV may have loaded these rows before a competing callback committed.
@@ -50,6 +53,13 @@ public class PayOSSettlementService {
         if ((payment.getStatus() != PaymentStatus.PENDING && payment.getStatus() != PaymentStatus.PROCESSING)
                 || subscription.getCancelledAt() != null || Boolean.TRUE.equals(subscription.getIsActive())) {
             throw new IllegalStateException("Payment requires manual reconciliation");
+        }
+        // A locking read observes the latest committed row even if the earlier payment lookup
+        // opened a MySQL REPEATABLE_READ snapshot before we acquired the user lock.
+        if (!subscriptions.findOtherCurrentActiveLockedByUserId(subscription.getUser().getId(), subscription.getId(),
+                LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"))).isEmpty()) {
+            // Money may already have reached payOS. Keep this order pending for manual reconciliation.
+            throw new com.library.exception.ActiveMembershipException();
         }
         if (subscription.getStartDate() == null || subscription.getEndDate() == null) {
             throw new IllegalStateException("Missing membership duration");

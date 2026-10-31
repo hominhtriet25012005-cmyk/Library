@@ -9,6 +9,10 @@ import java.util.List;
 
 public interface GenreRepository extends JpaRepository<Genre, Long> {
 
+    boolean existsByCode(String code);
+
+    boolean existsByCodeAndIdNot(String code, Long id);
+
     // Tìm kiếm theo trạng thái hoạt động đúng theo thứ tự hiển thị tăng dần
     List<Genre> findByActiveTrueOrderByDisplayOrderAsc();
 

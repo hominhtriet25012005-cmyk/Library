@@ -5,6 +5,7 @@ export const bookSearchPayload = ({
   genreId,
   availability,
   page,
+  size,
   sortBy,
   sortDirection,
 }) => ({
@@ -13,7 +14,7 @@ export const bookSearchPayload = ({
   availableOnly: availability === "AVAILABLE",
   unavailableOnly: availability === "CHECKED_OUT",
   page,
-  size: 9,
+  size: size ?? 9,
   sortBy,
   sortDirection,
 });

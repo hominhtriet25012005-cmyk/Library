@@ -1,7 +1,173 @@
 @import "tailwindcss";
 
 :root {
-  font-family: Inter, "Segoe UI", Arial, sans-serif;
-  color: #172b4d;
-  background: #f6f9ff;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  color: #0f172a;
+  background-color: #f6f9fc;
+
+  /* Design Tokens CSS Variables */
+  --color-primary: #1769ff;
+  --color-primary-dark: #0d4ed3;
+  --color-primary-light: #e8f0ff;
+  --color-navy: #102d62;
+  --color-navy-dark: #0a1931;
+  --color-bg-app: #f6f9fc;
+  --color-border: #e2e8f0;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--color-bg-app);
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tinh chỉnh thanh cuộn thanh lịch, hiện đại */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animations hữu ích */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.22s ease-out forwards;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg-app: #0b1220;
+  --color-border: #24334a;
+}
+
+html[data-theme="dark"] body {
+  background-color: #0b1220;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] #root,
+html[data-theme="dark"] #root > div,
+html[data-theme="dark"] main,
+html[data-theme="dark"] [role="main"] {
+  background-color: #0b1220 !important;
+}
+
+html[data-theme="dark"] .MuiPaper-root:not(.MuiDrawer-paper) {
+  background-color: #111c2e;
+  color: #e2e8f0;
+  border-color: #24334a;
+}
+
+html[data-theme="dark"] .MuiTypography-root {
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .MuiTypography-colorPrimary {
+  color: #60a5fa !important;
+}
+
+html[data-theme="dark"] .MuiTypography-colorSecondary,
+html[data-theme="dark"] .MuiTypography-colorTextSecondary {
+  color: #a8b6ca !important;
+}
+
+html[data-theme="dark"] .MuiTypography-colorError {
+  color: #f87171 !important;
+}
+
+html[data-theme="dark"] .MuiButton-contained {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .MuiAppBar-root,
+html[data-theme="dark"] .MuiToolbar-root {
+  background-color: #111c2e;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .MuiOutlinedInput-root {
+  background-color: #0f1a2b;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .MuiOutlinedInput-notchedOutline {
+  border-color: #334155;
+}
+
+html[data-theme="dark"] .MuiInputLabel-root,
+html[data-theme="dark"] .MuiSelect-icon,
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea {
+  color: #c1ccda;
+}
+
+html[data-theme="dark"] .MuiTableHead-root {
+  background-color: #17243a;
+}
+
+html[data-theme="dark"] .MuiTableCell-root {
+  color: #d6dfeb;
+  border-color: #24334a;
+}
+
+html[data-theme="dark"] .MuiDivider-root {
+  border-color: #24334a;
+}
+
+html[data-theme="dark"] a {
+  color: #7db2ff;
+}
+
+html[data-theme="dark"] .MuiAlert-standardSuccess {
+  background-color: rgba(22, 163, 74, 0.15);
+  color: #86efac;
+}
+
+html[data-theme="dark"] .MuiAlert-standardWarning {
+  background-color: rgba(217, 119, 6, 0.15);
+  color: #fde047;
+}
+
+html[data-theme="dark"] .MuiAlert-standardError {
+  background-color: rgba(220, 38, 38, 0.15);
+  color: #fca5a5;
+}
+
+html[data-theme="dark"] .MuiAlert-standardInfo {
+  background-color: rgba(2, 132, 199, 0.15);
+  color: #7dd3fc;
 }

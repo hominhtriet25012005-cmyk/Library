@@ -2,6 +2,7 @@ package com.library.payload.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
@@ -18,6 +19,8 @@ public class GenreDTO {
     private Long id;
 
     @NotBlank(message = "Mã thể loại là bắt buộc.")
+    @Size(min = 2, max = 50, message = "Mã thể loại phải có từ 2 đến 50 ký tự.")
+    @Pattern(regexp = "^[A-Z_]+$", message = "Mã thể loại chỉ gồm chữ in hoa không dấu A–Z và dấu gạch dưới (_).")
     private String code;
 
     @NotBlank(message = "Tên thể loại là bắt buộc.")

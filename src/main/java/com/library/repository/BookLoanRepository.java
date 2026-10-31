@@ -15,6 +15,10 @@ import java.util.List;
 
 public interface BookLoanRepository extends JpaRepository<BookLoan, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select bl from BookLoan bl where bl.id = :id")
+    java.util.Optional<BookLoan> findLockedById(@Param("id") Long id);
+
     Page<BookLoan> findByUserId(Long userId, Pageable pageable);
 
     Page<BookLoan> findByStatusAndUser(BookLoanStatus status, User user, Pageable pageable);
@@ -39,13 +43,19 @@ public interface BookLoanRepository extends JpaRepository<BookLoan, Long> {
     long countActiveBookLoansByUser(@Param("userId") Long userId);
 
     @Query("SELECT COUNT(bl) FROM BookLoan bl WHERE bl.user.id = :userId " +
-            "AND bl.status = 'OVERDUE'")
-    long countOverdueBookLoansByUser(@Param("userId") Long userId);
+            "AND (bl.status = 'OVERDUE' OR (bl.status = 'CHECKED_OUT' AND bl.dueDate < :today))")
+    long countOverdueBookLoansByUser(@Param("userId") Long userId, @Param("today") LocalDate today);
 
     @Query("SELECT bl FROM BookLoan bl WHERE bl.dueDate < :currentDate " +
             "AND (bl.status = 'CHECKED_OUT' OR bl.status = 'OVERDUE')")
     Page<BookLoan> findOverdueBookLoans(@Param("currentDate") LocalDate currentDate,
                                         Pageable pageable);
+
+    @Query("SELECT bl FROM BookLoan bl WHERE bl.id > :afterId AND bl.dueDate < :currentDate " +
+            "AND (bl.status = 'CHECKED_OUT' OR bl.status = 'OVERDUE') ORDER BY bl.id ASC")
+    List<BookLoan> findOverdueBookLoansAfterId(@Param("currentDate") LocalDate currentDate,
+                                                @Param("afterId") long afterId,
+                                                Pageable pageable);
 
     @Query("SELECT bl FROM BookLoan bl WHERE bl.checkoutDate BETWEEN :startDate AND :endDate")
     Page<BookLoan> findBookLoansByDateRange(
@@ -55,4 +65,5 @@ public interface BookLoanRepository extends JpaRepository<BookLoan, Long> {
     );
 
     boolean existsByUserIdAndBookIdAndStatus(Long userId, Long bookId, BookLoanStatus status);
+
 }

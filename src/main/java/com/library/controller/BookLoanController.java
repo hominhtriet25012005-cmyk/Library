@@ -84,6 +84,6 @@ public class BookLoanController {
     public ResponseEntity<?> updateOverdueBookLoans() {
         int updateCount = bookLoanService.updateOverdueBookLoan();
         return ResponseEntity.ok(new ApiResponse(
-                "overdue book loans are updated", true));
+                "Đã cập nhật " + updateCount + " lượt mượn quá hạn.", true));
     }
 }

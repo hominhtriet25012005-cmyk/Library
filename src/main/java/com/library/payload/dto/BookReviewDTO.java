@@ -36,6 +36,8 @@ public class BookReviewDTO {
     @Size(max = 200, message = "Review title must not exceed 200 characters")
     private String title;
 
+    private Boolean isActive;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
 

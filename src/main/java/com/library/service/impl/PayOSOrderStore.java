@@ -26,6 +26,10 @@ public class PayOSOrderStore {
     public Long draftSubscription(Long planId, Long userId, String notes) {
         // Serialize repeated clicks for this user; leave gateway I/O outside the lock.
         var user = users.findLockedById(userId).orElseThrow();
+        if (subscriptions.existsCurrentActiveByUserId(userId,
+                java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))) {
+            throw new com.library.exception.ActiveMembershipException();
+        }
         var plan = plans.findById(planId).orElseThrow(() -> new IllegalArgumentException("Plan not found"));
         if (!Boolean.TRUE.equals(plan.getIsActive())) throw new IllegalArgumentException("Subscription plan is inactive");
         var pending = subscriptions.findAwaitingPayment(userId, planId, PaymentGateway.PAYOS,
@@ -45,6 +49,11 @@ public class PayOSOrderStore {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Prepared prepare(Long subscriptionId, Long userId) {
+        users.findLockedById(userId).orElseThrow();
+        if (subscriptions.existsCurrentActiveByUserId(userId,
+                java.time.LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")))) {
+            throw new com.library.exception.ActiveMembershipException();
+        }
         var subscription = subscriptions.findLockedById(subscriptionId)
                 .orElseThrow(() -> new IllegalArgumentException("Subscription not found"));
         if (!Objects.equals(subscription.getUser().getId(), userId)) {

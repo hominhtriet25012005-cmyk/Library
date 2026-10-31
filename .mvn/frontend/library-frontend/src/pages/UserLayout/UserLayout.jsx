@@ -7,10 +7,18 @@ import { drawerWidth } from "./layout";
 
 const UserLayout = ({ preview = false }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "white" }}>
-      <Navbar preview={preview} handleDrawerToggle={() => setMobileOpen((open) => !open)} />
-      <UserSidebar preview={preview} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+      <Navbar
+        preview={preview}
+        handleDrawerToggle={() => setMobileOpen((open) => !open)}
+      />
+      <UserSidebar
+        preview={preview}
+        mobileOpen={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+      />
 
       <Box
         component="main"
@@ -19,10 +27,12 @@ const UserLayout = ({ preview = false }) => {
           minWidth: 0,
           width: { md: `calc(100% - ${drawerWidth}px)` },
           minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         <Toolbar />
-        <Box>
+        <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 3, md: 3.5 } }}>
           <Outlet />
         </Box>
       </Box>

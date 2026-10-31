@@ -16,16 +16,24 @@ export const createApiClient = ({
 } = {}) => {
   const request = async (path, { method = "GET", body, signal } = {}) => {
     const token = getToken();
+    const isFormData =
+      typeof FormData !== "undefined" && body instanceof FormData;
     let response;
     try {
       response = await fetchImpl(`${baseUrl}${path}`, {
         method,
         headers: {
           Accept: "application/json",
-          ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+          ...(!isFormData && body !== undefined
+            ? { "Content-Type": "application/json" }
+            : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        ...(isFormData
+          ? { body }
+          : body !== undefined
+            ? { body: JSON.stringify(body) }
+            : {}),
         ...(signal ? { signal } : {}),
       });
     } catch (error) {

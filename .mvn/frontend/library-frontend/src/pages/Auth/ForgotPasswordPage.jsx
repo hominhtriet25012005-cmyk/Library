@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Alert, Button, TextField } from "@mui/material";
+import { Alert, Box, Button, TextField, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
+import SendRoundedIcon from "@mui/icons-material/SendRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { api } from "../../api/client";
 import AuthShell from "./AuthShell";
 
@@ -26,36 +28,88 @@ const ForgotPasswordPage = () => {
 
   return (
     <AuthShell
-      title="Quên mật khẩu"
-      subtitle="Nhập email để nhận liên kết đặt lại mật khẩu."
+      title="Khôi phục mật khẩu"
+      subtitle="Nhập email đã đăng ký để nhận liên kết thiết lập lại mật khẩu."
     >
       {sent ? (
-        <Alert severity="success">
-          Nếu email tồn tại, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư
-          của bạn.
-        </Alert>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Alert severity="success" sx={{ borderRadius: 2 }}>
+            Nếu email tồn tại trong hệ thống thư viện, liên kết đặt lại mật khẩu
+            đã được gửi đến hộp thư của bạn. Vui lòng kiểm tra cả hòm thư Spam
+            nếu cần.
+          </Alert>
+          <Button
+            component={RouterLink}
+            to="/login"
+            variant="outlined"
+            fullWidth
+            startIcon={<ArrowBackRoundedIcon />}
+            sx={{
+              py: 1.2,
+              borderRadius: 2.5,
+              fontWeight: 600,
+              textTransform: "none",
+            }}
+          >
+            Quay lại đăng nhập
+          </Button>
+        </Box>
       ) : (
-        <form onSubmit={submit} className="space-y-4">
-          {error && <Alert severity="error">{error}</Alert>}
+        <Box
+          component="form"
+          onSubmit={submit}
+          sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}
+        >
+          {error && (
+            <Alert severity="error" sx={{ borderRadius: 2 }}>
+              {error}
+            </Alert>
+          )}
+
           <TextField
-            label="Email"
+            label="Địa chỉ Email"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
             fullWidth
             autoComplete="email"
+            placeholder="example@library.edu.vn"
+            slotProps={{ inputLabel: { shrink: true } }}
           />
-          <Button type="submit" variant="contained" fullWidth disabled={busy}>
-            {busy ? "Đang gửi..." : "Gửi liên kết"}
+
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            disabled={busy}
+            startIcon={<SendRoundedIcon />}
+            sx={{
+              py: 1.3,
+              borderRadius: 2.5,
+              fontWeight: 700,
+              fontSize: "0.95rem",
+              textTransform: "none",
+            }}
+          >
+            {busy ? "Đang gửi yêu cầu..." : "Gửi liên kết khôi phục"}
           </Button>
-        </form>
+
+          <Box sx={{ textAlign: "center", pt: 1 }}>
+            <RouterLink
+              to="/login"
+              style={{
+                color: "#1769ff",
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                textDecoration: "none",
+              }}
+            >
+              ← Quay lại trang đăng nhập
+            </RouterLink>
+          </Box>
+        </Box>
       )}
-      <p className="text-center text-sm mt-5">
-        <RouterLink to="/login" className="text-[#1769ff] hover:underline">
-          Quay lại đăng nhập
-        </RouterLink>
-      </p>
     </AuthShell>
   );
 };

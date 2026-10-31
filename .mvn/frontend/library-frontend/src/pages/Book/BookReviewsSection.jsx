@@ -1,28 +1,43 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
   Alert,
+  Avatar,
+  Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  IconButton,
   Pagination,
+  Paper,
   Rating,
   TextField,
+  Typography,
 } from "@mui/material";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+
 import { useAuth } from "../../auth/useAuth.js";
+import { useUserSettings } from "../../settings/useUserSettings.js";
 import { loansApi, loadLoanPages } from "../../api/loans.js";
 import { reviewsApi, loadReviewPages } from "../../api/reviews.js";
-import { formatDate } from "../../display.js";
+import { formatDateVN } from "../../utils/formatters.js";
 import { canCreateReview, ownReview, validateReview } from "./reviewRules.js";
+import { ConfirmDialog, EmptyState } from "../../components/common";
 
 const pageSize = 5;
 const emptyForm = { rating: 5, title: "", reviewText: "" };
 
 const BookReviewsSection = ({ bookId }) => {
   const { user } = useAuth();
+  const { settings } = useUserSettings();
   const [reviews, setReviews] = useState([]);
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +52,7 @@ const BookReviewsSection = ({ bookId }) => {
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [formError, setFormError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const [busy, setBusy] = useState(false);
   const [deletedThisSession, setDeletedThisSession] = useState(false);
 
@@ -80,6 +96,15 @@ const BookReviewsSection = ({ bookId }) => {
   }, [bookId]);
 
   const mine = ownReview(reviews, user?.id);
+  const activeLoan = useMemo(() => {
+    return loans.find(
+      (loan) =>
+        Number(loan.bookId) === Number(bookId) &&
+        (loan.status === "CHECKED_OUT" || loan.status === "OVERDUE") &&
+        !loan.returnDate,
+    );
+  }, [loans, bookId]);
+
   const canCreate =
     !loading &&
     !eligibilityLoading &&
@@ -87,12 +112,19 @@ const BookReviewsSection = ({ bookId }) => {
     !eligibilityError &&
     !deletedThisSession &&
     canCreateReview(loans, bookId, reviews, user?.id);
+
   const totalPages = Math.ceil(reviews.length / pageSize);
   const currentPage = Math.min(page, Math.max(totalPages, 1));
   const visible = reviews.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
+
+  const averageRating = useMemo(() => {
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+    return (sum / reviews.length).toFixed(1);
+  }, [reviews]);
 
   const openForm = (review = null) => {
     setEditing(review);
@@ -125,7 +157,11 @@ const BookReviewsSection = ({ bookId }) => {
     try {
       if (editing) await reviewsApi.update(editing.id, values);
       else await reviewsApi.create(bookId, values);
-      setMessage(editing ? "Đã cập nhật đánh giá." : "Đã đăng đánh giá.");
+      setMessage(
+        editing
+          ? "Đã cập nhật bài đánh giá."
+          : "Đã đăng bài đánh giá thành công.",
+      );
       setFormOpen(false);
       setPage(1);
       setLoading(true);
@@ -140,74 +176,170 @@ const BookReviewsSection = ({ bookId }) => {
   const remove = async () => {
     if (!mine) return;
     setBusy(true);
-    setFormError("");
+    setDeleteError("");
     try {
       await reviewsApi.remove(mine.id);
       setDeletedThisSession(true);
-      setMessage("Đã xóa đánh giá khỏi danh sách hiển thị.");
+      setMessage("Đã xóa bài đánh giá khỏi hệ thống.");
       setDeleteOpen(false);
       setPage(1);
       setLoading(true);
       setRefresh((value) => value + 1);
     } catch (failure) {
-      setFormError(failure.message);
+      setDeleteError(failure.message);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <section
-      className="mt-8 rounded-2xl bg-white p-6 shadow-sm"
+    <Paper
+      component="section"
+      variant="outlined"
       aria-labelledby="book-reviews-title"
+      sx={{
+        p: { xs: 2.5, sm: 4 },
+        borderRadius: 3,
+        borderColor: "#e2e8f0",
+        bgcolor: "#fff",
+      }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2
+      {/* Header đánh giá */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", sm: "center" },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        <Box>
+          <Typography
             id="book-reviews-title"
-            className="text-2xl font-bold text-slate-900"
+            variant="h5"
+            sx={{ fontWeight: 800, color: "#102d62", mb: 0.5 }}
           >
-            Đánh giá sách
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            {loading ? "Đang tải..." : `${reviews.length} đánh giá`}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+            Đánh giá từ bạn đọc
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {reviews.length > 0 && (
+              <>
+                <Rating
+                  value={Number(averageRating) || 0}
+                  precision={0.1}
+                  readOnly
+                  size="small"
+                  sx={{ color: "#f59e0b" }}
+                />
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 750, color: "#b45309" }}
+                >
+                  {averageRating}/5
+                </Typography>
+                <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+                  •
+                </Typography>
+              </>
+            )}
+            <Typography variant="body2" sx={{ color: "#64748b" }}>
+              {loading ? "Đang tải…" : `${reviews.length} nhận xét`}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Nút hành động cho người dùng */}
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
           {mine && (
             <>
-              <Button variant="outlined" onClick={() => openForm(mine)}>
-                Sửa đánh giá của tôi
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<EditRoundedIcon />}
+                onClick={() => openForm(mine)}
+                sx={{
+                  borderRadius: "10px",
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Chỉnh sửa nhận xét
               </Button>
               <Button
                 color="error"
+                variant="outlined"
+                size="small"
+                startIcon={<DeleteOutlineRoundedIcon />}
                 onClick={() => {
                   setFormError("");
                   setDeleteOpen(true);
                 }}
+                sx={{
+                  borderRadius: "10px",
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
               >
-                Xóa đánh giá của tôi
+                Xóa
               </Button>
             </>
           )}
           {canCreate && (
-            <Button variant="contained" onClick={() => openForm()}>
+            <Button
+              variant="contained"
+              startIcon={<RateReviewRoundedIcon />}
+              onClick={() => openForm()}
+              sx={{
+                borderRadius: "10px",
+                textTransform: "none",
+                fontWeight: 700,
+                px: 2.5,
+              }}
+            >
               Viết đánh giá
             </Button>
           )}
-        </div>
-      </div>
+          {!mine && !canCreate && (
+            <Button
+              variant="outlined"
+              disabled
+              startIcon={<RateReviewRoundedIcon />}
+              sx={{
+                borderRadius: "10px",
+                textTransform: "none",
+                fontWeight: 700,
+                px: 2.5,
+                borderColor: "#cbd5e1 !important",
+                color: "#94a3b8 !important",
+                bgcolor: "#f8fafc",
+              }}
+            >
+              Viết đánh giá
+            </Button>
+          )}
+        </Box>
+      </Box>
+
+      {/* Thông báo thông điệp */}
       {message && (
-        <Alert severity="success" sx={{ mt: 3 }} onClose={() => setMessage("")}>
+        <Alert
+          severity="success"
+          sx={{ mb: 2.5, borderRadius: 2 }}
+          onClose={() => setMessage("")}
+        >
           {message}
         </Alert>
       )}
       {error && (
         <Alert
           severity="error"
-          sx={{ mt: 3 }}
+          sx={{ mb: 2.5, borderRadius: 2 }}
           action={
             <Button
+              color="inherit"
+              size="small"
               onClick={() => {
                 setLoading(true);
                 setRefresh((value) => value + 1);
@@ -221,7 +353,7 @@ const BookReviewsSection = ({ bookId }) => {
         </Alert>
       )}
       {eligibilityError && (
-        <Alert severity="warning" sx={{ mt: 3 }}>
+        <Alert severity="warning" sx={{ mb: 2.5, borderRadius: 2 }}>
           Không kiểm tra được điều kiện viết đánh giá: {eligibilityError}
         </Alert>
       )}
@@ -232,162 +364,414 @@ const BookReviewsSection = ({ bookId }) => {
         !deletedThisSession &&
         !loading &&
         !error && (
-          <p className="mt-4 text-sm text-slate-600">
-            Bạn cần hoàn tất một lượt mượn sách này trước khi viết đánh giá.
-          </p>
+          <Paper
+            variant="outlined"
+            sx={{
+              mb: 2.5,
+              p: 2,
+              borderRadius: 2.5,
+              borderColor: activeLoan ? "#bfdbfe" : "#e2e8f0",
+              bgcolor: activeLoan ? "rgba(239, 246, 255, 0.7)" : "#f8fafc",
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "flex-start", sm: "center" },
+              justifyContent: "space-between",
+              gap: 2,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 2,
+                  bgcolor: activeLoan ? "#dbeafe" : "#e2e8f0",
+                  color: activeLoan ? "#1d4ed8" : "#64748b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  mt: 0.25,
+                }}
+              >
+                <RateReviewRoundedIcon fontSize="small" />
+              </Box>
+              <Box>
+                {activeLoan ? (
+                  <>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: 750, color: "#1e3a8a", mb: 0.25 }}
+                    >
+                      Bạn hiện đang mượn cuốn sách này (Mã mượn: #
+                      {activeLoan.id})
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#2563eb", fontSize: "0.85rem" }}
+                    >
+                      Để đảm bảo tính khách quan của cộng đồng độc giả, tính
+                      năng viết đánh giá sẽ mở khóa ngay sau khi bạn hoàn tất
+                      đọc và trả sách về thư viện.
+                    </Typography>
+                  </>
+                ) : user ? (
+                  <>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: 750, color: "#1e293b", mb: 0.25 }}
+                    >
+                      Bạn muốn chia sẻ cảm nhận về cuốn sách này?
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#64748b", fontSize: "0.85rem" }}
+                    >
+                      Để đảm bảo tính khách quan của cộng đồng, bạn cần hoàn tất
+                      mượn và trả cuốn sách này trước khi viết đánh giá.
+                    </Typography>
+                  </>
+                ) : (
+                  <>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontWeight: 750, color: "#1e293b", mb: 0.25 }}
+                    >
+                      Đăng nhập để tham gia đánh giá sách
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: "#64748b", fontSize: "0.85rem" }}
+                    >
+                      Vui lòng đăng nhập tài khoản và hoàn tất mượn trả cuốn
+                      sách này để gửi đánh giá nhận xét.
+                    </Typography>
+                  </>
+                )}
+              </Box>
+            </Box>
+
+            {activeLoan ? (
+              <Button
+                component={Link}
+                to="/user/my-loans"
+                variant="contained"
+                size="small"
+                sx={{
+                  whiteSpace: "nowrap",
+                  borderRadius: "8px",
+                  textTransform: "none",
+                  fontWeight: 700,
+                  bgcolor: "#2563eb",
+                  "&:hover": { bgcolor: "#1d4ed8" },
+                  boxShadow: "none",
+                  px: 2,
+                  py: 0.8,
+                  flexShrink: 0,
+                  alignSelf: { xs: "stretch", sm: "center" },
+                }}
+              >
+                Đến trang Trả sách →
+              </Button>
+            ) : !user ? (
+              <Button
+                component={Link}
+                to="/login"
+                variant="outlined"
+                size="small"
+                sx={{
+                  whiteSpace: "nowrap",
+                  borderRadius: "8px",
+                  textTransform: "none",
+                  fontWeight: 700,
+                  flexShrink: 0,
+                  alignSelf: { xs: "stretch", sm: "center" },
+                }}
+              >
+                Đăng nhập
+              </Button>
+            ) : null}
+          </Paper>
         )}
       {deletedThisSession && (
-        <Alert severity="info" sx={{ mt: 3 }}>
-          Đánh giá đã xóa mềm. Backend hiện chỉ cho mỗi tài khoản đánh giá sách
-          này một lần nên không thể đăng lại.
+        <Alert severity="info" sx={{ mb: 2.5, borderRadius: 2 }}>
+          Bạn đã xóa bài đánh giá cho cuốn sách này.
         </Alert>
       )}
+
+      {/* Danh sách bài đánh giá */}
       {loading ? (
-        <p role="status" className="mt-5 text-slate-600">
-          Đang tải đánh giá...
-        </p>
+        <Box sx={{ py: 6, textAlign: "center" }}>
+          <Typography variant="body2" sx={{ color: "#64748b" }}>
+            Đang tải nhận xét từ độc giả...
+          </Typography>
+        </Box>
       ) : !error && reviews.length === 0 ? (
-        <p className="mt-5 text-slate-600">Sách này chưa có đánh giá.</p>
+        <EmptyState
+          icon={RateReviewRoundedIcon}
+          title="Chưa có đánh giá nào"
+          description="Hãy là người đầu tiên chia sẻ cảm nhận sau khi mượn và đọc cuốn sách này nhé!"
+        />
       ) : (
-        <div className="mt-5 space-y-4">
-          {visible.map((review) => (
-            <article
-              key={review.id}
-              className="rounded-xl border border-slate-200 p-4"
-            >
-              <div>
-                <h3 className="font-semibold text-slate-900">
-                  {review.title || "Đánh giá sách"}
-                </h3>
-                <p className="text-sm text-slate-600">
-                  {Number(review.userId) === Number(user?.id)
-                    ? "Bạn"
-                    : review.userName || "Người đọc"}{" "}
-                  · {formatDate(review.createdAt?.replace(" ", "T"))}
-                </p>
-              </div>
-              <Rating
-                value={review.rating || 0}
-                readOnly
-                icon={<StarRoundedIcon fontSize="inherit" />}
-                emptyIcon={<StarBorderRoundedIcon fontSize="inherit" />}
-                aria-label={`${review.rating} trên 5 sao`}
-              />
-              <p className="mt-2 whitespace-pre-line text-slate-700">
-                {review.reviewText}
-              </p>
-            </article>
-          ))}
-        </div>
+        <Box sx={{ display: "grid", gap: 2 }}>
+          {visible.map((review) => {
+            const isMe = Number(review.userId) === Number(user?.id);
+            const isAnonymous = isMe && settings?.privacy?.anonymousReview;
+            const authorInitial = isAnonymous
+              ? "?"
+              : review.userName
+                ? review.userName.charAt(0).toUpperCase()
+                : "U";
+            const authorDisplayName = isAnonymous
+              ? "Độc giả ẩn danh (Đánh giá của bạn)"
+              : isMe
+                ? `${review.userName || "Bạn"} (Đánh giá của bạn)`
+                : review.userName || "Độc giả";
+
+            return (
+              <Paper
+                key={review.id}
+                variant="outlined"
+                sx={{
+                  p: 2.5,
+                  borderRadius: 2.5,
+                  borderColor: isMe ? "rgba(23,105,255,0.3)" : "#e2e8f0",
+                  bgcolor: isMe ? "rgba(23,105,255,0.02)" : "#fff",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    mb: 1.5,
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Avatar
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        bgcolor: isAnonymous
+                          ? "#475569"
+                          : isMe
+                            ? "#1769ff"
+                            : "#64748b",
+                        fontSize: "0.875rem",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {authorInitial}
+                    </Avatar>
+                    <Box>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 700, color: "#1e293b" }}
+                      >
+                        {authorDisplayName}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+                        {formatDateVN(review.createdAt?.replace(" ", "T"))}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Rating
+                    value={review.rating || 0}
+                    readOnly
+                    size="small"
+                    sx={{ color: "#f59e0b" }}
+                  />
+                </Box>
+
+                {review.title && (
+                  <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 750, color: "#102d62", mb: 0.5 }}
+                  >
+                    {review.title}
+                  </Typography>
+                )}
+
+                {review.reviewText && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "#334155",
+                      lineHeight: 1.6,
+                      whiteSpace: "pre-line",
+                    }}
+                  >
+                    {review.reviewText}
+                  </Typography>
+                )}
+              </Paper>
+            );
+          })}
+        </Box>
       )}
+
+      {/* Phân trang đánh giá */}
       {totalPages > 1 && (
-        <div className="mt-6 flex justify-center">
+        <Box sx={{ mt: 3.5, display: "flex", justifyContent: "center" }}>
           <Pagination
             color="primary"
             count={totalPages}
             page={currentPage}
             onChange={(_, value) => setPage(value)}
+            sx={{
+              "& .MuiPaginationItem-root": {
+                borderRadius: "8px",
+                fontWeight: 600,
+              },
+            }}
           />
-        </div>
+        </Box>
       )}
 
+      {/* Modal Viết / Sửa đánh giá */}
       <Dialog
         open={formOpen}
         onClose={busy ? undefined : () => setFormOpen(false)}
         fullWidth
         maxWidth="sm"
+        slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
       >
-        <DialogTitle>{editing ? "Sửa đánh giá" : "Viết đánh giá"}</DialogTitle>
-        <DialogContent className="space-y-4">
-          {!editing && (
-            <Alert severity="info">
-              Mỗi tài khoản chỉ đánh giá một lần cho mỗi sách. Đánh giá đã xóa
-              không thể đăng lại theo quy tắc backend hiện tại.
-            </Alert>
-          )}
-          <div>
-            <p className="mb-1 text-sm text-slate-600">Điểm đánh giá</p>
-            <Rating
-              value={form.rating}
-              onChange={(_, value) =>
-                setForm((current) => ({ ...current, rating: value }))
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            pb: 1,
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 750, color: "#102d62" }}>
+            {editing ? "Chỉnh sửa đánh giá" : "Viết đánh giá nhận xét"}
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={() => setFormOpen(false)}
+            disabled={busy}
+          >
+            <CloseRoundedIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ py: 2.5 }}>
+          <Box sx={{ display: "grid", gap: 2.5 }}>
+            {!editing && (
+              <Alert
+                severity="info"
+                sx={{ borderRadius: 2, fontSize: "0.8125rem" }}
+              >
+                Mỗi tài khoản chỉ gửi một đánh giá cho từng cuốn sách. Hãy chia
+                sẻ nhận xét hữu ích giúp độc giả khác lựa chọn nhé!
+              </Alert>
+            )}
+
+            <Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "#64748b",
+                  fontWeight: 600,
+                  display: "block",
+                  mb: 0.75,
+                }}
+              >
+                Mức độ hài lòng của bạn
+              </Typography>
+              <Rating
+                value={form.rating}
+                onChange={(_, value) =>
+                  setForm((current) => ({ ...current, rating: value }))
+                }
+                size="large"
+                sx={{ color: "#f59e0b" }}
+              />
+            </Box>
+
+            <TextField
+              fullWidth
+              size="small"
+              label="Tiêu đề tóm tắt (không bắt buộc)"
+              placeholder="VD: Cuốn sách rất bổ ích và sâu sắc..."
+              value={form.title}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  title: event.target.value,
+                }))
               }
-              icon={<StarRoundedIcon fontSize="inherit" />}
-              emptyIcon={<StarBorderRoundedIcon fontSize="inherit" />}
+              slotProps={{ htmlInput: { maxLength: 200 } }}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
             />
-          </div>
-          <TextField
-            fullWidth
-            label="Tiêu đề (không bắt buộc)"
-            value={form.title}
-            onChange={(event) =>
-              setForm((current) => ({ ...current, title: event.target.value }))
-            }
-            slotProps={{ htmlInput: { maxLength: 200 } }}
-          />
-          <TextField
-            fullWidth
-            multiline
-            minRows={4}
-            label="Nội dung đánh giá"
-            value={form.reviewText}
-            onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                reviewText: event.target.value,
-              }))
-            }
-            helperText="Từ 10 đến 2000 ký tự"
-            slotProps={{ htmlInput: { maxLength: 2000 } }}
-          />
-          {formError && <Alert severity="error">{formError}</Alert>}
+
+            <TextField
+              fullWidth
+              multiline
+              minRows={4}
+              label="Nội dung nhận xét chi tiết (không bắt buộc)"
+              placeholder="Chia sẻ cảm nhận, kiến thức học được hoặc điểm bạn tâm đắc nhất..."
+              value={form.reviewText}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  reviewText: event.target.value,
+                }))
+              }
+              helperText="Tối đa 2000 ký tự (không bắt buộc)"
+              slotProps={{ htmlInput: { maxLength: 2000 } }}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+            />
+
+            {formError && (
+              <Alert severity="error" sx={{ borderRadius: 2 }}>
+                {formError}
+              </Alert>
+            )}
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button disabled={busy} onClick={() => setFormOpen(false)}>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button
+            disabled={busy}
+            onClick={() => setFormOpen(false)}
+            sx={{ textTransform: "none", fontWeight: 600, color: "#64748b" }}
+          >
             Hủy
-          </Button>
-          <Button disabled={busy} variant="contained" onClick={save}>
-            {busy
-              ? "Đang xử lý..."
-              : editing
-                ? "Lưu thay đổi"
-                : "Đăng đánh giá"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog
-        open={deleteOpen}
-        onClose={busy ? undefined : () => setDeleteOpen(false)}
-        fullWidth
-        maxWidth="xs"
-      >
-        <DialogTitle>Xóa đánh giá?</DialogTitle>
-        <DialogContent>
-          <p>
-            Đánh giá sẽ không còn hiển thị. Backend hiện không cho tạo lại đánh
-            giá khác cho cùng sách sau khi xóa.
-          </p>
-          {formError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {formError}
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button disabled={busy} onClick={() => setDeleteOpen(false)}>
-            Giữ lại
           </Button>
           <Button
             disabled={busy}
-            color="error"
             variant="contained"
-            onClick={remove}
+            onClick={save}
+            sx={{
+              borderRadius: "10px",
+              textTransform: "none",
+              fontWeight: 700,
+              px: 3,
+            }}
           >
-            {busy ? "Đang xử lý..." : "Xóa đánh giá"}
+            {busy ? "Đang xử lý…" : editing ? "Lưu thay đổi" : "Gửi đánh giá"}
           </Button>
         </DialogActions>
       </Dialog>
-    </section>
+
+      {/* Modal xác nhận xóa đánh giá */}
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Xóa đánh giá của bạn?"
+        message="Bài nhận xét này sẽ được gỡ khỏi danh sách hiển thị trên website thư viện. Bạn có chắc chắn muốn xóa không?"
+        confirmLabel="Xác nhận xóa"
+        cancelLabel="Giữ lại"
+        variant="danger"
+        loading={busy}
+        error={deleteError}
+        onConfirm={remove}
+        onCancel={() => {
+          setDeleteOpen(false);
+          setDeleteError("");
+        }}
+      />
+    </Paper>
   );
 };
 

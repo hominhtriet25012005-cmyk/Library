@@ -1,68 +1,197 @@
-import {
-  FormControl,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
-} from "@mui/material";
+import { useMemo } from "react";
+import { Box, Button, Radio, Typography } from "@mui/material";
 import RadioButtonChecked from "@mui/icons-material/RadioButtonCheckedRounded";
 import RadioButtonUnchecked from "@mui/icons-material/RadioButtonUncheckedRounded";
 
-const GenreFilter = ({ genres, selectedGenreId, onGenreSelect }) => {
+const GenreFilter = ({ genres = [], selectedGenreId, onGenreSelect }) => {
+  const sortedGenres = useMemo(() => {
+    return [...genres].sort(
+      (a, b) =>
+        (a.displayOrder ?? 0) - (b.displayOrder ?? 0) ||
+        (a.name || "").localeCompare(b.name || "", "vi"),
+    );
+  }, [genres]);
+
   return (
-    <div className="bg-white rounded-xl shadow-md p-4 border border-gray-100">
+    <Box sx={{ width: "100%" }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900">Thể loại</h3>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 1.5,
+          pb: 1.25,
+          borderBottom: "1px solid #f1f5f9",
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{ fontWeight: 700, color: "#1e293b", fontSize: "0.95rem" }}
+        >
+          Thể loại
+        </Typography>
 
         {selectedGenreId && (
-          <button
+          <Button
+            size="small"
             onClick={() => onGenreSelect(null)}
-            className="text-sm text-blue-700 hover:text-blue-800 font-medium transition-colors"
+            sx={{
+              p: 0,
+              minWidth: "auto",
+              textTransform: "none",
+              fontSize: "0.8125rem",
+              fontWeight: 600,
+              color: "#1769ff",
+              "&:hover": {
+                bgcolor: "transparent",
+                textDecoration: "underline",
+              },
+            }}
           >
             Xóa lọc
-          </button>
+          </Button>
         )}
-      </div>
+      </Box>
 
       {/* All Genres Option */}
-      <div
-        className={`flex items-center space-x-2 py-2 px-3 mb-2 rounded-lg cursor-pointer transition-all duration-200 ${
-          !selectedGenreId
-            ? "bg-blue-50 text-blue-800 font-semibold"
-            : "hover:bg-gray-50 text-gray-700"
-        }`}
+      <Box
         onClick={() => onGenreSelect(null)}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          px: 1,
+          py: 0.6,
+          mb: 0.5,
+          borderRadius: "8px",
+          cursor: "pointer",
+          transition: "all 0.15s ease",
+          bgcolor: !selectedGenreId
+            ? "rgba(23, 105, 255, 0.08)"
+            : "transparent",
+          color: !selectedGenreId ? "#1769ff" : "#334155",
+          "&:hover": {
+            bgcolor: !selectedGenreId ? "rgba(23, 105, 255, 0.12)" : "#f8fafc",
+          },
+        }}
       >
-        {!selectedGenreId ? (
-          <RadioButtonChecked sx={{ fontSize: 16, color: "#1769ff" }} />
-        ) : (
-          <RadioButtonUnchecked sx={{ fontSize: 16 }} />
-        )}
-
-        <span className="text-sm">Tất cả thể loại</span>
-      </div>
+        <Radio
+          checked={!selectedGenreId}
+          size="small"
+          icon={<RadioButtonUnchecked sx={{ fontSize: 16 }} />}
+          checkedIcon={<RadioButtonChecked sx={{ fontSize: 16 }} />}
+          sx={{
+            p: 0.5,
+            mr: 1,
+            color: "#94a3b8",
+            "&.Mui-checked": {
+              color: "#1769ff",
+            },
+            pointerEvents: "none",
+          }}
+        />
+        <Typography
+          variant="body2"
+          sx={{
+            fontSize: "0.875rem",
+            fontWeight: !selectedGenreId ? 600 : 500,
+            userSelect: "none",
+          }}
+        >
+          Tất cả thể loại
+        </Typography>
+      </Box>
 
       {/* Genre List */}
-      <div className="space-y-1 pl-9 max-h-96 overflow-y-auto custom-scrollbar">
-        <FormControl>
-          <RadioGroup
-            aria-label="Lọc theo thể loại"
-            value={selectedGenreId ?? ""}
-            name="radio-buttons-group"
-            onChange={(event) => onGenreSelect(Number(event.target.value))}
-          >
-            {genres.map((genre) => (
-              <FormControlLabel
-                key={genre.id}
-                value={genre.id}
-                control={<Radio />}
-                label={genre.name}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 0.25,
+          maxHeight: 340,
+          overflowY: "auto",
+          pl: 2,
+          pr: 0.5,
+          "&::-webkit-scrollbar": {
+            width: "4px",
+          },
+          "&::-webkit-scrollbar-track": {
+            backgroundColor: "transparent",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#cbd5e1",
+            borderRadius: "9999px",
+            "&:hover": {
+              backgroundColor: "#94a3b8",
+            },
+          },
+        }}
+      >
+        {sortedGenres.map((genre) => {
+          const isSelected = Number(selectedGenreId) === Number(genre.id);
+          return (
+            <Box
+              key={genre.id}
+              onClick={() => onGenreSelect(isSelected ? null : genre.id)}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                px: 1,
+                py: 0.6,
+                borderRadius: "8px",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                bgcolor: isSelected
+                  ? "rgba(23, 105, 255, 0.08)"
+                  : "transparent",
+                color: isSelected ? "#1769ff" : "#334155",
+                "&:hover": {
+                  bgcolor: isSelected ? "rgba(23, 105, 255, 0.12)" : "#f8fafc",
+                },
+              }}
+            >
+              <Radio
+                checked={isSelected}
+                size="small"
+                icon={<RadioButtonUnchecked sx={{ fontSize: 16 }} />}
+                checkedIcon={<RadioButtonChecked sx={{ fontSize: 16 }} />}
+                sx={{
+                  p: 0.5,
+                  mr: 1,
+                  color: "#94a3b8",
+                  "&.Mui-checked": {
+                    color: "#1769ff",
+                  },
+                  pointerEvents: "none",
+                }}
               />
-            ))}
-          </RadioGroup>
-        </FormControl>
-      </div>
-    </div>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: "0.875rem",
+                  fontWeight: isSelected ? 600 : 500,
+                  userSelect: "none",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {genre.name}
+              </Typography>
+            </Box>
+          );
+        })}
+
+        {sortedGenres.length === 0 && (
+          <Typography
+            variant="caption"
+            sx={{ color: "#94a3b8", px: 1, py: 1, display: "block" }}
+          >
+            Chưa có thể loại nào
+          </Typography>
+        )}
+      </Box>
+    </Box>
   );
 };
 

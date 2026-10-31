@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class PayOSHttpSecurityTests {
     @Configuration @EnableWebMvc @EnableWebSecurity
-    @Import({SecurityConfig.class, PayOSController.class})
+    @Import({SecurityConfig.class, PayOSController.class, SecurityTestSupport.Beans.class})
     static class Config {
         @Bean PayOSConfirmationService confirmation() { return mock(PayOSConfirmationService.class); }
     }
@@ -27,6 +27,7 @@ class PayOSHttpSecurityTests {
     private PayOSConfirmationService confirmation;
     @BeforeEach void setup() {
         context = new AnnotationConfigWebApplicationContext();
+        SecurityTestSupport.configure(context);
         context.setServletContext(new MockServletContext()); context.register(Config.class); context.refresh();
         confirmation = context.getBean(PayOSConfirmationService.class);
         mvc = MockMvcBuilders.webAppContextSetup(context)
@@ -34,9 +35,7 @@ class PayOSHttpSecurityTests {
     }
     @AfterEach void close() { context.close(); }
     private String token(String role) {
-        return "Bearer " + io.jsonwebtoken.Jwts.builder().claim("email", "test@example.test")
-                .claim("authorities", role).signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(
-                        JwtConstant.SECRET_KEY.getBytes(java.nio.charset.StandardCharsets.UTF_8))).compact();
+        return SecurityTestSupport.token(role);
     }
     @Test void webhookPostIsPublicButSignatureStillRequired() throws Exception {
         when(confirmation.webhook(any())).thenThrow(new IllegalArgumentException("invalid signature"));

@@ -29,6 +29,7 @@ public class BookMapper {
                 .genreCode(book.getGenre().getCode())
                 .publisher(book.getPublisher())
                 .publicationDate(book.getPublishedDate())
+                .publicationYear(book.getPublicationYear())
                 .language(book.getLanguage())
                 .pages(book.getPages())
                 .description(book.getDescription())
@@ -63,6 +64,7 @@ public class BookMapper {
 
         book.setPublisher(dto.getPublisher());
         book.setPublishedDate(dto.getPublicationDate());
+        book.setPublicationYear(dto.getPublicationYear());
         book.setLanguage(dto.getLanguage());
         book.setPages(dto.getPages());
         book.setDescription(dto.getDescription());
@@ -93,6 +95,7 @@ public class BookMapper {
 
         book.setPublisher(dto.getPublisher());
         book.setPublishedDate(dto.getPublicationDate());
+        book.setPublicationYear(dto.getPublicationYear());
         book.setLanguage(dto.getLanguage());
         book.setPages(dto.getPages());
         book.setDescription(dto.getDescription());

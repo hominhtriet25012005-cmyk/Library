@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 public class CheckoutRequest {
 
@@ -15,7 +14,9 @@ public class CheckoutRequest {
     private Long bookId;
 
     @Min(value = 1, message = "Số ngày trả phải ít nhất là 1")
+    @NotNull
     private Integer checkoutDays = 14; // Mặc định: 14 ngày
 
+    @jakarta.validation.constraints.Size(max = 500)
     private String notes;
 }

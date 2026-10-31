@@ -20,8 +20,7 @@ public class CreateReviewRequest {
     @Max(value = 5, message = "Rating must not exceed 5")
     private Integer rating;
 
-    @NotBlank(message = "Review text is mandatory")
-    @Size(min = 10, max = 2000, message = "Review must be between 10 and 2000 characters")
+    @Size(max = 2000, message = "Review must not exceed 2000 characters")
     private String reviewText;
 
     @Size(max = 200, message = "Review title must not exceed 200 characters")

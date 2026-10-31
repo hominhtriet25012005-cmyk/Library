@@ -28,7 +28,7 @@ class FinePayOSRoutingTests {
         verifyNoInteractions(payments);
     }
 
-    @Test void routingIgnoresForgedUserAndAmountAndRejectsLegacyBeforeWriting() throws Exception {
+    @Test void routingIgnoresForgedUserAndAmount() throws Exception {
         var links = mock(PayOSMembershipPaymentService.class); var orders = mock(PayOSFineOrderStore.class);
         var users = mock(UserService.class); var repository = mock(PaymentRepository.class);
         when(users.getCurrentUser()).thenReturn(User.builder().id(7L).build());
@@ -41,10 +41,10 @@ class FinePayOSRoutingTests {
                 .fineId(8L).userId(99L).amount(1L).build();
         assertThat(service.initiatePayment(request)).isSameAs(expected);
         verify(orders).prepare(8L, 7L);
-        clearInvocations(orders, links, users);
-        request.setGateway(PaymentGateway.RAZORPAY);
-        assertThatThrownBy(() -> service.initiatePayment(request)).isInstanceOf(IllegalArgumentException.class);
-        verifyNoInteractions(orders, links, users, repository);
+    }
+
+    @Test void payOSIsTheOnlySupportedGatewayEnumValue() {
+        assertThat(PaymentGateway.values()).containsExactly(PaymentGateway.PAYOS);
     }
 
     @Test void disabledCreationDoesNotPersistFineOrder() throws Exception {

@@ -16,6 +16,8 @@ public interface SubscriptionPlanService {
 
     List<SubscriptionPlanDTO> getAllSubscriptionPlan();
 
+    List<SubscriptionPlanDTO> getAvailableSubscriptionPlans();
+
     SubscriptionPlan getBySubscriptionPlanCode(String subscriptionPlanCode) throws Exception;
 
 }

@@ -32,7 +32,6 @@ export const navigationItems = [
     title: "Danh mục sách",
     path: "/user/books",
     icon: <AutoStoriesRoundedIcon />,
-    description: "Khám phá sách",
   },
   {
     title: "Sách đang mượn",
@@ -59,7 +58,6 @@ export const navigationItems = [
     title: "Gói thành viên",
     path: "/user/subscriptions",
     icon: <WorkspacePremiumRoundedIcon />,
-    description: "Quản lý gói",
     badge: "subscription",
   },
   {
