@@ -1,0 +1,73 @@
+package com.library.repository;
+
+import com.library.domain.ReservationStatus;
+import com.library.model.Reservation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+public interface ReservationRepository extends JpaRepository<Reservation, Long> {
+
+    @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Reservation r WHERE r.id = :id")
+    Optional<Reservation> findLockedById(@Param("id") Long id);
+
+    @Query("SELECT r.id FROM Reservation r WHERE r.status = 'AVAILABLE' " +
+            "AND r.availableUntil IS NOT NULL AND r.availableUntil <= :now " +
+            "ORDER BY r.availableUntil, r.id")
+    List<Long> findExpiredAvailableIds(@Param("now") LocalDateTime now, Pageable pageable);
+
+    @Query("SELECT r FROM Reservation r WHERE r.book.id = :bookId " +
+            "AND (r.status = 'PENDING' OR r.status = 'AVAILABLE') ORDER BY r.reservedAt, r.id")
+    List<Reservation> findActiveQueue(@Param("bookId") Long bookId);
+
+
+
+    /**
+     * Check if user already has an active reservation for a book
+     */
+    @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Reservation r " +
+            "WHERE r.user.id = :userId AND r.book.id = :bookId " +
+            "AND (r.status = 'PENDING' OR r.status = 'AVAILABLE')")
+    boolean hasActiveReservation(
+            @Param("userId") Long userId,
+            @Param("bookId") Long bookId);
+
+    /**
+     * Count active reservations for a user
+     */
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.user.id = :userId " +
+            "AND (r.status = 'PENDING' OR r.status = 'AVAILABLE')")
+    long countActiveReservationsByUser(@Param("userId") Long userId);
+
+    /**
+     * Count pending reservations for a book
+     */
+    @Query("SELECT COUNT(r) FROM Reservation r WHERE r.book.id = :bookId " +
+            "AND r.status = 'PENDING'")
+    long countPendingReservationsByBook(@Param("bookId") Long bookId);
+
+
+    /**
+     * Search reservations with dynamic filters
+     */
+    @Query("SELECT r FROM Reservation r WHERE " +
+            "(:userId IS NULL OR r.user.id = :userId) AND " +
+            "(:bookId IS NULL OR r.book.id = :bookId) AND " +
+            "(:status IS NULL OR r.status = :status) AND " +
+            "(:activeOnly = false OR (r.status = 'PENDING' OR r.status = 'AVAILABLE'))")
+    Page<Reservation> searchReservationsWithFilters(
+            @Param("userId") Long userId,
+            @Param("bookId") Long bookId,
+            @Param("status") ReservationStatus status,
+            @Param("activeOnly") boolean activeOnly,
+            Pageable pageable
+    );
+}

@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{base_url}}/api/genres/create"
+method: POST
+body:
+  type: json
+  content: "\r
+
+    {\r
+
+    \  \"code\": \"SCIENCE_FICTIONSS\",\r
+
+    \  \"name\": \"Khoa học viễn tưởng hàng đầu\",\r
+
+    \  \"description\": \"Sách về khoa học giả tưởng, công nghệ tương lai, vũ trụ và khám phá không gian.\",\r
+
+    \  \"displayOrder\": 2,\r
+
+    \  \"active\": true,\r
+
+    \  \"parentGenreId\": null\r
+
+    }\r\n"
+auth:
+  type: bearer
+  credentials:
+    token: "{{json_web_token_0z0o}}"
+order: 1000

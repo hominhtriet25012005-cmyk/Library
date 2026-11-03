@@ -1,0 +1,13 @@
+$kind: collection
+variables:
+  - key: json_web_token_0z0o
+    secret: true
+    disabled: false
+auth:
+  - id: c488e316-523b-4aae-82ed-e8bfc27f5b4c
+    type: bearer
+    name: Bearer Token
+    credentials:
+      token: "{{jwt_token}}"
+    rules:
+      url: http://localhost:8000/*

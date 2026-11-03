@@ -1,0 +1,8 @@
+$kind: http-request
+url: "{{base_url}}/api/genres/465"
+method: GET
+auth:
+  type: inherit
+  credentials:
+    id: c488e316-523b-4aae-82ed-e8bfc27f5b4c
+order: 4000

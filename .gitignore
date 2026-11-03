@@ -1,34 +1,40 @@
-HELP.md
-target/
-/uploads/book-covers/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
+# Secrets and machine-local environment files
+**/.env
+**/.env.*
+!**/.env.example
+*.local
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+# JavaScript dependencies and generated bundles
+**/node_modules/
+**/dist/
+**/dist-ssr/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+# Java/Maven build output and runtime uploads
+**/target/
+Library/uploads/
+
+# IDE and operating-system metadata
+.idea/
+**/.idea/
+**/.vs/
+**/.vscode/
 *.iml
+*.iws
 *.ipr
+*.suo
+.DS_Store
+Thumbs.db
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+# Logs and temporary artifacts
+*.log
+*.tmp
+Library/backend-full-code*.txt
+Library/.mvn/frontend/
 
-### VS Code ###
-.vscode/
+# Local Postman workspace metadata; the export under postman/ is canonical
+.postman/
+
+# Only the canonical schema and its explanation belong in version control
+database/*
+!database/library_db1.sql
+!database/README.md
