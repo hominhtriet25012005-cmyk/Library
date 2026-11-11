@@ -35,6 +35,7 @@ public class JwtValidator extends OncePerRequestFilter {
         String authorization = request.getHeader(JwtConstant.JWT_HEADER);
         if (authorization == null || authorization.isBlank()) {
             filterChain.doFilter(request, response);
+
             return;
         }
 
@@ -54,6 +55,7 @@ public class JwtValidator extends OncePerRequestFilter {
         } catch (Exception exception) {
             SecurityContextHolder.clearContext();
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Mã xác thực không hợp lệ hoặc đã hết hạn.");
+
             return;
         }
         filterChain.doFilter(request, response);

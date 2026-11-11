@@ -40,8 +40,10 @@ public class PayOSMembershipPaymentService {
 
     public PaymentInitiateResponse initiate(Long subscriptionId) throws Exception {
         assertAvailable();
+
         if (subscriptionId == null) throw new IllegalArgumentException("Subscription ID is required");
         var prepared = store.prepare(subscriptionId, users.getCurrentUser().getId());
+
         return initiatePrepared(prepared);
     }
 
@@ -53,7 +55,7 @@ public class PayOSMembershipPaymentService {
                 .gateway(payment.getGateway()).amount(payment.getAmount()).currency(payment.getCurrency())
                 .description(payment.getDescription()).status(payment.getStatus());
         if (!prepared.newlyCreated()) {
-            // Never recreate an uncertain order. C1 will reconcile/settle the same order.
+            // Không bao giờ tạo lại một đơn hàng không chắc chắn. C1 sẽ thực hiện đối soát/quyết toán cho chính đơn hàng đó.
             vn.payos.model.v2.paymentRequests.PaymentLink link;
             try {
                 link = gateways.getObject().getPaymentLink(payment.getId());
@@ -61,17 +63,20 @@ public class PayOSMembershipPaymentService {
                 throw new IllegalStateException("Payment " + payment.getId()
                         + " could not be reconciled; do not create a replacement order");
             }
+
             if (!Objects.equals(link.getOrderCode(), payment.getId())
                     || !Objects.equals(link.getAmount(), payment.getAmount())
                     || (payment.getGatewayOrderId() != null && !payment.getGatewayOrderId().equals(link.getId()))) {
                 throw new IllegalStateException("payOS order mismatch; reconciliation required");
             }
+
             return response.paymentLinkId(link.getId()).success(false)
                     .message("Existing order; awaiting verified settlement. Do not create another order.").build();
         }
         try {
             var link = gateways.getObject().createPaymentLink(payment.getId(), payment.getAmount(),
                     payment.getDescription(), returnUrl, cancelUrl);
+
             if (!Objects.equals(link.getOrderCode(), payment.getId())
                     || !Objects.equals(link.getAmount(), payment.getAmount())
                     || !"VND".equals(link.getCurrency()) || link.getPaymentLinkId() == null
@@ -80,11 +85,13 @@ public class PayOSMembershipPaymentService {
             }
             PayOSService.validateUrl(link.getCheckoutUrl());
             payment = store.attachLink(payment.getId(), link.getPaymentLinkId());
+
             return response.paymentLinkId(link.getPaymentLinkId()).qrCode(link.getQrCode())
                     .checkoutUrl(link.getCheckoutUrl()).status(payment.getStatus()).success(true)
                     .message("Payment link created; payment has not been confirmed").build();
         } catch (RuntimeException ex) {
-            // Keep committed order for reconciliation; do not expose provider secrets/errors.
+            // Duy trì thứ tự các giao dịch đã cam kết để phục vụ công tác đối soát;
+            // không tiết lộ các bí mật hoặc lỗi của nhà cung cấp.
             throw new IllegalStateException("Payment " + payment.getId()
                     + " requires reconciliation; do not create a replacement order");
         }

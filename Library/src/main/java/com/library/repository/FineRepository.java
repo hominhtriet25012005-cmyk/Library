@@ -33,4 +33,6 @@ public interface FineRepository extends JpaRepository<Fine, Long> {
     List<Fine> findByUserId(Long userId);
 
     List<Fine> findByUserIdAndType(Long userId, FineType type);
+
+    boolean existsByBookLoanIdAndType(Long bookLoanId, FineType type);
 }

@@ -20,12 +20,13 @@ public class PaymentController {
 
     private static final Set<String> PAYMENT_SORT_FIELDS = Set.of(
             "id", "createdAt", "amount", "status", "paymentType", "gateway", "currency");
-    private static final int MAX_PAGE_SIZE = 100;
 
+    private static final int MAX_PAGE_SIZE = 100;
     private final PaymentService paymentService;
 
     @PostMapping("/verify")
     public ResponseEntity<?> verifyPayment() {
+
         return ResponseEntity.status(HttpStatus.GONE)
                 .body(new ApiResponse("Tính năng xác thực cũ đã ngừng hoạt động; vui lòng sử dụng webhook payOS đã xác thực hoặc quy trình đối soát.", false));
     }
@@ -39,6 +40,7 @@ public class PaymentController {
 
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE || !PAYMENT_SORT_FIELDS.contains(sortBy)
                 || (!sortDir.equalsIgnoreCase("ASC") && !sortDir.equalsIgnoreCase("DESC"))) {
+
             return ResponseEntity.badRequest().body(new ApiResponse("Phân trang hoặc sắp xếp lịch sử thanh toán không hợp lệ", false));
         }
 
@@ -48,6 +50,7 @@ public class PaymentController {
 
         Pageable pageable = PageRequest.of(page, size, sort);
         Page<PaymentDTO> payments = paymentService.getAllPayments(pageable);
+
         return ResponseEntity.ok(payments);
     }
 

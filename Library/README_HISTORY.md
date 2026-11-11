@@ -469,7 +469,5 @@ Bước tiếp theo cần thống nhất riêng: dữ liệu thử API trên MyS
 - [Báo cáo triển khai Bước 6A — Auth/User, catalog, wishlist, plan và thống kê](../docs/STEP6A_RESULT.md)
 - [Báo cáo triển khai Bước 6F — Subscription, Fine, Payment](../docs/STEP6F_RESULT.md)
 - [Bảng đối chiếu code/test Bước 6](../docs/STEP6_TRACEABILITY.md)
-- [Review MySQL và startup trước nhóm 1](../docs/PAYOS_MYSQL_STARTUP_REVIEW.md) — bằng chứng lịch sử, phần thiếu cột plan đã được xử lý ở nhóm này.
-- [Báo cáo C2](../docs/PAYOS_STAGE_C2_RESULT.md)
-- [Kế hoạch payOS](../docs/PAYOS_STAGE_A_REVIEW.md)
+- [Tích hợp, lịch sử và hướng dẫn vận hành payOS](../docs/PAYOS.md) — hợp nhất review A, B1, B2, C1, C2 và kiểm tra MySQL/startup.
 - [Đề xuất schema giai đoạn 4](../docs/STAGE4_SCHEMA_PROPOSAL.md) — bản cũ; lựa chọn VNPAY đã được thay bằng payOS, không chạy toàn SQL đề xuất.

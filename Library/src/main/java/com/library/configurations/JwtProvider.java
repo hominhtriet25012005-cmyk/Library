@@ -33,7 +33,9 @@ public class JwtProvider {
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(expiresAt))
                 .claim("email", authentication.getName())
-                // Compatibility metadata only. Authorization is reloaded from MySQL per request.
+
+                // Chỉ dành cho siêu dữ liệu tương thích.
+                // Thông tin ủy quyền được tải lại từ MySQL theo từng yêu cầu.
                 .claim("authorities", populateAuthorities(authentication.getAuthorities()))
                 .signWith(properties.signingKey())
                 .compact();
@@ -43,12 +45,14 @@ public class JwtProvider {
         Claims claims = parseClaims(token);
         String subject = claims.getSubject();
         if (subject != null && !subject.isBlank()) {
+
             return subject;
         }
         Object legacyEmail = claims.get("email");
         if (legacyEmail == null || legacyEmail.toString().isBlank()) {
             throw new IllegalArgumentException("JWT does not contain a subject");
         }
+
         return legacyEmail.toString();
     }
 
@@ -62,6 +66,7 @@ public class JwtProvider {
         if (rawToken.isBlank()) {
             throw new IllegalArgumentException("JWT is required");
         }
+
         return Jwts.parser()
                 .verifyWith(properties.signingKey())
                 .build()
@@ -74,6 +79,7 @@ public class JwtProvider {
         for (GrantedAuthority authority : authorities) {
             values.add(authority.getAuthority());
         }
+
         return String.join(",", values);
     }
 }

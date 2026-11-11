@@ -16,11 +16,13 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/books/covers")
 public class AdminBookCoverController {
+
     private final BookCoverStorageService storageService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BookCoverUploadResponse> uploadCover(
             @RequestParam("file") MultipartFile file) {
+
         return ResponseEntity.status(HttpStatus.CREATED).body(storageService.store(file));
     }
 }

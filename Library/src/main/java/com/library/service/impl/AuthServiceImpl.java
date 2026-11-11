@@ -126,7 +126,7 @@ public class AuthServiceImpl implements AuthService {
         User savedUser = userRepository.save(createdUser);  // INSERT user vào MySQL
 
         // Sau signup, tạo Authentication
-        // để xem user như đã đăng nhập
+        // Để xem user như đã đăng nhập
 
         Authentication auth = new UsernamePasswordAuthenticationToken(
                 savedUser.getEmail(), null, java.util.List.of(
@@ -152,7 +152,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = userRepository.findByEmailForUpdate(email).orElse(null);
 
-        // Keep the public response identical for known and unknown addresses.
+        // Duy trì phản hồi công khai giống hệt nhau đối với các địa chỉ đã biết và chưa biết.
         if (user == null) {
             return;
         }
@@ -173,7 +173,7 @@ public class AuthServiceImpl implements AuthService {
         String body = "Bạn đã yêu cầu đặt lại mật khẩu. Vui lòng sử dụng liên kết này (có hiệu lực trong 5 phút): "
                 + "<a href=\"" + resetLink + "\">Đặt lại mật khẩu</a>";
 
-        // sent email
+        // Đã gửi email
         emailService.sendEmail(user.getEmail(), subject, body);
     }
 

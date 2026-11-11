@@ -27,6 +27,12 @@ public interface BookLoanRepository extends JpaRepository<BookLoan, Long> {
 
     Page<BookLoan> findByBookId(Long bookId, Pageable pageable);
 
+    @Query("SELECT bl FROM BookLoan bl " +
+            "WHERE bl.returnRequestedAt IS NOT NULL AND bl.checkedInAt IS NULL " +
+            "AND (bl.status = 'CHECKED_OUT' OR bl.status = 'OVERDUE') " +
+            "ORDER BY bl.returnRequestedAt ASC, bl.id ASC")
+    Page<BookLoan> findPendingReturnRequests(Pageable pageable);
+
     List<BookLoan> findByBookId(Long bookId);
 
     @Query("select case when count(bl) > 0 then true else false end from BookLoan bl " +

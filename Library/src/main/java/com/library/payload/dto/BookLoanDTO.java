@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -46,13 +45,21 @@ public class BookLoanDTO {
 
     private LocalDate returnDate;
 
+    private LocalDateTime returnRequestedAt;
+
+    private String returnRequestNote;
+
+    private Boolean returnPending;
+
+    private LocalDateTime checkedInAt;
+
+    private Long checkedInById;
+
+    private String inspectionNote;
+
     private Integer renewalCount;
 
     private Integer maxRenewals;
-
-    private BigDecimal fineAmount;
-
-    private Boolean finePaid;
 
     private String notes;
 

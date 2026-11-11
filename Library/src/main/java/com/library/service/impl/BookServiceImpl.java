@@ -50,7 +50,8 @@ public class BookServiceImpl implements BookService {
             throw new BookException("Số bản còn sẵn phải nằm trong khoảng 0 đến tổng số bản");
         }
 
-        // A newly cataloged book has not yet been checked out, so all copies start available.
+        // Một cuốn sách mới được đưa vào danh mục vẫn chưa được mượn,
+        // vì vậy tất cả các bản sao đều đang ở trạng thái sẵn sàng cho mượn.
         book.setAvailableCopies(book.getTotalCopies());
 
          Book savedBook = bookRepository.save(book);

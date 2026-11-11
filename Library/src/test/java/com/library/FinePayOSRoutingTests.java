@@ -16,7 +16,7 @@ class FinePayOSRoutingTests {
     @Test void callerNeverSendsClientAmountOrReceipt() throws Exception {
         var users = mock(UserService.class); var payments = mock(PaymentService.class);
         when(users.getCurrentUser()).thenReturn(User.builder().id(7L).build());
-        var service = new FineServiceImpl(mock(BookLoanRepository.class), mock(FineRepository.class), new FineMapper(), users, payments);
+        var service = new FineServiceImpl(mock(FineRepository.class), new FineMapper(), users, payments);
         service.payFine(8L, null);
         var request = org.mockito.ArgumentCaptor.forClass(PaymentInitiateRequest.class);
         verify(payments).initiatePayment(request.capture());

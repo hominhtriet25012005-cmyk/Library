@@ -19,6 +19,7 @@ public class UserController {
 
     @GetMapping("/list")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
+
         return ResponseEntity.ok(
                 userService.getAllUsers()
         );
@@ -26,6 +27,7 @@ public class UserController {
 
     @GetMapping("/profile")
     public ResponseEntity<UserDTO> getUserProfile() throws Exception {
+
         return ResponseEntity.ok(
                 userService.getCurrentUserProfile()
         );

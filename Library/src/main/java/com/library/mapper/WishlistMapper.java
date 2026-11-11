@@ -13,6 +13,7 @@ public class WishlistMapper {
 
     public WishlistDTO toDTO(Wishlist wishlist) {
         if (wishlist == null) {
+
             return null;
         }
 

@@ -34,8 +34,12 @@ class AdminReviewsRepositoryTests {
         var book = Book.builder().isbn("AD8ISBN0001").title("AD8 book")
                 .author("Author").genre(genre).build();
         em.persist(book);
-        var visibleUser = User.builder().email("ad8a@example.test").fullName("Visible").role(UserRole.ROLE_USER).build();
-        var hiddenUser = User.builder().email("ad8b@example.test").fullName("Hidden").role(UserRole.ROLE_USER).build();
+        var visibleUser = User.builder().email("ad8a@example.test").fullName("Visible")
+                .password("$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy")
+                .role(UserRole.ROLE_USER).build();
+        var hiddenUser = User.builder().email("ad8b@example.test").fullName("Hidden")
+                .password("$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy")
+                .role(UserRole.ROLE_USER).build();
         em.persist(visibleUser); em.persist(hiddenUser);
         em.persist(BookReview.builder().user(visibleUser).book(book).rating(4)
                 .reviewText("Visible review text").isActive(true).build());

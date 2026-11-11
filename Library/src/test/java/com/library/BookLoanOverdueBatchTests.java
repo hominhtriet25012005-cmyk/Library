@@ -55,7 +55,8 @@ class BookLoanOverdueBatchTests {
         BookLoanServiceImpl subject = new BookLoanServiceImpl(loans, users,
                 mock(SubscriptionService.class), mock(BookRepository.class),
                 mock(BookLoanMapper.class), mock(UserRepository.class),
-                mock(com.library.service.impl.ReservationLifecycleService.class));
+                mock(com.library.service.impl.ReservationLifecycleService.class),
+                mock(com.library.repository.FineRepository.class));
         ReflectionTestUtils.setField(subject, "entityManager", entityManager);
 
         assertEquals(3, (int) ReflectionTestUtils.invokeMethod(subject, "updateOverdueBookLoan", 2));

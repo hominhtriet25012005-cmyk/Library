@@ -22,12 +22,14 @@ public class GenreController {
     @PostMapping("/create")
     public ResponseEntity<GenreDTO> addGenre(@Valid @RequestBody GenreDTO genre) throws GenreException {
         GenreDTO createdGenre=genreService.createGenre(genre);
+
         return ResponseEntity.ok(createdGenre);
     }
 
     @GetMapping()
     public ResponseEntity<?> getAllGenres() {
         List<GenreDTO> genres=genreService.getAllGenres();
+
         return ResponseEntity.ok(genres);
     }
 
@@ -36,6 +38,7 @@ public class GenreController {
             @PathVariable("genreId") Long genreId
     ) throws GenreException {
         GenreDTO genres = genreService.getGenreById(genreId);
+
         return ResponseEntity.ok(genres);
     }
 
@@ -45,6 +48,7 @@ public class GenreController {
             @Valid @RequestBody GenreDTO genre
     ) throws GenreException {
         GenreDTO genres = genreService.updateGenre(genreId, genre);
+
         return ResponseEntity.ok(genres);
     }
 
@@ -54,6 +58,7 @@ public class GenreController {
     ) throws GenreException {
         genreService.deleteGenre(genreId);
         ApiResponse response = new ApiResponse("Thể loại đã bị xóa - xóa mềm", true);
+
         return ResponseEntity.ok(response);
     }
 
@@ -63,6 +68,7 @@ public class GenreController {
     ) throws GenreException {
         genreService.hardDeleteGenre(genreId);
         ApiResponse response = new ApiResponse("Đã xóa thể loại - xóa vĩnh viễn", true);
+
         return ResponseEntity.ok(response);
     }
 
@@ -70,12 +76,14 @@ public class GenreController {
     @GetMapping("/top-level")
     public ResponseEntity<?> getTopLevelGenres() {
         List<GenreDTO> genres = genreService.getTopLevelGenres();
+
         return ResponseEntity.ok(genres);
     }
 
     @GetMapping("/count")
     public ResponseEntity<?> getTotalActiveGenres() {
         Long genres = genreService.getTotalActiveGenres();
+
         return ResponseEntity.ok(genres);
     }
 

@@ -3,6 +3,7 @@ package com.library.exception;
 import com.library.payload.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,41 +19,64 @@ public class GlobalException {
                 .filter(java.util.Objects::nonNull)
                 .findFirst()
                 .orElse("Dữ liệu gửi lên không hợp lệ.");
+
         return ResponseEntity.badRequest().body(new ApiResponse(message, false));
     }
 
     @ExceptionHandler(UserException.class)
     public ResponseEntity<ApiResponse> handleUserException(UserException e) {
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse(e.getMessage(), false));
     }
 
     @ExceptionHandler(GenreException.class)
     public ResponseEntity<ApiResponse> handleGenreException(GenreException e){
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse(e.getMessage(), false));
     }
 
     @ExceptionHandler(BookException.class)
     public ResponseEntity<ApiResponse> handleBookException(BookException e) {
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse(e.getMessage(), false));
     }
 
     @ExceptionHandler(BookInUseException.class)
     public ResponseEntity<ApiResponse> handleBookInUseException(BookInUseException e) {
+
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ApiResponse(e.getMessage(), false));
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse> handleDataIntegrityViolation(DataIntegrityViolationException e) {
+        Throwable cause = e;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        String detail = cause == null || cause.getMessage() == null
+                ? "" : cause.getMessage().toLowerCase(java.util.Locale.ROOT);
+        String message = detail.contains("uq_fines_book_loan_type")
+                ? "Khoản phạt cùng loại đã tồn tại cho lượt mượn này."
+                : "Dữ liệu bị trùng hoặc vi phạm ràng buộc toàn vẹn.";
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiResponse(message, false));
+    }
+
     @ExceptionHandler(InvalidBookCoverException.class)
     public ResponseEntity<ApiResponse> handleInvalidBookCover(InvalidBookCoverException e) {
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse(e.getMessage(), false));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiResponse> handleUploadTooLarge(MaxUploadSizeExceededException e) {
+
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                 .body(new ApiResponse("Ảnh bìa không được lớn hơn 5 MB.", false));
     }

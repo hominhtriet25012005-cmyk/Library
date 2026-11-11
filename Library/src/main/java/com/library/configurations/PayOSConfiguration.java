@@ -22,7 +22,8 @@ public class PayOSConfiguration {
         requireCredential(clientId, "PAYOS_CLIENT_ID");
         requireCredential(apiKey, "PAYOS_API_KEY");
         requireCredential(checksumKey, "PAYOS_CHECKSUM_KEY");
-        // A timeout is ambiguous: reconcile the order before retrying creation.
+
+        // Trạng thái hết thời gian chờ (timeout) không rõ ràng: hãy đối soát đơn hàng trước khi thử tạo lại.
         OkHttpClient httpClient = new OkHttpClient.Builder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .readTimeout(Duration.ofSeconds(15))
@@ -36,6 +37,7 @@ public class PayOSConfiguration {
 
     @Bean
     public PayOSService payOSService(PayOS payOS) {
+
         return new PayOSService(payOS);
     }
 

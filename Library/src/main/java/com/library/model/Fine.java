@@ -12,7 +12,8 @@ import java.sql.Types;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "fines")
+@Table(name = "fines", uniqueConstraints = @UniqueConstraint(
+        name = "uq_fines_book_loan_type", columnNames = {"book_loan_id", "type"}))
 @Getter
 @Setter
 @AllArgsConstructor

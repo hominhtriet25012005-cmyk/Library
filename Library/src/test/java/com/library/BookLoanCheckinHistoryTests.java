@@ -2,6 +2,7 @@ package com.library;
 
 import com.library.domain.BookLoanStatus;
 import com.library.domain.BookLoanType;
+import com.library.domain.BookDamageLevel;
 import com.library.domain.UserRole;
 import com.library.exception.BookException;
 import com.library.mapper.BookLoanMapper;
@@ -58,13 +59,16 @@ class BookLoanCheckinHistoryTests {
                 .availableCopies(0)
                 .build();
 
-        when(users.getCurrentUser()).thenReturn(borrower);
+        User admin = User.builder().id(1L).email("admin@test.invalid")
+                .fullName("Admin").role(UserRole.ROLE_ADMIN).build();
+        when(users.getCurrentUser()).thenReturn(admin);
         when(loans.save(any(BookLoan.class))).thenAnswer(call -> call.getArgument(0));
         when(books.save(any(Book.class))).thenAnswer(call -> call.getArgument(0));
         reservationLifecycle = mock(ReservationLifecycleService.class);
 
         subject = new BookLoanServiceImpl(loans, users, mock(SubscriptionService.class),
-                books, new BookLoanMapper(), mock(UserRepository.class), reservationLifecycle);
+                books, new BookLoanMapper(), mock(UserRepository.class), reservationLifecycle,
+                mock(com.library.repository.FineRepository.class));
         ReflectionTestUtils.setField(subject, "entityManager", mock(EntityManager.class));
     }
 
@@ -83,7 +87,10 @@ class BookLoanCheckinHistoryTests {
                 () -> assertEquals(LocalDate.now(), loan.getReturnDate()),
                 () -> assertEquals(3, loan.getOverdueDays()),
                 () -> assertFalse(loan.getIsOverdue()),
-                () -> assertEquals("Ghi chú lúc mượn\nBìa sách nguyên vẹn", loan.getNotes()),
+                () -> assertEquals("Ghi chú lúc mượn", loan.getNotes()),
+                () -> assertEquals("Bìa sách nguyên vẹn", loan.getInspectionNote()),
+                () -> assertEquals(1L, loan.getCheckedInBy().getId()),
+                () -> assertNotNull(loan.getCheckedInAt()),
                 () -> assertEquals(1, book.getAvailableCopies())
         );
         verify(books).save(book);
@@ -98,7 +105,7 @@ class BookLoanCheckinHistoryTests {
                 0, "Ghi chú cũ");
         when(loans.findLockedById(loan.getId())).thenReturn(Optional.of(loan));
 
-        subject.checkinBook(request(loan.getId(), condition, "   "));
+        subject.checkinBook(request(loan.getId(), condition, "Biên bản kiểm tra"));
 
         assertEquals(condition, loan.getStatus());
         assertEquals(0, book.getAvailableCopies());
@@ -122,16 +129,16 @@ class BookLoanCheckinHistoryTests {
     }
 
     @Test
-    void rejectsCombinedNotesOverDatabaseLimitBeforeMutatingLoan() {
-        String originalNotes = "x".repeat(499);
+    void rejectsInspectionNoteOverDatabaseLimitBeforeMutatingLoan() {
+        String originalNotes = "Ghi chú lúc mượn";
         BookLoan loan = activeLoan(BookLoanStatus.CHECKED_OUT, LocalDate.now().plusDays(2),
                 0, originalNotes);
         when(loans.findLockedById(loan.getId())).thenReturn(Optional.of(loan));
 
         BookException error = assertThrows(BookException.class,
-                () -> subject.checkinBook(request(loan.getId(), BookLoanStatus.RETURNED, "yy")));
+                () -> subject.checkinBook(request(loan.getId(), BookLoanStatus.RETURNED, "x".repeat(501))));
 
-        assertEquals("Ghi chú lượt mượn không được vượt quá 500 ký tự.", error.getMessage());
+        assertEquals("Ghi chú kiểm tra không được vượt quá 500 ký tự.", error.getMessage());
         assertEquals(BookLoanStatus.CHECKED_OUT, loan.getStatus());
         assertNull(loan.getReturnDate());
         assertEquals(originalNotes, loan.getNotes());
@@ -161,6 +168,10 @@ class BookLoanCheckinHistoryTests {
         request.setBookLoanId(loanId);
         request.setCondition(condition);
         request.setNotes(notes);
+        if (condition == BookLoanStatus.DAMAGED) {
+            request.setDamageLevel(BookDamageLevel.LIGHT);
+        }
+        request.setConfirmDefaultReferencePrice(true);
         return request;
     }
 }

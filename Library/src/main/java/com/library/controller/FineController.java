@@ -3,10 +3,10 @@ package com.library.controller;
 import com.library.domain.FineStatus;
 import com.library.domain.FineType;
 import com.library.payload.dto.FineDTO;
-import com.library.payload.request.CreateFineRequest;
 import com.library.payload.request.WaiveFineRequest;
 import com.library.payload.response.PageResponse;
 import com.library.payload.response.PaymentInitiateResponse;
+import com.library.payload.response.ApiResponse;
 import com.library.service.FineService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,25 +24,21 @@ public class FineController {
 
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     ResponseEntity<?> denied() {
-        return ResponseEntity.status(403).body(java.util.Map.of("error", "Quyền truy cập bị từ chối"));
+
+        return ResponseEntity.status(403).body(new ApiResponse("Quyền truy cập bị từ chối", false));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<?> invalid() {
-        return ResponseEntity.badRequest().body(java.util.Map.of("error", "Yêu cầu thanh toán tiền phạt không hợp lệ"));
+
+        return ResponseEntity.badRequest().body(new ApiResponse("Yêu cầu thanh toán tiền phạt không hợp lệ", false));
     }
 
     @ExceptionHandler(IllegalStateException.class)
     ResponseEntity<?> unavailable() {
-        return ResponseEntity.status(409).body(java.util.Map.of("error", "Không thể thanh toán tiền phạt; có thể cần thực hiện đối soát"));
-    }
 
-    @PostMapping
-    public ResponseEntity<?> createFine(
-            @Valid @RequestBody CreateFineRequest fineRequest
-    ) throws Exception {
-        FineDTO fineDTO = fineService.createFine(fineRequest);
-        return ResponseEntity.ok(fineDTO);
+        return ResponseEntity.status(409).body(new ApiResponse(
+                "Không thể thanh toán tiền phạt; có thể cần thực hiện đối soát", false));
     }
 
     @PostMapping("/{id}/pay")
@@ -51,6 +47,7 @@ public class FineController {
             @RequestParam(required = false) String transactionId
     ) throws Exception {
         PaymentInitiateResponse res = fineService.payFine(id, transactionId);
+
         return ResponseEntity.ok(res);
     }
 
@@ -59,6 +56,7 @@ public class FineController {
             @Valid @RequestBody WaiveFineRequest waiveFineRequest
     ) throws Exception {
         FineDTO fineDTO = fineService.waiveFine(waiveFineRequest);
+
         return ResponseEntity.ok(fineDTO);
     }
 
@@ -68,6 +66,7 @@ public class FineController {
             @RequestParam(required = false) FineType type
     ) throws Exception {
         List<FineDTO> fines = fineService.getMyFines(status, type);
+
         return ResponseEntity.ok(fines);
     }
 
@@ -85,6 +84,7 @@ public class FineController {
 
         PageResponse<FineDTO> fines = fineService
                 .getAllFines(status, type, userId, page, size);
+
         return ResponseEntity.ok(fines);
     }
 }

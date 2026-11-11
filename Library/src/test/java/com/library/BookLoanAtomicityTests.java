@@ -32,10 +32,11 @@ class BookLoanAtomicityTests {
     TransactionTemplate tx;
     BookLoanRepository loans;
     BookRepository books;
+    FineRepository fines;
     UserRepository users;
     UserService userService;
     SubscriptionService subscriptions;
-    Long userId, otherId, bookId, otherBook;
+    Long userId, otherId, adminId, bookId, otherBook;
     ThreadLocal<Long> actor = new ThreadLocal<>();
 
     @BeforeEach void setup() throws Exception {
@@ -50,14 +51,17 @@ class BookLoanAtomicityTests {
         manager.setJpaDialect(new org.springframework.orm.jpa.vendor.HibernateJpaDialect());
         tx=new TransactionTemplate(manager);
         var repos=new JpaRepositoryFactory(em);
-        loans=repos.getRepository(BookLoanRepository.class); books=repos.getRepository(BookRepository.class); users=repos.getRepository(UserRepository.class);
+        loans=repos.getRepository(BookLoanRepository.class); books=repos.getRepository(BookRepository.class);
+        fines=repos.getRepository(FineRepository.class); users=repos.getRepository(UserRepository.class);
         tx.executeWithoutResult(status -> {
-            User first=User.builder().email("first@test.invalid").fullName("First").role(UserRole.ROLE_USER).build(); em.persist(first);
-            User second=User.builder().email("second@test.invalid").fullName("Second").role(UserRole.ROLE_USER).build(); em.persist(second);
+            String password="$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+            User first=User.builder().email("first@test.invalid").fullName("First").password(password).role(UserRole.ROLE_USER).build(); em.persist(first);
+            User second=User.builder().email("second@test.invalid").fullName("Second").password(password).role(UserRole.ROLE_USER).build(); em.persist(second);
+            User admin=User.builder().email("admin@test.invalid").fullName("Admin").password(password).role(UserRole.ROLE_ADMIN).build(); em.persist(admin);
             Genre genre=Genre.builder().code("TEST").name("Test genre").build(); em.persist(genre);
             Book a=Book.builder().isbn("TEST-A").title("A").author("Test").genre(genre).totalCopies(1).availableCopies(1).build(); em.persist(a);
             Book b=Book.builder().isbn("TEST-B").title("B").author("Test").genre(genre).totalCopies(1).availableCopies(1).build(); em.persist(b);
-            em.flush(); userId=first.getId(); otherId=second.getId(); bookId=a.getId(); otherBook=b.getId();
+            em.flush(); userId=first.getId(); otherId=second.getId(); adminId=admin.getId(); bookId=a.getId(); otherBook=b.getId();
         });
         userService=mock(UserService.class); subscriptions=mock(SubscriptionService.class);
         when(userService.getCurrentUser()).thenAnswer(call -> em.find(User.class, actor.get()==null ? userId : actor.get()));
@@ -67,8 +71,12 @@ class BookLoanAtomicityTests {
     @AfterEach void close() { actor.remove(); if(factory!=null) factory.close(); }
     @SuppressWarnings("deprecation")
     BookLoanServiceImpl service(BookLoanRepository repository) {
+        return service(repository, fines);
+    }
+    @SuppressWarnings("deprecation")
+    BookLoanServiceImpl service(BookLoanRepository repository, FineRepository fineStore) {
         var target=new BookLoanServiceImpl(repository,userService,subscriptions,books,new BookLoanMapper(),users,
-                mock(com.library.service.impl.ReservationLifecycleService.class));
+                mock(com.library.service.impl.ReservationLifecycleService.class), fineStore);
         org.springframework.test.util.ReflectionTestUtils.setField(target,"entityManager",em);
         var proxy=new ProxyFactory(target); proxy.setProxyTargetClass(true);
         proxy.addAdvice(new TransactionInterceptor(manager,new AnnotationTransactionAttributeSource()));
@@ -79,7 +87,16 @@ class BookLoanAtomicityTests {
         return service.checkoutBook(request).getId();
     }
     void checkin(BookLoanServiceImpl service, long loan) throws Exception {
-        CheckinRequest request=new CheckinRequest(); request.setBookLoanId(loan); service.checkinBook(request);
+        Long previous=actor.get(); actor.set(adminId);
+        try {
+            CheckinRequest request=new CheckinRequest(); request.setBookLoanId(loan); service.checkinBook(request);
+        } finally {
+            if (previous == null) actor.remove(); else actor.set(previous);
+        }
+    }
+    void requestReturn(BookLoanServiceImpl service, long loan) throws Exception {
+        ReturnBookRequest request=new ReturnBookRequest(); request.setNote("Trả tại quầy");
+        service.requestReturn(loan,request);
     }
     int available(long id) { return tx.execute(s -> em.find(Book.class,id).getAvailableCopies()); }
     long count() { return tx.execute(s -> loans.count()); }
@@ -112,6 +129,32 @@ class BookLoanAtomicityTests {
         assertEquals(BookLoanStatus.CHECKED_OUT,tx.execute(s -> em.find(BookLoan.class,loan).getStatus()));
         assertNull(tx.execute(s -> em.find(BookLoan.class,loan).getReturnDate()));
     }
+    @Test void failedFineInsertRollsBackCheckinAndAllFines() throws Exception {
+        long loan=checkout(service(loans),bookId);
+        tx.executeWithoutResult(status -> {
+            BookLoan stored=em.find(BookLoan.class,loan);
+            stored.setDueDate(java.time.LocalDate.now().minusDays(2));
+            stored.setStatus(BookLoanStatus.OVERDUE);
+            em.find(Book.class,bookId).setPrice(new java.math.BigDecimal("100000"));
+        });
+        var failing=mock(FineRepository.class,delegatesTo(fines));
+        doThrow(new IllegalStateException("injected fine failure")).when(failing).save(any(Fine.class));
+        var subject=service(loans,failing);
+        actor.set(adminId);
+        CheckinRequest request=new CheckinRequest();
+        request.setBookLoanId(loan); request.setCondition(BookLoanStatus.LOST);
+        request.setInspectionNote("Không tìm thấy sách khi tiếp nhận");
+
+        assertThrows(IllegalStateException.class, () -> subject.checkinBook(request));
+
+        assertEquals(BookLoanStatus.OVERDUE,
+                tx.execute(s -> em.find(BookLoan.class,loan).getStatus()));
+        assertNull(tx.execute(s -> em.find(BookLoan.class,loan).getReturnDate()));
+        assertNull(tx.execute(s -> em.find(BookLoan.class,loan).getCheckedInAt()));
+        assertEquals(0L,tx.execute(s -> fines.count()).longValue());
+        assertEquals(0,available(bookId));
+        actor.remove();
+    }
     @Test void lastCopyOnlyOneBorrowerSucceeds() throws Exception {
         var service=service(loans);
         var results=race(() -> tryCheckout(service,userId,bookId), () -> tryCheckout(service,otherId,bookId));
@@ -124,12 +167,35 @@ class BookLoanAtomicityTests {
         assertEquals(1,results.stream().filter(Boolean::booleanValue).count());
         assertEquals(1,count()); assertEquals(1,available(bookId)+available(otherBook));
     }
-    @Test void simultaneousReturnRestocksExactlyOnce() throws Exception {
+    @Test void simultaneousReturnRetriesSucceedIdempotentlyAndRestockExactlyOnce() throws Exception {
         var service=service(loans); long loan=checkout(service,bookId);
         Callable<Boolean> giveBack=() -> {try {checkin(service,loan); return true;} catch(BookException expected){return false;}};
-        assertEquals(1,race(giveBack,giveBack).stream().filter(Boolean::booleanValue).count());
+        assertEquals(2,race(giveBack,giveBack).stream().filter(Boolean::booleanValue).count());
         assertEquals(1,available(bookId));
         assertEquals(BookLoanStatus.RETURNED,tx.execute(s -> em.find(BookLoan.class,loan).getStatus()));
+    }
+
+    @Test void simultaneousOverdueCheckinsCreateExactlyOneFine() throws Exception {
+        var service=service(loans); long loan=checkout(service,bookId);
+        tx.executeWithoutResult(status -> {
+            em.find(BookLoan.class,loan).setDueDate(java.time.LocalDate.now().minusDays(2));
+            em.find(Book.class,bookId).setPrice(new java.math.BigDecimal("100000"));
+        });
+        Callable<Boolean> giveBack=() -> {checkin(service,loan); return true;};
+
+        assertEquals(2,race(giveBack,giveBack).stream().filter(Boolean::booleanValue).count());
+        assertEquals(1L,tx.execute(s -> fines.count()).longValue());
+        assertEquals(FineType.OVERDUE,tx.execute(s -> fines.findAll().get(0).getType()));
+    }
+    @Test void simultaneousReturnRequestsAreIdempotentAndDoNotRestock() throws Exception {
+        var service=service(loans); long loan=checkout(service,bookId);
+        Callable<Boolean> request=() -> { requestReturn(service,loan); return true; };
+        assertEquals(2,race(request,request).stream().filter(Boolean::booleanValue).count());
+        assertEquals(0,available(bookId));
+        assertEquals(BookLoanStatus.CHECKED_OUT,
+            tx.execute(s -> em.find(BookLoan.class,loan).getStatus()));
+        assertNull(tx.execute(s -> em.find(BookLoan.class,loan).getReturnDate()));
+        assertNotNull(tx.execute(s -> em.find(BookLoan.class,loan).getReturnRequestedAt()));
     }
     @Test void simultaneousRenewalsNeverExceedLimit() throws Exception {
         var service=service(loans); long loan=checkout(service,bookId);

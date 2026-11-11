@@ -20,12 +20,14 @@ public class SubscriptionPlanController {
     @GetMapping
     public ResponseEntity<?> getAllSubscriptionPlans() {
         List<SubscriptionPlanDTO> plans = subscriptionPlanService.getAvailableSubscriptionPlans();
+
         return ResponseEntity.ok(plans);
     }
 
     @GetMapping("/admin")
     public ResponseEntity<?> getAdminSubscriptionPlans() {
         List<SubscriptionPlanDTO> plans = subscriptionPlanService.getAllSubscriptionPlan();
+
         return ResponseEntity.ok(plans);
     }
 
@@ -36,6 +38,7 @@ public class SubscriptionPlanController {
         SubscriptionPlanDTO plans = subscriptionPlanService.createSubscriptionPlan(
                 subscriptionPlanDTO
         );
+
         return ResponseEntity.ok(plans);
     }
 
@@ -47,6 +50,7 @@ public class SubscriptionPlanController {
         SubscriptionPlanDTO plans = subscriptionPlanService.updateSubscriptionPlan(
                 id, subscriptionPlanDTO
         );
+
         return ResponseEntity.ok(plans);
     }
 
@@ -59,6 +63,7 @@ public class SubscriptionPlanController {
                 ? "Đã xóa vĩnh viễn gói thành công."
                 : "Gói đã có lịch sử đăng ký nên chỉ được ngừng bán.";
         ApiResponse res = new ApiResponse(message, true);
+
         return ResponseEntity.ok(res);
     }
 }

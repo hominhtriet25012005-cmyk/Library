@@ -2,17 +2,23 @@ package com.library.service.impl;
 
 import com.library.domain.BookLoanStatus;
 import com.library.domain.BookLoanType;
+import com.library.domain.BookDamageLevel;
+import com.library.domain.FineStatus;
+import com.library.domain.FineType;
 import com.library.exception.BookException;
 import com.library.mapper.BookLoanMapper;
 import com.library.model.Book;
 import com.library.model.BookLoan;
+import com.library.model.Fine;
 import com.library.model.User;
 import com.library.payload.dto.BookLoanDTO;
 import com.library.payload.dto.SubscriptionDTO;
 import com.library.payload.request.*;
 import com.library.payload.response.PageResponse;
+import com.library.payload.response.CheckinFinePreviewResponse;
 import com.library.repository.BookLoanRepository;
 import com.library.repository.BookRepository;
+import com.library.repository.FineRepository;
 import com.library.service.BookLoanService;
 import com.library.service.SubscriptionService;
 import com.library.service.UserService;
@@ -26,7 +32,10 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,6 +51,17 @@ public class BookLoanServiceImpl implements BookLoanService {
     private final BookLoanMapper bookLoanMapper;
     private final com.library.repository.UserRepository userRepository;
     private final ReservationLifecycleService reservationLifecycleService;
+    private final FineRepository fineRepository;
+    @org.springframework.beans.factory.annotation.Value("${app.fines.overdue-daily-rate:5000}")
+    private long overdueDailyRate = 5_000L;
+    @org.springframework.beans.factory.annotation.Value("${app.fines.light-damage-rate:0.25}")
+    private BigDecimal lightDamageRate = new BigDecimal("0.25");
+    @org.springframework.beans.factory.annotation.Value("${app.fines.severe-damage-rate:0.75}")
+    private BigDecimal severeDamageRate = new BigDecimal("0.75");
+    @org.springframework.beans.factory.annotation.Value("${app.fines.loss-processing-fee:20000}")
+    private long lossProcessingFee = 20_000L;
+    @org.springframework.beans.factory.annotation.Value("${app.fines.default-reference-price:100000}")
+    private long defaultReferencePrice = 100_000L;
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
 
@@ -62,7 +82,8 @@ public class BookLoanServiceImpl implements BookLoanService {
     private Book lockedBook(Long id) throws BookException {
         if (id == null) throw new BookException("Thiếu mã sách.");
         Book book = bookRepository.findLockedById(id).orElseThrow(() -> new BookException("Không tìm thấy sách."));
-        // A caller may already have loaded the entity before waiting for the row lock.
+
+        // Người gọi có thể đã tải thực thể đó trước khi chờ khóa hàng.
         entityManager.refresh(book, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
         return book;
     }
@@ -72,6 +93,20 @@ public class BookLoanServiceImpl implements BookLoanService {
         BookLoan loan = bookLoanRepository.findLockedById(id).orElseThrow(() -> new BookException("Không tìm thấy lượt mượn."));
         entityManager.refresh(loan, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
         requireOwnerOrAdmin(loan.getUser().getId());
+        return loan;
+    }
+
+    private BookLoan returnRequestLoan(Long id) throws Exception {
+        if (id == null) throw new BookException("Thiếu mã lượt mượn.");
+        BookLoan loan = bookLoanRepository.findLockedById(id)
+                .orElseThrow(() -> new BookException("Không tìm thấy lượt mượn."));
+        entityManager.refresh(loan, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        User actor = userService.getCurrentUser();
+        if (actor.getRole() != com.library.domain.UserRole.ROLE_USER
+                || !java.util.Objects.equals(actor.getId(), loan.getUser().getId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Bạn không có quyền gửi yêu cầu trả cho lượt mượn này.");
+        }
         return loan;
     }
 
@@ -98,7 +133,8 @@ public class BookLoanServiceImpl implements BookLoanService {
 
         // 1. Xác thực sự tồn tại của người dùng
         requireOwnerOrAdmin(userId);
-        // Serialize checkout quota checks for this borrower, including different books.
+
+        // Kiểm tra số lượng sách được phép mượn cho người mượn này theo thứ tự, bao gồm cả các cuốn sách khác nhau.
         User user = userRepository.findLockedById(userId).orElseThrow(() -> new BookException("Không tìm thấy người dùng."));
 
         // 2. Xác thực người dùng có gói đăng ký đang hoạt động.
@@ -139,13 +175,13 @@ public class BookLoanServiceImpl implements BookLoanService {
             throw new BookException("Bạn đã đạt đến số lượng sách tối đa được phép.");
         }
 
-        //  6. Check for overdue books
+        //  6. Kiểm tra sách quá hạn
         long overdueCount = bookLoanRepository.countOverdueBookLoansByUser(userId, LocalDate.now());
         if (overdueCount > 0) {
             throw new BookException("Trước tiên, hãy trả lại cuốn sách cũ đã quá hạn.");
         }
 
-        //  7. tạo khoản cho mượn sách
+        //  7. Tạo khoản cho mượn sách
         BookLoan bookLoan = BookLoan
                 .builder()
                 .user(user)
@@ -161,11 +197,11 @@ public class BookLoanServiceImpl implements BookLoanService {
                 .overdueDays(0)
                 .build();
 
-        //  9. Cập nhật số lượng bản sách hiện có
+        //  8. Cập nhật số lượng bản sách hiện có
         book.setAvailableCopies(book.getAvailableCopies() - 1);
         bookRepository.save(book);
 
-        // 10. save book loan
+        // 9. Lưu khoản vay sách
         BookLoan savedBookLoan = bookLoanRepository.save(bookLoan);
 
         return bookLoanMapper.toDTO(savedBookLoan);
@@ -173,16 +209,27 @@ public class BookLoanServiceImpl implements BookLoanService {
 
     @Override
     public BookLoanDTO checkinBook(CheckinRequest checkinRequest) throws Exception {
+        User admin = userService.getCurrentUser();
+        if (admin.getRole() != com.library.domain.UserRole.ROLE_ADMIN) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Chỉ ADMIN được xác nhận tiếp nhận sách.");
+        }
+        if (checkinRequest == null || checkinRequest.getBookLoanId() == null) {
+            throw new BookException("Thiếu mã lượt mượn.");
+        }
 
-        // 1. validate book loan exist
-        BookLoan bookLoan = ownedLockedLoan(checkinRequest.getBookLoanId());
+        BookLoan bookLoan = bookLoanRepository.findLockedById(checkinRequest.getBookLoanId())
+                .orElseThrow(() -> new BookException("Không tìm thấy lượt mượn."));
+        entityManager.refresh(bookLoan, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 
-        //  2. check if already returned
+        // Retry sau khi giao dịch đầu đã hoàn tất chỉ đọc lại kết quả, không tăng kho lần hai.
+        if (bookLoan.getCheckedInAt() != null && !bookLoan.isActive()) {
+            return bookLoanMapper.toDTO(bookLoan);
+        }
         if (!bookLoan.isActive()) {
             throw new BookException("Lượt mượn này không còn hiệu lực.");
         }
 
-        // 4.
         BookLoanStatus condition = checkinRequest.getCondition();
         if (condition == null) {
             condition = BookLoanStatus.RETURNED;
@@ -193,22 +240,35 @@ public class BookLoanServiceImpl implements BookLoanService {
         }
 
         LocalDateTime checkinAt = LocalDateTime.now();
-        LocalDate returnDate = checkinAt.toLocalDate();
-        String mergedNotes = mergeLoanNotes(bookLoan.getNotes(), checkinRequest.getNotes());
+        LocalDate returnDate = checkinRequest.getReceivedDate() == null
+                ? checkinAt.toLocalDate() : checkinRequest.getReceivedDate();
+        validateReceivedDate(bookLoan, returnDate, checkinAt.toLocalDate());
+        String inspectionNote = normalizeInspectionNote(checkinRequest);
+        if ((condition == BookLoanStatus.DAMAGED || condition == BookLoanStatus.LOST)
+                && inspectionNote == null) {
+            throw new BookException("Ghi chú kiểm tra là bắt buộc khi sách bị hư hỏng hoặc mất.");
+        }
+        validateDamageLevel(condition, checkinRequest.getDamageLevel());
         int recordedOverdueDays = bookLoan.getOverdueDays() == null ? 0 : bookLoan.getOverdueDays();
         int actualOverdueDays = calculateOverdueDate(bookLoan.getDueDate(), returnDate);
 
+        CheckinFinePreviewResponse finePreview = calculateFinePreview(
+                bookLoan, condition, checkinRequest.getDamageLevel(), actualOverdueDays);
+        if (Boolean.TRUE.equals(finePreview.getRequiresDefaultReferencePriceConfirmation())
+                && !Boolean.TRUE.equals(checkinRequest.getConfirmDefaultReferencePrice())) {
+            throw new BookException(
+                    "Sách chưa có giá hợp lệ. ADMIN phải xác nhận dùng giá tham chiếu 100.000đ trước khi tạo phạt.");
+        }
+
         bookLoan.setReturnDate(returnDate);
         bookLoan.setStatus(condition);
+        bookLoan.setCheckedInAt(checkinAt);
+        bookLoan.setCheckedInBy(admin);
+        bookLoan.setInspectionNote(inspectionNote);
 
-        // Keep overdueDays as immutable loan history after the checkout is closed.
+        // Giữ lại overdueDays như một phần lịch sử khoản vay không thay đổi sau khi quá trình mượn trả hoàn tất.
         bookLoan.setOverdueDays(Math.max(recordedOverdueDays, actualOverdueDays));
         bookLoan.setIsOverdue(false);
-
-        // Preserve checkout/renewal notes and append an optional check-in note.
-        bookLoan.setNotes(mergedNotes);
-
-        //      7. update book avaibility
 
         if (condition == BookLoanStatus.RETURNED) {
             Book book = lockedBook(bookLoan.getBook().getId());
@@ -220,42 +280,242 @@ public class BookLoanServiceImpl implements BookLoanService {
             reservationLifecycleService.activateNextPendingForBook(book.getId(), checkinAt);
         }
 
-        //  8.
         BookLoan savedBookLoan = bookLoanRepository.save(bookLoan);
+        createReturnFinesIfRequired(savedBookLoan, admin, finePreview, inspectionNote);
         return bookLoanMapper.toDTO(savedBookLoan);
-
     }
 
-    private String mergeLoanNotes(String existingNotes, String checkinNotes) throws BookException {
-        String normalizedCheckinNotes = checkinNotes == null ? null : checkinNotes.trim();
-        if (normalizedCheckinNotes == null || normalizedCheckinNotes.isEmpty()) {
-            return existingNotes;
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public CheckinFinePreviewResponse previewCheckinFines(CheckinRequest checkinRequest) throws Exception {
+        requireAdmin();
+        if (checkinRequest == null || checkinRequest.getBookLoanId() == null) {
+            throw new BookException("Thiếu mã lượt mượn.");
         }
 
-        String mergedNotes = existingNotes == null || existingNotes.isBlank()
-                ? normalizedCheckinNotes
-                : existingNotes + "\n" + normalizedCheckinNotes;
-        if (mergedNotes.length() > 500) {
-            throw new BookException("Ghi chú lượt mượn không được vượt quá 500 ký tự.");
+        BookLoan bookLoan = bookLoanRepository.findById(checkinRequest.getBookLoanId())
+                .orElseThrow(() -> new BookException("Không tìm thấy lượt mượn."));
+        if (!bookLoan.isActive() || bookLoan.getCheckedInAt() != null) {
+            throw new BookException("Lượt mượn này không còn hiệu lực.");
         }
-        return mergedNotes;
+
+        BookLoanStatus condition = checkinRequest.getCondition() == null
+                ? BookLoanStatus.RETURNED : checkinRequest.getCondition();
+        if (condition != BookLoanStatus.RETURNED && condition != BookLoanStatus.LOST
+                && condition != BookLoanStatus.DAMAGED) {
+            throw new BookException("Tình trạng sách khi trả không hợp lệ. Chọn đã trả, bị mất hoặc hư hỏng.");
+        }
+        validateDamageLevel(condition, checkinRequest.getDamageLevel());
+
+        LocalDate receivedDate = checkinRequest.getReceivedDate() == null
+                ? LocalDate.now() : checkinRequest.getReceivedDate();
+        validateReceivedDate(bookLoan, receivedDate, LocalDate.now());
+        int overdueDays = calculateOverdueDate(bookLoan.getDueDate(), receivedDate);
+
+        return calculateFinePreview(bookLoan, condition, checkinRequest.getDamageLevel(), overdueDays);
+    }
+
+    private void validateDamageLevel(BookLoanStatus condition, BookDamageLevel damageLevel)
+            throws BookException {
+        if (condition == BookLoanStatus.DAMAGED && damageLevel == null) {
+            throw new BookException("ADMIN phải chọn mức độ hư hỏng nhẹ hoặc nặng.");
+        }
+        if (condition != BookLoanStatus.DAMAGED && damageLevel != null) {
+            throw new BookException("Chỉ được chọn mức độ hư hỏng khi tình trạng sách là hư hỏng.");
+        }
+    }
+
+    private CheckinFinePreviewResponse calculateFinePreview(
+            BookLoan loan, BookLoanStatus condition, BookDamageLevel damageLevel, int overdueDays)
+            throws BookException {
+        boolean requiresFine = overdueDays > 0
+                || condition == BookLoanStatus.DAMAGED
+                || condition == BookLoanStatus.LOST;
+        if (!requiresFine) {
+            return CheckinFinePreviewResponse.builder()
+                    .bookLoanId(loan.getId())
+                    .overdueDays(overdueDays)
+                    .usesDefaultReferencePrice(false)
+                    .requiresDefaultReferencePriceConfirmation(false)
+                    .items(List.of())
+                    .totalAmount(0L)
+                    .build();
+        }
+
+        BigDecimal price = loan.getBook().getPrice();
+        long referencePrice;
+        boolean usesDefaultPrice;
+        if (price != null && price.signum() > 0) {
+            try {
+                referencePrice = price.setScale(0, RoundingMode.HALF_UP).longValueExact();
+                usesDefaultPrice = false;
+            } catch (ArithmeticException ex) {
+                throw new BookException("Giá sách vượt quá phạm vi tính tiền phạt.");
+            }
+        } else {
+            referencePrice = defaultReferencePrice;
+            usesDefaultPrice = true;
+        }
+
+        List<CheckinFinePreviewResponse.Item> items = new ArrayList<>();
+        if (overdueDays > 0) {
+            long amount = Math.min(Math.multiplyExact((long) overdueDays, overdueDailyRate), referencePrice);
+            items.add(previewItem(FineType.OVERDUE, "Quá hạn (" + overdueDays + " ngày)", amount,
+                    "Phạt trả sách quá hạn " + overdueDays + " ngày."));
+        }
+        if (condition == BookLoanStatus.DAMAGED) {
+            BigDecimal rate = damageLevel == BookDamageLevel.LIGHT ? lightDamageRate : severeDamageRate;
+            long amount = BigDecimal.valueOf(referencePrice).multiply(rate)
+                    .setScale(0, RoundingMode.HALF_UP).longValueExact();
+            String label = damageLevel == BookDamageLevel.LIGHT ? "Hư hỏng nhẹ (25%)" : "Hư hỏng nặng (75%)";
+            String reasonLabel = damageLevel == BookDamageLevel.LIGHT ? "nhẹ (25%)" : "nặng (75%)";
+            items.add(previewItem(FineType.DAMAGE, label, amount,
+                    "Phạt sách hư hỏng " + reasonLabel + " giá tham chiếu."));
+        } else if (condition == BookLoanStatus.LOST) {
+            long amount = Math.addExact(referencePrice, lossProcessingFee);
+            items.add(previewItem(FineType.LOSS, "Mất sách (100% + phí xử lý)", amount,
+                    "Bồi thường sách bị mất (100% giá tham chiếu + 20.000đ phí xử lý)."));
+        }
+
+        long total = 0L;
+        for (CheckinFinePreviewResponse.Item item : items) {
+            total = Math.addExact(total, item.getAmount());
+        }
+        return CheckinFinePreviewResponse.builder()
+                .bookLoanId(loan.getId())
+                .overdueDays(overdueDays)
+                .referencePrice(referencePrice)
+                .usesDefaultReferencePrice(usesDefaultPrice)
+                .requiresDefaultReferencePriceConfirmation(usesDefaultPrice)
+                .items(items)
+                .totalAmount(total)
+                .build();
+    }
+
+    private CheckinFinePreviewResponse.Item previewItem(
+            FineType type, String label, long amount, String reason) {
+        return CheckinFinePreviewResponse.Item.builder()
+                .type(type)
+                .label(label)
+                .amount(amount)
+                .reason(reason)
+                .build();
+    }
+
+    private void createReturnFinesIfRequired(BookLoan loan, User admin,
+                                              CheckinFinePreviewResponse preview,
+                                              String inspectionNote) {
+        for (CheckinFinePreviewResponse.Item item : preview.getItems()) {
+            createFineOnce(loan, admin, item.getType(), item.getAmount(),
+                    item.getReason(), inspectionNote);
+        }
+    }
+
+    private void createFineOnce(BookLoan loan, User admin, FineType type, long amount,
+                                String reason, String notes) {
+        if (amount <= 0 || fineRepository.existsByBookLoanIdAndType(loan.getId(), type)) return;
+        fineRepository.save(Fine.builder()
+                .bookLoan(loan)
+                .user(loan.getUser())
+                .type(type)
+                .amount(amount)
+                .amountPaid(0L)
+                .status(FineStatus.PENDING)
+                .reason(reason)
+                .notes(notes)
+                .processedBy(admin)
+                .build());
+    }
+
+    private void validateReceivedDate(BookLoan bookLoan, LocalDate receivedDate, LocalDate today)
+            throws BookException {
+        LocalDate earliestReceivedDate = bookLoan.getReturnRequestedAt() == null
+                ? bookLoan.getCheckoutDate()
+                : bookLoan.getReturnRequestedAt().toLocalDate();
+        if (receivedDate.isBefore(earliestReceivedDate)) {
+            if (bookLoan.getReturnRequestedAt() != null) {
+                throw new BookException("Ngày nhận sách không được trước ngày người dùng gửi yêu cầu trả.");
+            }
+            throw new BookException("Ngày nhận sách không được trước ngày mượn.");
+        }
+        if (receivedDate.isAfter(today)) {
+            throw new BookException("Ngày nhận sách không được ở tương lai.");
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private String normalizeInspectionNote(CheckinRequest request) throws BookException {
+        String note = request.getInspectionNote();
+        if ((note == null || note.isBlank()) && request.getNotes() != null) {
+            note = request.getNotes();
+        }
+        if (note == null || note.isBlank()) return null;
+        String normalized = note.trim();
+        if (normalized.length() > 500) {
+            throw new BookException("Ghi chú kiểm tra không được vượt quá 500 ký tự.");
+        }
+        return normalized;
+    }
+
+    @Override
+    public BookLoanDTO requestReturn(Long bookLoanId, ReturnBookRequest request) throws Exception {
+        BookLoan bookLoan = returnRequestLoan(bookLoanId);
+        if (bookLoan.getStatus() != BookLoanStatus.CHECKED_OUT
+                && bookLoan.getStatus() != BookLoanStatus.OVERDUE) {
+            throw new BookException("Chỉ có thể gửi yêu cầu trả cho lượt mượn đang hoạt động hoặc quá hạn.");
+        }
+
+        // Bấm lặp trả về chính yêu cầu đầu tiên, không đổi thời điểm hoặc ghi chú.
+        if (bookLoan.isReturnPending()) {
+            return bookLoanMapper.toDTO(bookLoan);
+        }
+
+        String note = request == null ? null : normalizeReturnRequestNote(request.getNote());
+        bookLoan.setReturnRequestedAt(LocalDateTime.now());
+        bookLoan.setReturnRequestNote(note);
+        return bookLoanMapper.toDTO(bookLoanRepository.save(bookLoan));
+    }
+
+    private String normalizeReturnRequestNote(String note) throws BookException {
+        if (note == null || note.isBlank()) return null;
+        String normalized = note.trim();
+        if (normalized.length() > 500) {
+            throw new BookException("Ghi chú yêu cầu trả sách không được vượt quá 500 ký tự.");
+        }
+        return normalized;
     }
 
     @Override
     public BookLoanDTO renewCheckout(RenewRequest renewalRequest) throws Exception {
 
-        //      1. validate book loan exist
+        // 1. Xác thực sự tồn tại của khoản cho mượn sách
         BookLoan bookLoan = ownedLockedLoan(renewalRequest.getBookLoanId());
         if (renewalRequest.getExtensionDays() == null || renewalRequest.getExtensionDays() < 1) {
             throw new BookException("Số ngày gia hạn phải lớn hơn 0.");
         }
 
-        //      2. Check if can be renewed
+        if (bookLoan.isReturnPending()) {
+            throw new BookException("Không thể gia hạn khi yêu cầu trả sách đang chờ xác nhận.");
+        }
+
+        //  2. Kiểm tra xem có thể gia hạn được không
         if (!bookLoan.canRenew()) {
             throw new BookException("Lượt mượn này không thể gia hạn.");
         }
 
-        // update due date
+        SubscriptionDTO subscription = subscriptionService
+                .getUsersActiveSubscription(bookLoan.getUser().getId());
+        Integer planMaxDays = subscription == null ? null : subscription.getMaxDaysPerBook();
+        if (planMaxDays == null || planMaxDays < 1) {
+            throw new BookException("Gói thành viên hiện tại không có hạn mức gia hạn hợp lệ.");
+        }
+        int maxExtensionDays = Math.min(14, planMaxDays);
+        if (renewalRequest.getExtensionDays() > maxExtensionDays) {
+            throw new BookException("Mỗi lần chỉ được gia hạn tối đa " + maxExtensionDays
+                    + " ngày theo gói thành viên hiện tại.");
+        }
+
+        // 3. Cập nhật ngày đến hạn
         LocalDate renewedDueDate = bookLoan.getDueDate().plusDays(renewalRequest.getExtensionDays());
         if (renewedDueDate.getYear() > 9999) {
             throw new BookException("Ngày gia hạn vượt ngoài phạm vi ngày hệ thống hỗ trợ.");
@@ -278,12 +538,13 @@ public class BookLoanServiceImpl implements BookLoanService {
         Page<BookLoan> bookLoanPage;
 
         if (status != null) {
-            // Return only active checkouts, sorted by due date
+            // Chỉ trả về các lượt mượn đang hoạt động, được sắp xếp theo ngày đến hạn
             Pageable pageable = PageRequest.of(page, size, Sort.by("dueDate").ascending());
             bookLoanPage = bookLoanRepository.findByStatusAndUser(
                     status, currentUser, pageable);
         } else {
-            // Return all history (both active and returned), sorted by creation date descending
+            // Trả về toàn bộ lịch sử (bao gồm cả các mục đang hoạt động và đã trả lại),
+            // được sắp xếp theo ngày tạo theo thứ tự giảm dần
             Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
             bookLoanPage = bookLoanRepository.findByUserId(currentUser.getId(), pageable);
         }
@@ -297,7 +558,7 @@ public class BookLoanServiceImpl implements BookLoanService {
         catch (org.springframework.security.access.AccessDeniedException ex) { throw ex; }
         catch (Exception ex) { throw new org.springframework.security.access.AccessDeniedException("Authentication required"); }
 
-        // 1 Build pageable with sorting, size, etc.
+        // 1 Xây dựng đối tượng phân trang (pageable) với các tùy chọn như sắp xếp, kích thước, v.v.
         if (searchRequest.getPage() == null || searchRequest.getSize() == null
                 || searchRequest.getSortBy() == null || searchRequest.getSortDirection() == null) {
             throw new IllegalArgumentException("Pagination fields must not be null");
@@ -311,33 +572,44 @@ public class BookLoanServiceImpl implements BookLoanService {
 
         Page<BookLoan> bookLoanPage;
 
-        // 2 Apply filtering logic dynamically
+        // 2 Áp dụng logic lọc một cách linh hoạt
         if (Boolean.TRUE.equals(searchRequest.getOverdueOnly())) {
-            // Fetch overdue loans
+            // Truy xuất các khoản vay quá hạn
             bookLoanPage = bookLoanRepository.findOverdueBookLoans(LocalDate.now(), pageable);
         } else if (searchRequest.getUserId() != null) {
-            // Fetch loans by specific user
+            // Truy xuất các khoản vay theo người dùng cụ thể
             bookLoanPage = bookLoanRepository.findByUserId(searchRequest.getUserId(), pageable);
         } else if (searchRequest.getBookId() != null) {
-            // Fetch loans by specific book
+            // Truy xuất các khoản cho mượn theo một cuốn sách cụ thể
             bookLoanPage = bookLoanRepository.findByBookId(searchRequest.getBookId(), pageable);
         } else if (searchRequest.getStatus() != null) {
-            // Fetch loans by loan status
+            // Truy xuất các khoản vay theo trạng thái khoản vay
             bookLoanPage = bookLoanRepository.findByStatus(searchRequest.getStatus(), pageable);
         } else if (searchRequest.getStartDate() != null && searchRequest.getEndDate() != null) {
-            // Fetch loans within date range
+            // Truy xuất các khoản vay trong khoảng thời gian nhất định
             bookLoanPage = bookLoanRepository.findBookLoansByDateRange(
                     searchRequest.getStartDate(),
                     searchRequest.getEndDate(),
                     pageable
             );
         } else {
-            // Default: return all loans
+            // Không thanh toán: Hoàn trả tất cả các khoản vay
             bookLoanPage = bookLoanRepository.findAll(pageable);
         }
 
-        // 3 Convert entities to DTOs and wrap in response object
+        // 3 Chuyển đổi các thực thể (entities)
+        // thành các DTO và bao gói chúng trong một đối tượng phản hồi (response object)
         return convertToPageResponse(bookLoanPage);
+    }
+
+    @Override
+    public PageResponse<BookLoanDTO> getPendingReturnRequests(int page, int size) throws Exception {
+        requireAdmin();
+        if (page < 0 || size < 1) {
+            throw new BookException("Thông tin phân trang không hợp lệ.");
+        }
+        Pageable pageable = PageRequest.of(page, Math.min(size, 100));
+        return convertToPageResponse(bookLoanRepository.findPendingReturnRequests(pageable));
     }
 
 

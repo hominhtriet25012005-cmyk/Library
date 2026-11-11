@@ -28,6 +28,7 @@ public class AuthController {
             @Valid @RequestBody UserDTO req
     ) throws UserException {
         AuthResponse res = authService.signup(req);
+
         return ResponseEntity.ok(res);
     }
 
@@ -36,6 +37,7 @@ public class AuthController {
             @Valid @RequestBody LoginRequest req
     ) throws UserException {
         AuthResponse res = authService.login(req.getEmail(), req.getPassword());
+
         return ResponseEntity.ok(res);
     }
 

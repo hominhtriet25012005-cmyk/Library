@@ -1,6 +1,5 @@
 package com.library.model;
 
-import com.library.domain.AuthProvider;
 import com.library.domain.UserRole;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
@@ -54,24 +53,13 @@ public class User {
     // Mật khẩu trong database
     // Khi signup sẽ được BCrypt hash trước khi lưu
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Column(nullable = false, length = 255)
     private String password;
 
     // Số điện thoại
     // Nên đổi tên field từ Phone → phone cho đúng quy ước Java
     @Column(name = "phone", length = 30)
     private String phone;
-
-    // Cho biết user đăng nhập bằng LOCAL hay GOOGLE
-    // Mặc định hiện tại là LOCAL
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(Types.VARCHAR)
-    @Column(name = "auth_provider", nullable = false, length = 20)
-    @Builder.Default
-    private AuthProvider authProvider = AuthProvider.LOCAL;
-
-    // Dùng nếu sau này hỗ trợ Google Login
-    @Column(name = "google_id", length = 255)
-    private String googleId;
 
     // URL avatar/profile image
     @Column(name = "profile_image", length = 500)

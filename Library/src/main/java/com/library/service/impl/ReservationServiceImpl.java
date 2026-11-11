@@ -1,6 +1,5 @@
 package com.library.service.impl;
 
-import com.library.domain.BookLoanStatus;
 import com.library.domain.ReservationStatus;
 import com.library.domain.UserRole;
 import com.library.exception.ReservationException;
@@ -73,6 +72,7 @@ public class ReservationServiceImpl implements ReservationService {
         Book book = bookRepository.findLockedById(bookId)
                 .orElseThrow(() -> new ReservationException("Không tìm thấy sách."));
         entityManager.refresh(book, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+
         return book;
     }
 
@@ -82,6 +82,7 @@ public class ReservationServiceImpl implements ReservationService {
         requireOwnerOrAdmin(reservation.getUser().getId());
         lockBook(reservation.getUser().getId(), reservation.getBook().getId());
         entityManager.refresh(reservation, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+
         return reservation;
     }
 
@@ -108,8 +109,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         requireOwnerOrAdmin(userId);
         Book book = lockBook(userId, reservationRequest.getBookId());
-        boolean alreadyHasLoan = bookLoanRepository.existsByUserIdAndBookIdAndStatus(
-                userId, book.getId(), BookLoanStatus.CHECKED_OUT);
+        boolean alreadyHasLoan = bookLoanRepository.hasActiveCheckout(userId, book.getId());
         if (alreadyHasLoan) {
             throw new ReservationException("Bạn đang mượn cuốn sách này.");
         }

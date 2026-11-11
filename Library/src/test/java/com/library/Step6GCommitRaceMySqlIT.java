@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -57,6 +58,7 @@ class Step6GCommitRaceMySqlIT extends MySqlSpringIntegrationTest {
     @Autowired ReservationService reservations;
     @Autowired PayOSSettlementService settlement;
     @Autowired PlatformTransactionManager transactionManager;
+    @Autowired PasswordEncoder passwordEncoder;
 
     private Fixture fixture;
 
@@ -224,10 +226,11 @@ class Step6GCommitRaceMySqlIT extends MySqlSpringIntegrationTest {
                 max_users_allowed,auto_renew,active,currency,max_books_allowed,max_days_per_book)
             VALUES(?,?,20000,30,'MONTHLY',0,1,0,1,'VND',1,7)
             """, fixture.planCode, "G03 test plan " + token);
+        String encodedPassword = passwordEncoder.encode("Step6G-Test-Password!");
         for (int i = 0; i < users; i++) {
             String email = "g03-" + token.toLowerCase() + "-" + i + "@example.invalid";
-            long userId = insert("INSERT INTO users(full_name,email,role,auth_provider) VALUES(?,?,'ROLE_USER','LOCAL')",
-                "G03 temporary user", email);
+            long userId = insert("INSERT INTO users(full_name,email,password,role) VALUES(?,?,?,'ROLE_USER')",
+                "G03 temporary user", email, encodedPassword);
             fixture.userIds.add(userId);
             fixture.emails.add(email);
             if (activeMemberships) {

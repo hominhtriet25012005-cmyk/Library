@@ -143,11 +143,13 @@ public class GenreServiceImpl implements GenreService {
 
     @Override
     public long getTotalActiveGenres() {
+
         return genreRepository.countByActiveTrue();
     }
 
     @Override
     public long getBookCountByGenre(Long genreId) {
+
         return bookRepository.countByGenreId(genreId);
     }
 }

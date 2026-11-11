@@ -41,7 +41,10 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/book-covers/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/list").hasRole("ADMIN")
                         .requestMatchers("/api/subscriptions/activate").denyAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/fines", "/api/fines/", "/api/fines/waive").hasRole("ADMIN")
+                        // V1 chỉ cho phép Backend tạo phạt trong giao dịch ADMIN check-in.
+                        // Chặn cả ADMIN gửi số tiền/loại phạt trực tiếp từ client.
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/fines", "/api/fines/").denyAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/fines/waive").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/fines", "/api/fines/").hasRole("ADMIN")
                         .requestMatchers("/api/subscriptions/admin", "/api/subscriptions/admin/**").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/payments", "/api/payments/").hasRole("ADMIN")
@@ -49,6 +52,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/reviews/admin", "/api/reviews/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/book-loans/admin/**").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,
+                                "/api/book-loans/checkin").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,
+                                "/api/book-loans/*/return-request").hasRole("USER")
                         .requestMatchers(org.springframework.http.HttpMethod.POST,
                                 "/api/book-loans/checkout/user/**", "/api/book-loans/search",
                                 "/api/reservations/user/**", "/api/reservations/search",
@@ -82,6 +89,7 @@ public class SecurityConfig {
                 cfg.setAllowedHeaders(Collections.singletonList("*"));
                 cfg.setExposedHeaders(Collections.singletonList("Authorization"));
                 cfg.setMaxAge(360L);
+
                 return cfg;
             }
         };
@@ -89,6 +97,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder(){
+
         return new BCryptPasswordEncoder();
     }
 }

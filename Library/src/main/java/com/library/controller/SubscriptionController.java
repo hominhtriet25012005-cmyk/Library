@@ -27,27 +27,32 @@ public class SubscriptionController {
 
     @ExceptionHandler(ActiveMembershipException.class)
     public ResponseEntity<?> activeMembership() {
-        return ResponseEntity.status(409).body(java.util.Map.of("Lỗi", "Đã có một tư cách thành viên đang hoạt động"));
+        return ResponseEntity.status(409).body(new ApiResponse(
+                "Đã có một tư cách thành viên đang hoạt động", false));
     }
 
     @ExceptionHandler(SubscriptionException.class)
     public ResponseEntity<?> subscriptionConflict() {
-        return ResponseEntity.status(409).body(java.util.Map.of("Lỗi", "Không thể thay đổi gói đăng ký"));
+        return ResponseEntity.status(409).body(new ApiResponse("Không thể thay đổi gói đăng ký", false));
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<?> paymentUnavailable() {
-        return ResponseEntity.status(503).body(java.util.Map.of("Lỗi", "Tính năng thanh toán gói đăng ký tạm thời không khả dụng"));
+
+        return ResponseEntity.status(503).body(new ApiResponse(
+                "Tính năng thanh toán gói đăng ký tạm thời không khả dụng", false));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<?> invalidRequest() {
-        return ResponseEntity.badRequest().body(java.util.Map.of("Lỗi", "Yêu cầu đăng ký không hợp lệ"));
+
+        return ResponseEntity.badRequest().body(new ApiResponse("Yêu cầu đăng ký không hợp lệ", false));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<?> denied() {
-        return ResponseEntity.status(403).body(java.util.Map.of("Lỗi", "Quyền truy cập đăng ký bị từ chối"));
+
+        return ResponseEntity.status(403).body(new ApiResponse("Quyền truy cập đăng ký bị từ chối", false));
     }
 
     @PostMapping("/subscribe")
@@ -55,6 +60,7 @@ public class SubscriptionController {
             @RequestBody SubscriptionDTO subscription
     ) throws Exception {
         PaymentInitiateResponse dto = subscriptionService.subscribe(subscription);
+
         return ResponseEntity.ok(dto);
     }
 
@@ -80,6 +86,7 @@ public class SubscriptionController {
         Pageable pageable = PageRequest.of(page, size,
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
         List<SubscriptionDTO> dtoList = subscriptionService.getAllSubscriptions(pageable);
+
         return ResponseEntity.ok(dtoList);
     }
 
@@ -96,6 +103,7 @@ public class SubscriptionController {
         }
         validatePage(page, size);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+
         return ResponseEntity.ok(subscriptionService.searchAdminSubscriptions(userId, planId, active, pageable));
     }
 
@@ -103,6 +111,7 @@ public class SubscriptionController {
     public ResponseEntity<?> deactivateExpiredSubscriptions() throws Exception {
         subscriptionService.deactivateExpiredSubscriptions();
         ApiResponse res = new ApiResponse("Đã ngừng các gói đăng ký hết hạn.", true);
+
         return ResponseEntity.ok(res);
     }
 
@@ -119,6 +128,7 @@ public class SubscriptionController {
 
         SubscriptionDTO subscription = subscriptionService
                 .cancelSubscription(subscriptionId, reason);
+
         return ResponseEntity.ok(subscription);
     }
 
@@ -128,6 +138,7 @@ public class SubscriptionController {
             @RequestParam Long paymentId) throws SubscriptionException {
         SubscriptionDTO subscription = subscriptionService
                 .activateSubscription(subscriptionId, paymentId);
+
         return ResponseEntity.ok(subscription);
     }
 }

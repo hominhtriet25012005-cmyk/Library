@@ -12,6 +12,10 @@ public class BookReviewMapper {
             return null;
         }
 
+        String cleanedText = bookReview.getReviewText() != null
+                ? bookReview.getReviewText().replaceAll("[\\u200B-\\u200D\\uFEFF]", "").trim()
+                : "";
+
         return BookReviewDTO.builder()
                 .id(bookReview.getId())
                 .userId(bookReview.getUser().getId())
@@ -19,7 +23,7 @@ public class BookReviewMapper {
                 .bookId(bookReview.getBook().getId())
                 .bookTitle(bookReview.getBook().getTitle())
                 .rating(bookReview.getRating())
-                .reviewText(bookReview.getReviewText())
+                .reviewText(cleanedText)
                 .title(bookReview.getTitle())
                 .isActive(bookReview.getIsActive())
                 .createdAt(bookReview.getCreatedAt())

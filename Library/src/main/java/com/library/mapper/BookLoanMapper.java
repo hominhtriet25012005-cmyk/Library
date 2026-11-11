@@ -47,6 +47,13 @@ public class BookLoanMapper {
         );
 
         dto.setReturnDate(bookLoan.getReturnDate());
+        dto.setReturnRequestedAt(bookLoan.getReturnRequestedAt());
+        dto.setReturnRequestNote(bookLoan.getReturnRequestNote());
+        dto.setReturnPending(bookLoan.isReturnPending());
+        dto.setCheckedInAt(bookLoan.getCheckedInAt());
+        dto.setCheckedInById(bookLoan.getCheckedInBy() == null
+                ? null : bookLoan.getCheckedInBy().getId());
+        dto.setInspectionNote(bookLoan.getInspectionNote());
         dto.setRenewalCount(bookLoan.getRenewalCount());
         dto.setMaxRenewals(bookLoan.getMaxRenewals());
 

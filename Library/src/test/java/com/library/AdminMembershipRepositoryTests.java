@@ -35,6 +35,7 @@ class AdminMembershipRepositoryTests {
         var selling = plan("AD6_ACTIVE", true, 1);
         var stopped = plan("AD6_STOPPED", false, 2);
         User user = User.builder().email("ad6@example.test").fullName("AD6 user")
+                .password("$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy")
                 .role(UserRole.ROLE_USER).build();
         em.persist(user);
         subscription(user, selling, true);

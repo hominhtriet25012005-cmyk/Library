@@ -109,6 +109,7 @@ public class SubscriptionPlanMapper {
         if (!"VND".equals(normalized)) {
             throw new IllegalArgumentException("New plan prices must use VND");
         }
+
         return normalized;
     }
 
@@ -117,6 +118,7 @@ public class SubscriptionPlanMapper {
                 || price.stripTrailingZeros().scale() > 0) {
             throw new IllegalArgumentException("Plan price must be positive whole VND within DECIMAL(10,2)");
         }
+
         return price;
     }
 }

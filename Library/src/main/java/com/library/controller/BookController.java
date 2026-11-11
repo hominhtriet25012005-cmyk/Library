@@ -27,6 +27,7 @@ public class BookController {
     public ResponseEntity<?> createBooksBulk(
             @Valid @RequestBody List<BookDTO> bookDTOS) throws BookException {
         List<BookDTO> createdBooks = bookService.createBooksBulk(bookDTOS);
+
         return ResponseEntity.ok(createdBooks);
     }
 
@@ -40,6 +41,7 @@ public class BookController {
             @Valid @RequestBody BookDTO bookDTO) throws BookException {
 
         BookDTO updatedBook = bookService.updateBook(id, bookDTO);
+
         return ResponseEntity.ok(updatedBook);
     }
 
@@ -50,6 +52,7 @@ public class BookController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> deleteBook(@PathVariable Long id) throws BookException {
         bookService.deleteBook(id);
+
         return ResponseEntity.ok(new ApiResponse("Đã xóa sách thành công", true));
     }
 
@@ -61,6 +64,7 @@ public class BookController {
     public ResponseEntity<ApiResponse> hardDeleteBook(
             @PathVariable Long id) throws BookException {
         bookService.hardDeleteBook(id);
+
         return ResponseEntity.ok(new ApiResponse("Đã xóa sách vĩnh viễn", true));
     }
 
@@ -81,21 +85,22 @@ public class BookController {
         searchRequest.setAvailableOnly(availableOnly);
         searchRequest.setUnavailableOnly(unavailableOnly);
 
-        // searchRequest
+        // Yêu cầu tìm kiếm
         searchRequest.setPage(page);
         searchRequest.setSize(size);
         searchRequest.setSortBy(sortBy);
         searchRequest.setSortDirection(sortDirection);
 
         PageResponse<BookDTO> books = bookService.searchBooksWithFilters(searchRequest);
+
         return ResponseEntity.ok(books);
     }
 
     @PostMapping("/search")
     public ResponseEntity<PageResponse<BookDTO>> advancedSearch(
             @RequestBody BookSearchRequest searchRequest) {
-
         PageResponse<BookDTO> books = bookService.searchBooksWithFilters(searchRequest);
+
         return ResponseEntity.ok(books);
     }
 
@@ -106,7 +111,9 @@ public class BookController {
             if (!Boolean.TRUE.equals(book.getActive())) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sách đang hoạt động");
             }
+
             return ResponseEntity.ok(book);
+
         } catch (BookException error) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, error.getMessage(), error);
         }
@@ -118,6 +125,7 @@ public class BookController {
         long totalAvailable = bookService.getTotalAvailableBooks();
 
         BookStatsResponse stats = new BookStatsResponse(totalActive, totalAvailable);
+
         return ResponseEntity.ok(stats);
     }
 

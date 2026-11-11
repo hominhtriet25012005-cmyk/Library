@@ -29,8 +29,7 @@ public class BookReviewDTO {
     @Max(value = 5, message = "Điểm đánh giá không được vượt quá 5.")
     private Integer rating;
 
-    @NotBlank(message = "Bắt buộc phải có nội dung đánh giá")
-    @Size(min = 10, max = 2000, message = "Đánh giá phải có độ dài từ 10 đến 2000 ký tự")
+    @Size(max = 2000, message = "Bài đánh giá không được vượt quá 2000 ký tự")
     private String reviewText;
 
     @Size(max = 200, message = "Tiêu đề đánh giá không được vượt quá 200 ký tự")

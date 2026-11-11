@@ -52,7 +52,9 @@ class PayOSAtomicityTests {
         subscriptions = repositories.getRepository(SubscriptionRepository.class);
         users = repositories.getRepository(UserRepository.class);
         tx.executeWithoutResult(status -> {
-            User user = User.builder().fullName("Test User").email("test@example.test").role(UserRole.ROLE_USER).build();
+            User user = User.builder().fullName("Test User").email("test@example.test")
+                    .password("$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy")
+                    .role(UserRole.ROLE_USER).build();
             em.persist(user);
             SubscriptionPlan plan = SubscriptionPlan.builder().planCode("TEST").name("Test Plan")
                     .price(new BigDecimal("100000.00")).currency("VND").durationDays(30)

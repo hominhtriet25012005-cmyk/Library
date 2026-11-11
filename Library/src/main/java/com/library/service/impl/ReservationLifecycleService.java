@@ -36,6 +36,7 @@ public class ReservationLifecycleService {
         }
 
         Book book = lockBook(bookId);
+
         return activateNextPendingForLockedBook(book, now);
     }
 
@@ -44,6 +45,7 @@ public class ReservationLifecycleService {
         reorderQueue(activeQueue);
         if (activeQueue.stream().anyMatch(item -> item.getStatus() == ReservationStatus.AVAILABLE)
                 || book.getAvailableCopies() == null || book.getAvailableCopies() <= 0) {
+
             return Optional.empty();
         }
 
@@ -51,6 +53,7 @@ public class ReservationLifecycleService {
                 .filter(item -> item.getStatus() == ReservationStatus.PENDING)
                 .findFirst();
         if (nextPending.isEmpty()) {
+
             return Optional.empty();
         }
 
@@ -61,6 +64,7 @@ public class ReservationLifecycleService {
         reservation.setNotificationSent(false);
         reservationRepository.save(reservation);
         reorderQueue(activeQueue);
+
         return Optional.of(reservation);
     }
 
@@ -109,13 +113,16 @@ public class ReservationLifecycleService {
                 break;
             }
         }
+
         return expiredCount;
     }
 
     public boolean hasAvailableReservationForBook(Long bookId) {
         if (bookId == null) {
+
             return false;
         }
+
         return reservationRepository.findActiveQueue(bookId).stream()
                 .anyMatch(item -> item.getStatus() == ReservationStatus.AVAILABLE);
     }
@@ -124,6 +131,7 @@ public class ReservationLifecycleService {
         Book book = bookRepository.findLockedById(bookId)
                 .orElseThrow(() -> new IllegalStateException("Reservation book not found"));
         entityManager.refresh(book, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+
         return book;
     }
 

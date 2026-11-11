@@ -20,14 +20,21 @@ public class PayOSFineOrderStore {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public PayOSOrderStore.Prepared prepare(Long fineId, Long userId) {
         if (fineId == null) throw new IllegalArgumentException("Fine ID is required");
-        var fine = fines.findLockedById(fineId).orElseThrow(() -> new IllegalArgumentException("Fine not found"));
+        var fine = fines.findLockedById(fineId).orElseThrow(() ->
+                new IllegalArgumentException("Fine not found"));
         entityManager.refresh(fine, LockModeType.PESSIMISTIC_WRITE);
-        if (!Objects.equals(fine.getUser().getId(), userId)) throw new AccessDeniedException("Fine access denied");
+
+        if (!Objects.equals(fine.getUser().getId(), userId))
+            throw new AccessDeniedException("Fine access denied");
+
         if ((fine.getStatus() != FineStatus.PENDING && fine.getStatus() != FineStatus.PARTIALLY_PAID)
                 || fine.getAmount() == null || fine.getAmountPaid() == null || fine.getAmountPaid() < 0
-                || fine.getAmount() <= fine.getAmountPaid()) throw new IllegalStateException("Fine is not payable");
+                || fine.getAmount() <= fine.getAmountPaid())
+            throw new IllegalStateException("Fine is not payable");
         var existing = payments.findFirstByFineIdAndGatewayOrderByIdDesc(fineId, PaymentGateway.PAYOS);
-        if (existing.isPresent()) return new PayOSOrderStore.Prepared(existing.get(), false);
+
+        if (existing.isPresent())
+            return new PayOSOrderStore.Prepared(existing.get(), false);
         var payment = Payment.builder().user(fine.getUser()).fine(fine).bookLoan(fine.getBookLoan())
                 .paymentType(PaymentType.FINE).gateway(PaymentGateway.PAYOS)
                 .amount(fine.getAmount() - fine.getAmountPaid()).currency("VND")

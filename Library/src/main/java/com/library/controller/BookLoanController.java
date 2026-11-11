@@ -6,8 +6,10 @@ import com.library.payload.request.BookLoanSearchRequest;
 import com.library.payload.request.CheckinRequest;
 import com.library.payload.request.CheckoutRequest;
 import com.library.payload.request.RenewRequest;
+import com.library.payload.request.ReturnBookRequest;
 import com.library.payload.response.ApiResponse;
 import com.library.payload.response.PageResponse;
+import com.library.payload.response.CheckinFinePreviewResponse;
 import com.library.service.BookLoanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ public class BookLoanController {
 
             @Valid @RequestBody CheckoutRequest checkoutRequest) throws Exception {
         BookLoanDTO bookLoan = bookLoanService.checkoutBook(checkoutRequest);
+
         return new ResponseEntity<>(bookLoan, HttpStatus.CREATED);
     }
 
@@ -38,6 +41,7 @@ public class BookLoanController {
 
         BookLoanDTO bookLoan = bookLoanService
                 .checkoutBookForUser(userId, checkoutRequest);
+
         return new ResponseEntity<>(bookLoan, HttpStatus.CREATED);
     }
 
@@ -47,7 +51,14 @@ public class BookLoanController {
             @Valid @RequestBody CheckinRequest checkinRequest) throws Exception {
         BookLoanDTO bookLoan = bookLoanService
                 .checkinBook(checkinRequest);
+
         return new ResponseEntity<>(bookLoan, HttpStatus.OK);
+    }
+
+    @PostMapping("/admin/checkin-preview")
+    public ResponseEntity<CheckinFinePreviewResponse> previewCheckinFines(
+            @Valid @RequestBody CheckinRequest checkinRequest) throws Exception {
+        return ResponseEntity.ok(bookLoanService.previewCheckinFines(checkinRequest));
     }
 
     @PostMapping("/renew")
@@ -57,7 +68,15 @@ public class BookLoanController {
 
         BookLoanDTO bookLoan = bookLoanService
                 .renewCheckout(renewalRequest);
+
         return new ResponseEntity<>(bookLoan, HttpStatus.OK);
+    }
+
+    @PostMapping("/{id}/return-request")
+    public ResponseEntity<?> requestReturn(
+            @PathVariable Long id,
+            @Valid @RequestBody ReturnBookRequest request) throws Exception {
+        return ResponseEntity.ok(bookLoanService.requestReturn(id, request));
     }
 
     @GetMapping("/my")
@@ -68,6 +87,7 @@ public class BookLoanController {
 
         PageResponse<BookLoanDTO> bookLoans = bookLoanService
                 .getMyBookLoans(status, page, size);
+
         return ResponseEntity.ok(bookLoans);
     }
 
@@ -77,6 +97,7 @@ public class BookLoanController {
 
         PageResponse<BookLoanDTO> bookLoans = bookLoanService
                 .getBookLoans(searchRequest);
+
         return ResponseEntity.ok(bookLoans);
     }
 
@@ -85,5 +106,13 @@ public class BookLoanController {
         int updateCount = bookLoanService.updateOverdueBookLoan();
         return ResponseEntity.ok(new ApiResponse(
                 "Đã cập nhật " + updateCount + " lượt mượn quá hạn.", true));
+    }
+
+
+    @GetMapping("/admin/return-requests")
+    public ResponseEntity<?> getPendingReturnRequests(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) throws Exception {
+        return ResponseEntity.ok(bookLoanService.getPendingReturnRequests(page, size));
     }
 }

@@ -35,7 +35,8 @@ public class PayOSConfirmationService {
         if (data == null || data.getOrderCode() == null || data.getOrderCode() <= 0) {
             throw new IllegalArgumentException("Invalid webhook order");
         }
-        // A signed setup probe or unknown order must never create rows or grant membership.
+        // Một yêu cầu thiết lập đã được ký hoặc một yêu cầu không xác định tuyệt đối
+        // không được phép tạo các hàng mới hay cấp quyền thành viên.
         var payment = payments.findById(data.getOrderCode());
         if (payment.isEmpty()) {
             log.warn("Signed payOS webhook for unknown order {}; no database changes", data.getOrderCode());
@@ -72,7 +73,8 @@ public class PayOSConfirmationService {
         }
         if (link.getStatus() != PaymentLinkStatus.PAID) {
             if (webhook != null) throw new IllegalStateException("Payment not confirmed by gateway yet");
-            return; // Never infer SUCCESS or failure from a browser redirect or a timeout.
+            return; // Đừng bao giờ suy diễn về sự thành công hay thất bại dựa trên việc trình duyệt chuyển hướng
+                    // hoặc xảy ra tình trạng hết thời gian chờ (timeout).
         }
         if (!Objects.equals(link.getAmountPaid(), payment.getAmount()) || !Long.valueOf(0).equals(link.getAmountRemaining())
                 || link.getTransactions() == null || link.getTransactions().size() != 1) {
@@ -84,9 +86,15 @@ public class PayOSConfirmationService {
             throw new IllegalArgumentException("Gateway receipt mismatch");
         }
         if (payment.getPaymentType() == PaymentType.FINE) {
-            fineSettlement.complete(payment.getId(), link.getId(), link.getAmount(), "VND", receipt.getReference());
+            fineSettlement.complete(payment.getId(),
+                    link.getId(),
+                    link.getAmount(), "VND",
+                    receipt.getReference());
         } else {
-            settlement.complete(payment.getId(), link.getId(), link.getAmount(), "VND", receipt.getReference());
+            settlement.complete(payment.getId(),
+                    link.getId(),
+                    link.getAmount(), "VND",
+                    receipt.getReference());
         }
     }
 
@@ -99,7 +107,9 @@ public class PayOSConfirmationService {
     private Payment authorized(Long id) {
         com.library.model.User user;
         try { user = users.getCurrentUser(); }
-        catch (Exception ex) { throw new AccessDeniedException("Authentication required"); }
+        catch (Exception ex) {
+            throw new AccessDeniedException("Authentication required"); }
+
         Payment payment = payments.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found"));
         if (user.getRole() != UserRole.ROLE_ADMIN && !Objects.equals(payment.getUser().getId(), user.getId())) {

@@ -80,4 +80,19 @@ class AdminFinanceHttpTests {
         mvc.perform(get("/api/fines?size=101").header("Authorization", token("ROLE_ADMIN")))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test void manualFineCreationIsForbiddenEvenForAdmin() throws Exception {
+        mvc.perform(post("/api/fines")
+                        .header("Authorization", token("ROLE_ADMIN"))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "bookLoanId": 10,
+                                  "type": "DAMAGE",
+                                  "amount": 1,
+                                  "reason": "Không được tin dữ liệu tiền phạt từ client"
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+    }
 }

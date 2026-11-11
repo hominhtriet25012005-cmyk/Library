@@ -24,6 +24,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class AdminLoansHttpSecurityTests {
@@ -81,5 +82,53 @@ class AdminLoansHttpSecurityTests {
         mvc.perform(post("/api/book-loans/checkout/user/3").header("Authorization",token("ROLE_ADMIN"))
                 .contentType("application/json").content("{\"bookId\":5,\"checkoutDays\":7}"))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.id").value(7));
+    }
+
+    @Test void userRequestsOwnReturnWhileOnlyAdminReadsPendingQueue() throws Exception {
+        BookLoanService loans = context.getBean(BookLoanService.class);
+        BookLoanDTO pending = new BookLoanDTO();
+        pending.setId(11L);
+        pending.setReturnPending(true);
+        when(loans.requestReturn(eq(11L), any())).thenReturn(pending);
+        when(loans.getPendingReturnRequests(0, 20))
+                .thenReturn(new PageResponse<>(List.of(pending), 0, 20, 1, 1,
+                        true, true, false));
+
+        mvc.perform(post("/api/book-loans/11/return-request")
+                        .header("Authorization", token("ROLE_USER"))
+                        .contentType("application/json").content("{\"note\":\"Mang tới quầy\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(11))
+                .andExpect(jsonPath("$.returnPending").value(true));
+        mvc.perform(post("/api/book-loans/11/return-request")
+                        .header("Authorization", token("ROLE_ADMIN"))
+                        .contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(get("/api/book-loans/admin/return-requests")
+                        .header("Authorization", token("ROLE_USER")))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/book-loans/admin/return-requests")
+                        .header("Authorization", token("ROLE_ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test void onlyAdminCanPerformFinalCheckin() throws Exception {
+        BookLoanDTO completed = new BookLoanDTO();
+        completed.setId(11L);
+        when(context.getBean(BookLoanService.class).checkinBook(any())).thenReturn(completed);
+
+        String body = "{\"bookLoanId\":11,\"condition\":\"RETURNED\"," +
+                "\"receivedDate\":\"2026-11-10\",\"inspectionNote\":\"Sách nguyên vẹn\"}";
+        mvc.perform(post("/api/book-loans/checkin")
+                        .header("Authorization", token("ROLE_USER"))
+                        .contentType("application/json").content(body))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/book-loans/checkin")
+                        .header("Authorization", token("ROLE_ADMIN"))
+                        .contentType("application/json").content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(11));
     }
 }

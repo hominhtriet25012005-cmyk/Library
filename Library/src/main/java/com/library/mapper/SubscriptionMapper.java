@@ -25,6 +25,7 @@ public class SubscriptionMapper {
      */
     public SubscriptionDTO toDTO(Subscription subscription) {
         if (subscription == null) {
+
             return null;
         }
 
@@ -75,6 +76,7 @@ public class SubscriptionMapper {
                                  SubscriptionPlan plan,
                                  User user) throws SubscriptionException {
         if (dto == null) {
+
             return null;
         }
 

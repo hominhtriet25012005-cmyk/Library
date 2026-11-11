@@ -15,12 +15,14 @@ import java.time.Duration;
 @RestController
 @RequiredArgsConstructor
 public class BookCoverController {
+
     private final BookCoverStorageService storageService;
 
     @GetMapping("/api/book-covers/{filename}")
     public ResponseEntity<Resource> getCover(@PathVariable String filename) {
         Resource image = storageService.load(filename);
         MediaType mediaType = MediaType.parseMediaType(storageService.mediaTypeFor(filename));
+
         return ResponseEntity.ok()
                 .contentType(mediaType)
                 .cacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePublic().immutable())

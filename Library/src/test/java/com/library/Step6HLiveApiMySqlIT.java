@@ -58,10 +58,10 @@ class Step6HLiveApiMySqlIT extends MySqlSpringIntegrationTest {
         fixture.planCode = "G6H_" + token;
         fixture.apiPlanCode = "G6H_API_" + token;
 
-        fixture.memberId = insert("INSERT INTO users(full_name,email,password,role,auth_provider) VALUES(?, ?, ?, 'ROLE_USER','LOCAL')",
+        fixture.memberId = insert("INSERT INTO users(full_name,email,password,role) VALUES(?, ?, ?, 'ROLE_USER')",
             "6H temporary member", fixture.memberEmail, passwordEncoder.encode(PASSWORD));
         fixture.userIds.add(fixture.memberId);
-        fixture.adminId = insert("INSERT INTO users(full_name,email,password,role,auth_provider) VALUES(?, ?, ?, 'ROLE_ADMIN','LOCAL')",
+        fixture.adminId = insert("INSERT INTO users(full_name,email,password,role) VALUES(?, ?, ?, 'ROLE_ADMIN')",
             "6H temporary admin", fixture.adminEmail, passwordEncoder.encode(PASSWORD));
         fixture.userIds.add(fixture.adminId);
         fixture.genreId = insert("INSERT INTO genres(code,name) VALUES(?,?)", "GENRE_" + token, "6H test genre");
@@ -147,7 +147,9 @@ class Step6HLiveApiMySqlIT extends MySqlSpringIntegrationTest {
         long loanId = loan.path("id").asLong();
         assertTrue(loanId > 0);
         assertEquals(2, jdbc.queryForObject("SELECT available_copies FROM books WHERE id=?", Integer.class, fixture.availableBookId));
-        call("POST", "/api/book-loans/checkin", member,
+        jdbc.update("UPDATE book_loans SET due_date=DATE_SUB(CURDATE(), INTERVAL 2 DAY) WHERE id=?", loanId);
+        jdbc.update("UPDATE books SET price=10000 WHERE id=?", fixture.availableBookId);
+        call("POST", "/api/book-loans/checkin", admin,
             "{\"bookLoanId\":" + loanId + ",\"condition\":\"RETURNED\"}", 200);
         assertEquals("RETURNED", jdbc.queryForObject("SELECT status FROM book_loans WHERE id=?", String.class, loanId));
         assertEquals(3, jdbc.queryForObject("SELECT available_copies FROM books WHERE id=?", Integer.class, fixture.availableBookId));
@@ -163,9 +165,9 @@ class Step6HLiveApiMySqlIT extends MySqlSpringIntegrationTest {
         call("DELETE", "/api/reservations/" + reservationId, member, null, 200);
         assertEquals("CANCELLED", jdbc.queryForObject("SELECT status FROM reservations WHERE id=?", String.class, reservationId));
 
-        call("POST", "/api/fines", admin,
-            "{\"bookLoanId\":" + loanId + ",\"type\":\"OVERDUE\",\"amount\":10000,\"reason\":\"6H HTTP smoke\"}", 200);
         long fineId = jdbc.queryForObject("SELECT id FROM fines WHERE book_loan_id=?", Long.class, loanId);
+        call("POST", "/api/fines", admin,
+            "{\"bookLoanId\":" + loanId + ",\"type\":\"LOSS\",\"amount\":1}", 403);
         call("POST", "/api/fines/waive", admin,
             "{\"fineId\":" + fineId + ",\"reason\":\"6H cleanup smoke\"}", 200);
         assertEquals("WAIVED", jdbc.queryForObject("SELECT status FROM fines WHERE id=?", String.class, fineId));

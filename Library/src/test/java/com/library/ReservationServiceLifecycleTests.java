@@ -34,6 +34,7 @@ class ReservationServiceLifecycleTests {
 
     private UserService userService;
     private BookRepository books;
+    private BookLoanRepository loanRepository;
     private ReservationRepository reservations;
     private BookLoanService bookLoans;
     private UserRepository users;
@@ -48,6 +49,7 @@ class ReservationServiceLifecycleTests {
     void setUp() throws Exception {
         userService = mock(UserService.class);
         books = mock(BookRepository.class);
+        loanRepository = mock(BookLoanRepository.class);
         reservations = mock(ReservationRepository.class);
         bookLoans = mock(BookLoanService.class);
         users = mock(UserRepository.class);
@@ -67,9 +69,23 @@ class ReservationServiceLifecycleTests {
         membership.setMaxDaysPerBook(30);
         when(subscriptions.getUsersActiveSubscription(borrower.getId())).thenReturn(membership);
 
-        subject = new ReservationServiceImpl(mock(BookLoanRepository.class), userService, books,
+        subject = new ReservationServiceImpl(loanRepository, userService, books,
                 reservations, new ReservationMapper(), bookLoans, users, subscriptions, lifecycle);
         ReflectionTestUtils.setField(subject, "entityManager", mock(EntityManager.class));
+    }
+
+    @Test
+    void overdueLoanStillBlocksAnotherReservationForTheSameBook() throws Exception {
+        var request = new com.library.payload.request.ReservationRequest();
+        request.setBookId(book.getId());
+        when(userService.getCurrentUser()).thenReturn(borrower);
+        when(loanRepository.hasActiveCheckout(borrower.getId(), book.getId())).thenReturn(true);
+
+        ReservationException error = assertThrows(ReservationException.class,
+                () -> subject.createReservation(request));
+
+        assertEquals("Bạn đang mượn cuốn sách này.", error.getMessage());
+        verify(reservations, never()).save(any());
     }
 
     @Test

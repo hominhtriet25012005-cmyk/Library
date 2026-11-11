@@ -52,6 +52,22 @@ public class BookLoan {
     @Column(name = "return_date")
     private LocalDate returnDate;
 
+    @Column(name = "return_requested_at")
+    private LocalDateTime returnRequestedAt;
+
+    @Column(name = "return_request_note", length = 500)
+    private String returnRequestNote;
+
+    @Column(name = "checked_in_at")
+    private LocalDateTime checkedInAt;
+
+    @JoinColumn(name = "checked_in_by")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private User checkedInBy;
+
+    @Column(name = "inspection_note", length = 500)
+    private String inspectionNote;
+
     @Column(name = "renewal_count", nullable = false)
     @Builder.Default
     private Integer renewalCount = 0;
@@ -89,7 +105,12 @@ public class BookLoan {
     public boolean canRenew() {
         return status == BookLoanStatus.CHECKED_OUT
                 && !Boolean.TRUE.equals(isOverdue)
+                && !isReturnPending()
                 && dueDate != null && !dueDate.isBefore(LocalDate.now())
                 && renewalCount < maxRenewals;
+    }
+
+    public boolean isReturnPending() {
+        return returnRequestedAt != null && checkedInAt == null;
     }
 }

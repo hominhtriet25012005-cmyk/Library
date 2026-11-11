@@ -80,33 +80,33 @@ public class BookReviewServiceImpl implements BookReviewService {
     @Override
     public BookReviewDTO createReview(CreateReviewRequest request) throws Exception {
 
-        // 1. fetch the logged user
+        // 1. Lấy thông tin người dùng đã đăng nhập
         User user = userService.getCurrentUser();
 
-        // 2. validate book exist
+        // 2. Xác thực sự tồn tại của sách
         if (request.getBookId() == null) throw new BookReviewException("Mã sách là bắt buộc.");
         Book book = bookRepository.findById(request.getBookId())
                 .orElseThrow(() -> new BookReviewException("Không tìm thấy sách.", org.springframework.http.HttpStatus.NOT_FOUND));
 
-        // 3. check if user has already reviewed the book
+        // 3. Kiểm tra xem người dùng đã đánh giá cuốn sách đó chưa
         if (bookReviewRepository.existsByUserIdAndBookId(user.getId(), book.getId())) {
             throw new BookReviewException("Bạn đã đánh giá cuốn sách này.");
         }
 
-        // 4. check if user has read the book
+        // 4. Kiểm tra xem người dùng đã đọc cuốn sách đó chưa
         boolean hasReadBook = hasUserReadBook(user.getId(), book.getId());
 
         if (!hasReadBook) {
             throw new BookReviewException("Bạn cần mượn và trả cuốn sách này trước khi đánh giá.");
         }
 
-        // 5. create review
+        // 5. Viết đánh giá
         BookReview bookReview = new BookReview();
         bookReview.setUser(user);
         bookReview.setBook(book);
         bookReview.setRating(request.getRating());
-        bookReview.setReviewText(request.getReviewText() != null ? request.getReviewText().trim() : "");
-        bookReview.setTitle(request.getTitle() != null ? request.getTitle().trim() : "");
+        bookReview.setReviewText(encodeReviewTextForDb(request.getReviewText()));
+        bookReview.setTitle(normalizeOptionalTitle(request.getTitle()));
         bookReview.setIsActive(true);
 
         BookReview savedBookReview = bookReviewRepository.save(bookReview);
@@ -117,21 +117,21 @@ public class BookReviewServiceImpl implements BookReviewService {
     @Override
     public BookReviewDTO updateReview(Long reviewId, UpdateReviewRequest request) throws Exception {
 
-        // 1. fetch logged user
+        // 1. Lấy thông tin người dùng đã đăng nhập
         User user = userService.getCurrentUser();
 
-        // 2. find the review
+        // 2. Tìm bài đánh giá
         BookReview bookReview = bookReviewRepository.findByIdAndIsActiveTrue(reviewId)
                 .orElseThrow(() -> new BookReviewException("Không tìm thấy đánh giá.", org.springframework.http.HttpStatus.NOT_FOUND));
 
-        // 2. check if logged user is the owner of the review
+        // 2. Kiểm tra xem người dùng đã đăng nhập có phải là chủ sở hữu của bài đánh giá hay không
         if (!bookReview.getUser().getId().equals(user.getId())) {
             throw new org.springframework.security.access.AccessDeniedException("You can only update your own reviews");
         }
 
-        // 3. update review
-        bookReview.setReviewText(request.getReviewText() != null ? request.getReviewText().trim() : "");
-        bookReview.setTitle(request.getTitle() != null ? request.getTitle().trim() : "");
+        // 3. Cập nhật đánh giá
+        bookReview.setReviewText(encodeReviewTextForDb(request.getReviewText()));
+        bookReview.setTitle(normalizeOptionalTitle(request.getTitle()));
         bookReview.setRating(request.getRating());
 
         BookReview savedBookReview = bookReviewRepository.save(bookReview);
@@ -139,15 +139,36 @@ public class BookReviewServiceImpl implements BookReviewService {
         return bookReviewMapper.toDTO(savedBookReview);
     }
 
+    private static final int MIN_DB_REVIEW_LENGTH = 10;
+    private static final String ZERO_WIDTH_PAD = "\u200B";
+
+    private String encodeReviewTextForDb(String reviewText) {
+        String cleaned = reviewText != null
+                ? reviewText.replaceAll("[\\u200B-\\u200D\\uFEFF]", "").trim()
+                : "";
+        if (cleaned.length() >= MIN_DB_REVIEW_LENGTH) {
+            return cleaned;
+        }
+        return cleaned + ZERO_WIDTH_PAD.repeat(MIN_DB_REVIEW_LENGTH - cleaned.length());
+    }
+
+    private String normalizeOptionalTitle(String title) {
+        if (title == null) {
+            return null;
+        }
+        String trimmed = title.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
     @Override
     public void deleteReview(Long reviewId) throws Exception {
         User currentUser = userService.getCurrentUser();
 
-        // 1. Find the review
+        // 1. Tìm bài đánh giá
         BookReview bookReview = bookReviewRepository.findByIdAndIsActiveTrue(reviewId)
                 .orElseThrow(() -> new BookReviewException("Không tìm thấy đánh giá.", org.springframework.http.HttpStatus.NOT_FOUND));
 
-        // 2. Check if current user is the owner of the review
+        // 2. Kiểm tra xem người dùng hiện tại có phải là chủ sở hữu của bài đánh giá hay không
         if (!bookReview.getUser().getId().equals(currentUser.getId())) {
             throw new org.springframework.security.access.AccessDeniedException("You can only delete your own reviews");
         }

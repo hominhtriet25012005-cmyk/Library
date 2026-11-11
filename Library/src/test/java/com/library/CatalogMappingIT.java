@@ -1,6 +1,5 @@
 package com.library;
 
-import com.library.domain.AuthProvider;
 import com.library.model.Book;
 import com.library.model.Genre;
 import com.library.model.User;
@@ -97,7 +96,6 @@ class CatalogMappingIT {
     @Test
     void buildersPreserveDatabaseDefaults() {
         User user = User.builder().build();
-        assertThat(user.getAuthProvider()).isEqualTo(AuthProvider.LOCAL);
         assertThat(user.getVerified()).isFalse();
         Genre genre = Genre.builder().build();
         assertThat(genre.getActive()).isTrue();

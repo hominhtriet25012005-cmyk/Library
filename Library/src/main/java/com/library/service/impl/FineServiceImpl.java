@@ -5,16 +5,13 @@ import com.library.domain.FineType;
 import com.library.domain.PaymentGateway;
 import com.library.domain.PaymentType;
 import com.library.mapper.FineMapper;
-import com.library.model.BookLoan;
 import com.library.model.Fine;
 import com.library.model.User;
 import com.library.payload.dto.FineDTO;
-import com.library.payload.request.CreateFineRequest;
 import com.library.payload.request.PaymentInitiateRequest;
 import com.library.payload.request.WaiveFineRequest;
 import com.library.payload.response.PageResponse;
 import com.library.payload.response.PaymentInitiateResponse;
-import com.library.repository.BookLoanRepository;
 import com.library.repository.FineRepository;
 import com.library.service.FineService;
 import com.library.service.PaymentService;
@@ -34,36 +31,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FineServiceImpl implements FineService {
 
-    private final BookLoanRepository bookLoanRepository;
     private final FineRepository fineRepository;
     private final FineMapper fineMapper;
     private final UserService userService;
     private final PaymentService paymentService;
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
-
-    @Override
-    public FineDTO createFine(CreateFineRequest createFineRequest) {
-
-        // 1. validate book loan exist
-        BookLoan bookLoan = bookLoanRepository.findById(createFineRequest.getBookLoanId())
-                .orElseThrow(() -> new IllegalArgumentException("Book loan doesn't exist"));
-
-        // 2. create fine
-        Fine fine = Fine.builder()
-                .bookLoan(bookLoan)
-                .user(bookLoan.getUser())
-                .type(createFineRequest.getType())
-                .amount(createFineRequest.getAmount())
-                .status(FineStatus.PENDING)
-                .reason(createFineRequest.getReason())
-                .notes(createFineRequest.getNotes())
-                .build();
-
-        Fine savedFine = fineRepository.save(fine);
-
-        return fineMapper.toDTO(savedFine);
-    }
 
     @Override
     public PaymentInitiateResponse payFine(Long fineId, String transactionId) throws Exception {
@@ -95,7 +68,7 @@ public class FineServiceImpl implements FineService {
                 .orElseThrow(() -> new IllegalArgumentException("Fine not found with id: " + waiveFineRequest.getFineId()));
         entityManager.refresh(fine, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 
-        // 2. Check if already waived or paid
+        // 2. Kiểm tra xem đã được miễn hoặc đã thanh toán hay chưa
         if (fine.getStatus() == FineStatus.WAIVED) {
             throw new IllegalStateException("Fine has already been waived");
         }
@@ -104,10 +77,10 @@ public class FineServiceImpl implements FineService {
             throw new IllegalStateException("Fine has already been paid and cannot be waived");
         }
 
-        // 3. Waive the fine
+        // 3. Miễn tiền phạt
         fine.waive(currentAdmin, waiveFineRequest.getReason());
 
-        // 4. Save and return
+        // 4. Lưu và quay lại
         Fine savedFine = fineRepository.save(fine);
 
         return fineMapper.toDTO(savedFine);
@@ -119,22 +92,22 @@ public class FineServiceImpl implements FineService {
         User currentUser = userService.getCurrentUser();
         List<Fine> fines;
 
-        // Apply filters based on parameters
+        // Áp dụng các bộ lọc dựa trên các tham số
         if (status != null && type != null) {
-            // Both filters
+            // Cả hai bộ lọc
             fines = fineRepository.findByUserId(currentUser.getId()).stream()
                     .filter(f -> f.getStatus() == status && f.getType() == type)
                     .collect(Collectors.toList());
         } else if (status != null) {
-            // Status filter only
+            // Chỉ lọc theo trạng thái
             fines = fineRepository.findByUserId(currentUser.getId()).stream()
                     .filter(f -> f.getStatus() == status)
                     .collect(Collectors.toList());
         } else if (type != null) {
-            // Type filter only
+            // Chỉ lọc theo loại
             fines = fineRepository.findByUserIdAndType(currentUser.getId(), type);
         } else {
-            // No filter - all fines for user
+            // Không có bộ lọc - tất cả các khoản phạt dành cho người dùng.
             fines = fineRepository.findByUserId(currentUser.getId());
         }
 

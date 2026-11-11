@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.*;
 import java.util.Objects;
 
-/** Only called after signature and server-side gateway verification. */
+/** Chỉ được gọi sau khi đã thực hiện chữ ký và xác minh qua cổng phía máy chủ (server-side gateway). */
 @Service
 @RequiredArgsConstructor
 public class PayOSFineSettlementService {
@@ -21,11 +21,13 @@ public class PayOSFineSettlementService {
     public void complete(Long id, String linkId, Long amount, String currency, String reference) {
         var observed = payments.findById(id).orElseThrow();
         if (observed.getFine() == null) throw new IllegalArgumentException("Fine payment required");
-        // Creation and waiver use the same fine-first lock order.
+        // Việc tạo và từ bỏ đều tuân theo cùng một thứ tự khóa:
+        // ưu tiên các phần tử nhỏ hơn (fine-first lock order).
         var fine = fines.findLockedById(observed.getFine().getId()).orElseThrow();
         var payment = payments.findLockedById(id).orElseThrow();
         entityManager.refresh(fine, LockModeType.PESSIMISTIC_WRITE);
         entityManager.refresh(payment, LockModeType.PESSIMISTIC_WRITE);
+
         if (payment.getGateway() != PaymentGateway.PAYOS || payment.getPaymentType() != PaymentType.FINE
                 || payment.getFine() == null || !Objects.equals(payment.getFine().getId(), fine.getId())
                 || payment.getSubscription() != null || payment.getBookLoan() == null
@@ -39,7 +41,8 @@ public class PayOSFineSettlementService {
             throw new IllegalArgumentException("Payment evidence does not match stored fine order");
         }
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
-            if (!reference.equals(payment.getGatewayPaymentId())) throw new IllegalArgumentException("Receipt mismatch");
+            if (!reference.equals(payment.getGatewayPaymentId()))
+                throw new IllegalArgumentException("Receipt mismatch");
             return;
         }
         if ((payment.getStatus() != PaymentStatus.PENDING && payment.getStatus() != PaymentStatus.PROCESSING)

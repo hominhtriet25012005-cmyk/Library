@@ -30,6 +30,7 @@ public class AdminBookController {
     public ResponseEntity<BookDTO> createBook(
             @Valid @RequestBody BookDTO bookDTO) throws BookException {
         BookDTO createdBook = bookService.createBook(bookDTO);
+
         return ResponseEntity.ok(createdBook);
     }
 
@@ -44,6 +45,7 @@ public class AdminBookController {
 
     @PostMapping("/search")
     public ResponseEntity<PageResponse<BookDTO>> searchBooks(@RequestBody BookSearchRequest request) {
+
         return ResponseEntity.ok(bookService.searchBooksForAdmin(request));
     }
 
@@ -51,6 +53,7 @@ public class AdminBookController {
     public ResponseEntity<BookDTO> setActive(@PathVariable Long id,
                                              @Valid @RequestBody ActiveRequest request)
             throws BookException {
+
         return ResponseEntity.ok(bookService.setBookActive(id, request.active()));
     }
 

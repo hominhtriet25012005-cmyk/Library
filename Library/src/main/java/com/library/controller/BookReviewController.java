@@ -25,11 +25,13 @@ public class BookReviewController {
             @RequestParam(required = false) Boolean active,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) throws Exception {
+
         return ResponseEntity.ok(bookReviewService.searchAdminReviews(userId, bookId, active, page, size));
     }
 
     @PostMapping("/admin/{reviewId}/hide")
     public ResponseEntity<BookReviewDTO> hideReview(@PathVariable Long reviewId) throws Exception {
+
         return ResponseEntity.ok(bookReviewService.hideReview(reviewId));
     }
 

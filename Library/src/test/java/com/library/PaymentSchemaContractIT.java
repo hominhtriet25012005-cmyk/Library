@@ -40,7 +40,7 @@ class PaymentSchemaContractIT {
                     "fk_reservations_user", "fk_reservations_book", "fk_payments_user", "fk_payments_fine",
                     "uq_wishlists_user_book", "uq_book_reviews_user_book", "uq_password_reset_tokens_token",
                     "uq_payments_transaction_id", "uq_payments_gateway_order_id",
-                    "chk_users_role", "chk_users_auth_provider", "chk_books_available_copies",
+                    "chk_users_role", "chk_books_available_copies",
                     "chk_book_loans_type", "chk_book_loans_status", "chk_book_loans_due_date",
                     "chk_fines_type", "chk_fines_status", "chk_reservations_status",
                     "chk_reservations_queue_position", "chk_payments_amount", "chk_payments_payment_type",

@@ -294,7 +294,17 @@ class Step6ApiMySqlIT extends MySqlSpringIntegrationTest {
     }
     String reviewBody(long book) { return "{\"bookId\":"+book+",\"rating\":4,\"reviewText\":\"Step6 useful review text\",\"title\":\"Step6 review\"}"; }
     long fine(long loan) throws Exception {
-        return call(post("/api/fines").content("{\"bookLoanId\":"+loan+",\"type\":\"OVERDUE\",\"amount\":10000,\"reason\":\"Step6 fine\"}"), admin, 200).path("id").asLong();
+        BookLoan stored = em.find(BookLoan.class, loan);
+        stored.setDueDate(LocalDate.now().minusDays(2));
+        if (stored.getBook().getPrice() == null) {
+            stored.getBook().setPrice(new java.math.BigDecimal("10000"));
+        }
+        em.flush();
+        call(post("/api/book-loans/checkin")
+                .content("{\"bookLoanId\":" + loan + ",\"condition\":\"RETURNED\"}"), admin, 200);
+        em.flush();
+        return jdbc.queryForObject(
+                "SELECT id FROM fines WHERE book_loan_id=? AND type='OVERDUE'", Long.class, loan);
     }
     Payment paymentFixture() {
         Payment p = Payment.builder().user(memberUser()).paymentType(PaymentType.MEMBERSHIP)
@@ -314,7 +324,7 @@ class Step6ApiMySqlIT extends MySqlSpringIntegrationTest {
         call(post("/api/book-loans/search").content("{\"page\":0,\"size\":10,\"sortBy\":\"createdAt\",\"sortDirection\":\"DESC\"}"), admin, 200);
         call(post("/api/book-loans/renew").content("{\"bookLoanId\":"+id+",\"extensionDays\":2}"), member, 200);
         em.flush(); assertEquals(1, jdbc.queryForObject("SELECT renewal_count FROM book_loans WHERE id=?", Integer.class, id));
-        call(post("/api/book-loans/checkin").content("{\"bookLoanId\":"+id+",\"condition\":\"RETURNED\"}"), member, 200);
+        call(post("/api/book-loans/checkin").content("{\"bookLoanId\":"+id+",\"condition\":\"RETURNED\"}"), admin, 200);
         em.flush(); assertEquals("RETURNED", jdbc.queryForObject("SELECT status FROM book_loans WHERE id=?", String.class, id));
         assertEquals(2, jdbc.queryForObject("SELECT available_copies FROM books WHERE id=?", Integer.class, book));
     }
@@ -402,7 +412,7 @@ class Step6ApiMySqlIT extends MySqlSpringIntegrationTest {
     }
     @Test void loanLostReturnDoesNotIncreaseInventory() throws Exception {
         long b=book(genre()), l=loanFixture(b,BookLoanStatus.CHECKED_OUT).getId();
-        call(post("/api/book-loans/checkin").content("{\"bookLoanId\":"+l+",\"condition\":\"LOST\"}"),member,200);
+        call(post("/api/book-loans/checkin").content("{\"bookLoanId\":"+l+",\"condition\":\"LOST\",\"inspectionNote\":\"Không thu hồi được sách\"}"),admin,200);
         em.flush(); assertEquals(1,jdbc.queryForObject("SELECT available_copies FROM books WHERE id=?",Integer.class,b));
         assertEquals("LOST",jdbc.queryForObject("SELECT status FROM book_loans WHERE id=?",String.class,l));
     }
@@ -429,7 +439,7 @@ class Step6ApiMySqlIT extends MySqlSpringIntegrationTest {
     @Test void loanAdminCanRenewAndReturnDamaged() throws Exception {
         long b=book(genre()), l=loanFixture(b,BookLoanStatus.CHECKED_OUT).getId();
         call(post("/api/book-loans/renew").content("{\"bookLoanId\":"+l+",\"extensionDays\":2}"),admin,200);
-        call(post("/api/book-loans/checkin").content("{\"bookLoanId\":"+l+",\"condition\":\"DAMAGED\"}"),admin,200);
+        call(post("/api/book-loans/checkin").content("{\"bookLoanId\":"+l+",\"condition\":\"DAMAGED\",\"damageLevel\":\"LIGHT\",\"inspectionNote\":\"Sách hư hỏng\"}"),admin,200);
         em.flush();
         assertEquals("DAMAGED",jdbc.queryForObject("SELECT status FROM book_loans WHERE id=?",String.class,l));
         assertEquals(1,jdbc.queryForObject("SELECT available_copies FROM books WHERE id=?",Integer.class,b));
@@ -444,13 +454,15 @@ class Step6ApiMySqlIT extends MySqlSpringIntegrationTest {
         em.flush();
 
         call(post("/api/book-loans/checkin").content("{\"bookLoanId\":"+loan.getId()
-            +",\"condition\":\"RETURNED\",\"notes\":\"Bìa sách nguyên vẹn\"}"),member,200);
+            +",\"condition\":\"RETURNED\",\"inspectionNote\":\"Bìa sách nguyên vẹn\"}"),admin,200);
         em.flush();
 
         assertEquals(3,jdbc.queryForObject("SELECT overdue_days FROM book_loans WHERE id=?",Integer.class,loan.getId()));
         assertEquals(0,jdbc.queryForObject("SELECT is_overdue FROM book_loans WHERE id=?",Integer.class,loan.getId()));
-        assertEquals("Ghi chú lúc mượn\nBìa sách nguyên vẹn",
+        assertEquals("Ghi chú lúc mượn",
             jdbc.queryForObject("SELECT notes FROM book_loans WHERE id=?",String.class,loan.getId()));
+        assertEquals("Bìa sách nguyên vẹn",
+            jdbc.queryForObject("SELECT inspection_note FROM book_loans WHERE id=?",String.class,loan.getId()));
     }
     @Test void loanTerminalStatesCannotRenew() throws Exception {
         long b=book(genre()); BookLoan loan=loanFixture(b,BookLoanStatus.RETURNED);
@@ -731,14 +743,14 @@ class Step6ApiMySqlIT extends MySqlSpringIntegrationTest {
         call(post("/api/subscriptions/subscribe").content("{\"planId\":"+p+"}"),member,503);
         assertEquals(0L,jdbc.queryForObject("SELECT COUNT(*) FROM subscriptions",Long.class));
     }
-    @Test void fineCreateReadWaive() throws Exception {
+    @Test void checkinCreatesFineThenAdminMayReadAndWaive() throws Exception {
         long f=fine(loanFixture(book(genre()),BookLoanStatus.CHECKED_OUT).getId());
         assertEquals(1,call(get("/api/fines/my"),member,200).size()); call(get("/api/fines").param("type","OVERDUE"),admin,200);
         call(post("/api/fines/waive").content("{\"fineId\":"+f+",\"reason\":\"Step6 approved waiver\"}"),admin,200); em.flush();
         assertEquals("WAIVED",jdbc.queryForObject("SELECT status FROM fines WHERE id=?",String.class,f));
     }
-    @Test void fineCreateAndWaiveInvalidReferencesReturnClientErrors() throws Exception {
-        call(post("/api/fines").content("{\"bookLoanId\":-1,\"type\":\"OVERDUE\",\"amount\":1000}"),admin,400);
+    @Test void manualFineCreationIsForbiddenAndWaiveErrorsAreControlled() throws Exception {
+        call(post("/api/fines").content("{\"bookLoanId\":-1,\"type\":\"OVERDUE\",\"amount\":1000}"),admin,403);
         long f=fine(loanFixture(book(genre()),BookLoanStatus.CHECKED_OUT).getId());
         call(post("/api/fines/waive").content("{\"fineId\":-1,\"reason\":\"invalid\"}"),admin,400);
         call(post("/api/fines/waive").content("{\"fineId\":"+f+",\"reason\":\"first waiver\"}"),admin,200);

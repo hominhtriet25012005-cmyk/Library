@@ -10,12 +10,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class BookReviewExceptionHandler {
     @ExceptionHandler(BookReviewException.class)
     public ResponseEntity<ApiResponse> businessError(BookReviewException error) {
+
         return ResponseEntity.status(error.getStatus())
                 .body(new ApiResponse(error.getMessage(), false));
     }
 
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<ApiResponse> denied() {
+
         return ResponseEntity.status(403)
                 .body(new ApiResponse("Bạn không có quyền thực hiện thao tác đánh giá này.", false));
     }
