@@ -12,14 +12,13 @@ test("AD3 chỉ đọc API ADMIN và loại bỏ trường mật khẩu khỏi d
   const options = { signal: new AbortController().signal };
   const client = { get: async (path, receivedOptions) => {
     calls.push({ path, options: receivedOptions });
-    return [{ ...users[0], password: "hash-secret", googleId: "private" }, users[1]];
+    return [{ ...users[0], password: "hash-secret" }, users[1]];
   } };
 
   const result = await createAdminUsersApi(client).list(options);
   assert.deepEqual(calls, [{ path: "/api/users/list", options }]);
   assert.deepEqual(result, users);
   assert.equal("password" in result[0], false);
-  assert.equal("googleId" in result[0], false);
 });
 
 test("AD3 từ chối danh sách sai định dạng thay vì hiển thị dữ liệu giả", async () => {

@@ -137,7 +137,7 @@ const FinesPage = () => {
   return (
     <Box
       component="section"
-      aria-label="Tiền phạt của tôi"
+      aria-label="Tiền phạt "
       sx={{
         width: "100%",
         maxWidth: 1200,
@@ -147,7 +147,7 @@ const FinesPage = () => {
     >
       {/* Header */}
       <PageHeader
-        title="Tiền phạt của tôi"
+        title="Tiền phạt "
         subtitle="Theo dõi chi tiết các khoản phí phạt phát sinh do trễ hạn mượn hoặc hư tổn tài liệu thư viện."
         icon={ReceiptLongRoundedIcon}
         badge={fines.length ? `${fines.length} khoản phạt` : undefined}
@@ -179,14 +179,12 @@ const FinesPage = () => {
         <StatCard
           title="Tổng khoản phạt"
           value={loading || error ? "—" : summary.total}
-          subtitle="Tất cả các khoản ghi nhận trong lịch sử"
           icon={ReceiptLongRoundedIcon}
           color="primary"
         />
         <StatCard
           title="Khoản còn nợ"
           value={loading || error ? "—" : summary.payable}
-          subtitle="Số khoản cần hoàn tất thanh toán"
           icon={HourglassTopRoundedIcon}
           color="warning"
         />
@@ -195,7 +193,6 @@ const FinesPage = () => {
           value={
             loading || error ? "—" : formatCurrencyVND(summary.outstanding)
           }
-          subtitle="Số tiền phạt bạn cần thanh toán"
           icon={ErrorOutlineRoundedIcon}
           color={summary.outstanding > 0 ? "error" : "success"}
         />

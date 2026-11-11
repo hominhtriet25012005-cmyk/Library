@@ -7,15 +7,21 @@ export const effectiveLoanStatus = (loan, today = new Date()) =>
     ? "OVERDUE"
     : loan.status;
 
+export const hasPendingReturnRequest = (loan) =>
+  loan.returnPending === true ||
+  (Boolean(loan.returnRequestedAt) && !loan.returnDate && !loan.checkedInAt);
+
 export const canReturnLoan = (loan) =>
   (loan.status === "CHECKED_OUT" || loan.status === "OVERDUE") &&
-  !loan.returnDate;
+  !loan.returnDate &&
+  !hasPendingReturnRequest(loan);
 
 export const canRenewLoan = (loan, today = new Date()) =>
   loan.status === "CHECKED_OUT" &&
   Boolean(loan.dueDate) &&
   effectiveLoanStatus(loan, today) === "CHECKED_OUT" &&
   !loan.returnDate &&
+  !hasPendingReturnRequest(loan) &&
   Number.isInteger(loan.renewalCount) &&
   Number.isInteger(loan.maxRenewals) &&
   loan.renewalCount < loan.maxRenewals;

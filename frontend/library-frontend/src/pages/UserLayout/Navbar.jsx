@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AppBar,
   Avatar,
@@ -11,8 +11,6 @@ import {
   InputBase,
   List,
   ListItemButton,
-  ListItemIcon,
-  ListItemText,
   Paper,
   Popover,
   Stack,
@@ -20,6 +18,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { navigationItems, secondaryItems } from "./NavigationItems";
 import { isActive, navigationPath } from "./util";
 import { useLocation, useNavigate, Link as RouterLink } from "react-router-dom";
@@ -27,43 +26,43 @@ import MenuIcon from "@mui/icons-material/MenuRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
-import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
-import LightModeRoundedIcon from "@mui/icons-material/LightModeRounded";
-import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
-import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
-import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 
 import { useAuth } from "../../auth/useAuth";
-import { useUserSettings } from "../../settings/useUserSettings";
 import { drawerWidth } from "./layout";
+import { finesApi } from "../../api/fines";
+import { fineOutstanding, fineTypeLabels } from "../Fines/fineRules";
+import { formatCurrencyVND, formatDateTimeVN } from "../../utils/formatters";
+import {
+  readNotificationIds as loadReadNotificationIds,
+  writeNotificationIds,
+} from "../../components/common/notificationReads";
 
 const Navbar = ({ handleDrawerToggle, preview = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const theme = useTheme();
   const { user } = useAuth();
-  const { settings, updateSettings } = useUserSettings();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [notificationAnchor, setNotificationAnchor] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(3);
-
-  const currentItem = [...navigationItems, ...secondaryItems].find((item) =>
-    isActive(navigationPath(item.path, preview), location)
+  const [fineNotifications, setFineNotifications] = useState([]);
+  const [readNotificationIds, setReadNotificationIds] = useState(new Set());
+  const [notificationError, setNotificationError] = useState("");
+  const notificationStorageKey = user?.id
+    ? `library.user.notifications.read.${user.id}`
+    : null;
+  const unreadCount = useMemo(
+    () => fineNotifications.filter((item) => !readNotificationIds.has(item.id)).length,
+    [fineNotifications, readNotificationIds],
   );
 
-  const isDark = settings?.appearance?.theme === "dark";
+  const currentItem = [...navigationItems, ...secondaryItems].find((item) =>
+    isActive(navigationPath(item.path, preview), location),
+  );
 
-  const handleToggleTheme = () => {
-    const nextTheme = isDark ? "light" : "dark";
-    updateSettings((prev) => ({
-      ...prev,
-      appearance: {
-        ...prev.appearance,
-        theme: nextTheme,
-      },
-    }));
-  };
+  const isDark = theme.palette.mode === "dark";
 
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
@@ -83,43 +82,76 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
     setNotificationAnchor(null);
   };
 
-  const handleMarkAllRead = () => {
-    setUnreadCount(0);
+  useEffect(() => {
+    if (!notificationStorageKey) {
+      setFineNotifications([]);
+      setReadNotificationIds(new Set());
+      return undefined;
+    }
+
+    setReadNotificationIds(loadReadNotificationIds(notificationStorageKey));
+    let active = true;
+    let requestController;
+    const loadNotifications = async () => {
+      requestController?.abort();
+      requestController = new AbortController();
+      try {
+        const fines = await finesApi.mine({}, { signal: requestController.signal });
+        if (!active) return;
+        if (!Array.isArray(fines)) throw new Error("Dữ liệu tiền phạt không hợp lệ.");
+        setFineNotifications(
+          fines
+            .filter((fine) =>
+              ["PENDING", "PARTIALLY_PAID"].includes(fine.status) &&
+              fineOutstanding(fine) > 0,
+            )
+            .sort((first, second) => new Date(second.createdAt || 0) - new Date(first.createdAt || 0))
+            .map((fine) => {
+              const outstanding = fineOutstanding(fine);
+              const typeLabel = fineTypeLabels[fine.type] || "Khoản phạt";
+              return {
+                id: `fine-${fine.id}`,
+                title: fine.status === "PARTIALLY_PAID"
+                  ? "Khoản phạt còn dư nợ"
+                  : "Khoản phạt cần thanh toán",
+                desc: `${fine.bookTitle || "Sách thư viện"} · ${typeLabel}: còn nợ ${formatCurrencyVND(outstanding)}.${fine.reason ? ` ${fine.reason}` : ""}`,
+                time: formatDateTimeVN(fine.createdAt),
+                link: "/user/my-fines",
+              };
+            }),
+        );
+        setNotificationError("");
+      } catch (error) {
+        if (!active || error.name === "AbortError") return;
+        setNotificationError(error.message || "Không tải được thông báo tiền phạt.");
+      }
+    };
+
+    loadNotifications();
+    const interval = window.setInterval(loadNotifications, 30_000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") loadNotifications();
+    };
+    window.addEventListener("focus", loadNotifications);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", loadNotifications);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      requestController?.abort();
+    };
+  }, [notificationStorageKey]);
+
+  const markNotificationsRead = (ids) => {
+    const next = new Set(readNotificationIds);
+    ids.forEach((id) => next.add(id));
+    setReadNotificationIds(next);
+    writeNotificationIds(notificationStorageKey, next);
   };
 
-  const notifications = [
-    {
-      id: 1,
-      title: "Sắp đến hạn trả sách",
-      desc: "Sách 'Domain-Driven Design' cần trả trước ngày 01/11/2026.",
-      time: "2 giờ trước",
-      icon: <AutoStoriesRoundedIcon sx={{ fontSize: 20, color: "#1d4ed8" }} />,
-      bg: "#eff6ff",
-      link: "/user/my-loans",
-    },
-    {
-      id: 2,
-      title: "Sách đặt trước đã có sẵn",
-      desc: "Đầu sách 'Refactoring' đã về quầy và sẵn sàng để bạn mượn.",
-      time: "Hôm qua",
-      icon: <EventAvailableRoundedIcon sx={{ fontSize: 20, color: "#059669" }} />,
-      bg: "#ecfdf5",
-      link: "/user/my-reservations",
-    },
-    {
-      id: 3,
-      title: "Gia hạn sách thành công",
-      desc: "Lượt mượn sách của bạn đã được gia hạn thêm 14 ngày an toàn.",
-      time: "3 ngày trước",
-      icon: (
-        <CheckCircleOutlineRoundedIcon
-          sx={{ fontSize: 20, color: "#d97706" }}
-        />
-      ),
-      bg: "#fef3c7",
-      link: "/user/my-loans",
-    },
-  ];
+  const handleMarkAllRead = () =>
+    markNotificationsRead(fineNotifications.map((item) => item.id));
 
   return (
     <AppBar
@@ -128,10 +160,11 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
       sx={{
         width: { md: `calc(100% - ${drawerWidth}px)` },
         ml: { md: `${drawerWidth}px` },
-        bgcolor: isDark ? "#0f172a" : "rgba(255, 255, 255, 0.95)",
+        bgcolor: isDark ? "background.default" : "rgba(255, 255, 255, 0.95)",
         backdropFilter: "blur(8px)",
-        color: isDark ? "#f8fafc" : "#1e293b",
-        borderBottom: isDark ? "1px solid #1e293b" : "1px solid #e2e8f0",
+        color: "text.primary",
+        borderBottom: "1px solid",
+        borderColor: "divider",
         transition: "background-color 0.2s ease, border-color 0.2s ease",
       }}
     >
@@ -153,7 +186,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
             component="div"
             sx={{
               fontWeight: 750,
-              color: isDark ? "#60a5fa" : "#102d62",
+              color: isDark ? "primary.light" : "secondary.main",
               fontSize: "1.125rem",
             }}
           >
@@ -163,7 +196,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
             <Typography
               variant="caption"
               sx={{
-                color: isDark ? "#94a3b8" : "#64748b",
+                color: "text.secondary",
                 display: { xs: "none", sm: "block" },
               }}
             >
@@ -186,14 +219,15 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
               alignItems: "center",
               width: { sm: 190, md: 230, lg: 260 },
               height: 38,
-              bgcolor: isDark ? "#1e293b" : "#f1f5f9",
+              bgcolor: "action.hover",
               borderRadius: "20px",
               px: 1.5,
-              border: isDark ? "1px solid #334155" : "1px solid transparent",
+              border: "1px solid",
+              borderColor: isDark ? "divider" : "transparent",
               transition: "all 0.2s ease",
               "&:focus-within": {
-                borderColor: "#1769ff",
-                bgcolor: isDark ? "#0f172a" : "#ffffff",
+                borderColor: "primary.main",
+                bgcolor: "background.paper",
                 boxShadow: "0 0 0 3px rgba(23, 105, 255, 0.15)",
               },
             }}
@@ -201,7 +235,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
             <SearchRoundedIcon
               sx={{
                 fontSize: 19,
-                color: isDark ? "#94a3b8" : "#64748b",
+                color: "text.secondary",
                 mr: 0.75,
               }}
             />
@@ -212,7 +246,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
               sx={{
                 fontSize: "0.85rem",
                 flex: 1,
-                color: isDark ? "#f8fafc" : "#1e293b",
+                color: "text.primary",
                 "& input": { p: 0 },
               }}
             />
@@ -226,52 +260,20 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                 width: 38,
                 height: 38,
                 borderRadius: "10px",
-                bgcolor: isDark
-                  ? "rgba(255, 255, 255, 0.06)"
-                  : "rgba(15, 23, 42, 0.04)",
-                color: isDark ? "#e2e8f0" : "#475569",
+                bgcolor: "action.hover",
+                color: "text.secondary",
                 "&:hover": {
-                  bgcolor: isDark
-                    ? "rgba(255, 255, 255, 0.12)"
-                    : "rgba(15, 23, 42, 0.08)",
+                  bgcolor: "action.selected",
                 },
               }}
             >
-              <Badge badgeContent={unreadCount} color="error" variant="standard">
+              <Badge
+                badgeContent={unreadCount}
+                color="error"
+                variant="standard"
+              >
                 <NotificationsNoneRoundedIcon sx={{ fontSize: 21 }} />
               </Badge>
-            </IconButton>
-          </Tooltip>
-
-          {/* 3. NÚT ĐIỀU CHỈNH ĐÈN SÁNG TỐI */}
-          <Tooltip
-            title={
-              isDark ? "Chuyển sang chế độ Sáng" : "Chuyển sang chế độ Tối"
-            }
-            arrow
-          >
-            <IconButton
-              onClick={handleToggleTheme}
-              sx={{
-                width: 38,
-                height: 38,
-                borderRadius: "10px",
-                bgcolor: isDark
-                  ? "rgba(255, 255, 255, 0.06)"
-                  : "rgba(15, 23, 42, 0.04)",
-                color: isDark ? "#f59e0b" : "#64748b",
-                "&:hover": {
-                  bgcolor: isDark
-                    ? "rgba(255, 255, 255, 0.12)"
-                    : "rgba(15, 23, 42, 0.08)",
-                },
-              }}
-            >
-              {isDark ? (
-                <LightModeRoundedIcon sx={{ fontSize: 20 }} />
-              ) : (
-                <DarkModeRoundedIcon sx={{ fontSize: 20 }} />
-              )}
             </IconButton>
           </Tooltip>
 
@@ -293,17 +295,13 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                   size="small"
                   sx={{
                     textTransform: "none",
-                    color: isDark ? "#f1f5f9" : "#334155",
+                    color: "text.primary",
                     px: 1.25,
                     py: 0.5,
                     borderRadius: "20px",
-                    bgcolor: isDark
-                      ? "rgba(255, 255, 255, 0.06)"
-                      : "rgba(15, 23, 42, 0.04)",
+                    bgcolor: "action.hover",
                     "&:hover": {
-                      bgcolor: isDark
-                        ? "rgba(255, 255, 255, 0.12)"
-                        : "rgba(15, 23, 42, 0.08)",
+                      bgcolor: "action.selected",
                     },
                   }}
                 >
@@ -312,7 +310,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                       width: 28,
                       height: 28,
                       mr: 1,
-                      bgcolor: "#1769ff",
+                      bgcolor: "primary.main",
                       fontSize: "0.8125rem",
                       fontWeight: 700,
                     }}
@@ -320,8 +318,8 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                     {user?.fullName
                       ? user.fullName.charAt(0).toUpperCase()
                       : user?.name
-                      ? user.name.charAt(0).toUpperCase()
-                      : "U"}
+                        ? user.name.charAt(0).toUpperCase()
+                        : "U"}
                   </Avatar>
                   <Typography
                     variant="body2"
@@ -355,9 +353,9 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                 textTransform: "none",
                 fontWeight: 600,
                 fontSize: "0.8125rem",
-                borderColor: "#1769ff",
-                color: "#1769ff",
-                "&:hover": { bgcolor: "rgba(23,105,255,0.06)" },
+                borderColor: "primary.main",
+                color: "primary.main",
+                "&:hover": { bgcolor: "action.hover" },
               }}
             >
               Vào quản trị
@@ -381,7 +379,8 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
               mt: 1.5,
               borderRadius: 3,
               boxShadow: "0 10px 25px rgba(0,0,0,0.12)",
-              border: "1px solid #e2e8f0",
+              border: "1px solid",
+              borderColor: "divider",
               overflow: "hidden",
             },
           },
@@ -390,14 +389,17 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
         <Box
           sx={{
             p: 2,
-            bgcolor: "#f8fafc",
+            bgcolor: "action.hover",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}
         >
           <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="subtitle1" sx={{ fontWeight: 750, color: "#0f172a" }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 750, color: "text.primary" }}
+            >
               Thông báo
             </Typography>
             {unreadCount > 0 && (
@@ -417,9 +419,9 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
               sx={{
                 textTransform: "none",
                 fontSize: "0.75rem",
-                color: "#64748b",
+                color: "text.secondary",
                 fontWeight: 600,
-                "&:hover": { color: "#1769ff" },
+                "&:hover": { color: "primary.main" },
               }}
             >
               Đã đọc
@@ -430,19 +432,29 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
         <Divider />
 
         <List disablePadding sx={{ maxHeight: 360, overflowY: "auto" }}>
-          {notifications.map((item) => (
+          {notificationError ? (
+            <Typography color="error" variant="body2" sx={{ p: 2, textAlign: "center" }}>
+              {notificationError}
+            </Typography>
+          ) : fineNotifications.length === 0 ? (
+            <Typography color="text.secondary" variant="body2" sx={{ p: 2.5, textAlign: "center" }}>
+              Bạn chưa có khoản phạt cần thanh toán.
+            </Typography>
+          ) : fineNotifications.map((item) => (
             <ListItemButton
               key={item.id}
               onClick={() => {
+                markNotificationsRead([item.id]);
                 handleCloseNotifications();
                 navigate(item.link);
               }}
               sx={{
                 p: 2,
-                borderBottom: "1px solid #f1f5f9",
+                borderBottom: "1px solid",
+                borderColor: "divider",
                 alignItems: "flex-start",
                 gap: 1.5,
-                "&:hover": { bgcolor: "#f8fafc" },
+                "&:hover": { bgcolor: "action.hover" },
               }}
             >
               <Box
@@ -450,7 +462,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                   width: 36,
                   height: 36,
                   borderRadius: 2,
-                  bgcolor: item.bg,
+                  bgcolor: isDark ? "rgba(23, 105, 255, 0.16)" : "primary.light",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -458,12 +470,16 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                   mt: 0.25,
                 }}
               >
-                {item.icon}
+                <ReceiptLongRoundedIcon sx={{ fontSize: 20, color: "primary.main" }} />
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography
                   variant="subtitle2"
-                  sx={{ fontWeight: 700, color: "#1e293b", fontSize: "0.875rem" }}
+                  sx={{
+                    fontWeight: 700,
+                    color: "text.primary",
+                    fontSize: "0.875rem",
+                  }}
                 >
                   {item.title}
                 </Typography>
@@ -484,7 +500,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                 </Typography>
                 <Typography
                   variant="caption"
-                  sx={{ color: "#94a3b8", display: "block", mt: 0.5 }}
+                  sx={{ color: "text.secondary", display: "block", mt: 0.5 }}
                 >
                   {item.time}
                 </Typography>
@@ -493,21 +509,21 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
           ))}
         </List>
 
-        <Box sx={{ p: 1.5, bgcolor: "#f8fafc", textAlign: "center" }}>
+        <Box sx={{ p: 1.5, bgcolor: "action.hover", textAlign: "center" }}>
           <Button
             size="small"
             onClick={() => {
               handleCloseNotifications();
-              navigate("/user/my-loans");
+              navigate("/user/my-fines");
             }}
             sx={{
               textTransform: "none",
               fontWeight: 700,
               fontSize: "0.8rem",
-              color: "#1769ff",
+              color: "primary.main",
             }}
           >
-            Xem tất cả sách đang mượn →
+            Xem các khoản phạt →
           </Button>
         </Box>
       </Popover>

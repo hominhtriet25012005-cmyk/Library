@@ -116,7 +116,7 @@ export const PageHeader = ({
               variant="h5"
               sx={{
                 fontWeight: 750,
-                color: "#102d62",
+                color: "text.primary",
                 lineHeight: 1.25,
               }}
             >

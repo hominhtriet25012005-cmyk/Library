@@ -20,7 +20,7 @@ import Reservation from "./Reservation";
 import ReadingHistory from "./ReadingHistory";
 import Recommandation from "./Recommandation";
 import { loans } from "../MyLoans/loans";
-import { myReservation } from "../My Reservation/reservation";
+import { myReservation } from "../MyReservations/reservation";
 import { loansApi, loadLoanPages } from "../../api/loans.js";
 import {
   reservationsApi,
@@ -204,14 +204,12 @@ const Dashboard = ({ preview = false }) => {
         <StatCard
           title="Sách đang mượn"
           value={activeLoansCount}
-          subtitle="Số cuốn sách bạn đang giữ"
           icon={AutoStoriesRoundedIcon}
           color="primary"
         />
         <StatCard
           title="Sách đặt giữ"
           value={activeReservationsCount}
-          subtitle="Lượt xếp hàng chờ nhận sách"
           icon={EventAvailableRoundedIcon}
           color="navy"
         />
@@ -221,11 +219,6 @@ const Dashboard = ({ preview = false }) => {
             !Array.isArray(finesData) && !preview
               ? "—"
               : formatCurrencyVND(outstandingFines)
-          }
-          subtitle={
-            !Array.isArray(finesData)
-              ? "Chưa có thông tin"
-              : `${fineSummary(finesData).payable} khoản cần thanh toán`
           }
           icon={ReceiptLongRoundedIcon}
           color={outstandingFines > 0 ? "error" : "success"}

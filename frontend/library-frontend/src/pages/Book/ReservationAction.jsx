@@ -15,7 +15,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import { Link } from "react-router-dom";
 import { reservationsApi } from "../../api/reservations.js";
-import { canCreateReservation } from "../My Reservation/reservationRules.js";
+import { canCreateReservation } from "../MyReservations/reservationRules.js";
 
 const ReservationAction = ({ book }) => {
   const [open, setOpen] = useState(false);

@@ -69,17 +69,21 @@ const InfoRow = ({ label, value, highlight = false }) => (
       justifyContent: "space-between",
       alignItems: "center",
       py: 1,
-      borderBottom: "1px dashed #e2e8f0",
+      borderBottom: "1px dashed",
+      borderColor: "divider",
     }}
   >
-    <Typography variant="body2" sx={{ color: "#64748b", fontWeight: 500 }}>
+    <Typography
+      variant="body2"
+      sx={{ color: "text.secondary", fontWeight: 500 }}
+    >
       {label}
     </Typography>
     <Typography
       variant="body2"
       sx={{
         fontWeight: highlight ? 700 : 600,
-        color: highlight ? "#102d62" : "#1e293b",
+        color: highlight ? "primary.main" : "text.primary",
         textAlign: "right",
       }}
     >
@@ -308,32 +312,28 @@ const AdminPaymentsPage = () => {
       {/* Thẻ thống kê */}
       <StatCardGrid columns={{ xs: 1, sm: 2, lg: 4 }} sx={{ mb: 3 }}>
         <StatCard
-          title="Tổng giao dịch (Trang)"
+          title="Tổng giao dịch "
           value={loading ? "—" : statistics.totalOnPage}
-          subtitle="Số bản ghi thanh toán hiển thị"
           icon={PaymentRoundedIcon}
           color="primary"
         />
         <StatCard
-          title="Thành công (Trang)"
+          title="Thành công "
           value={loading ? "—" : statistics.successCount}
-          subtitle="Giao dịch PayOS hợp lệ"
           icon={CheckCircleRoundedIcon}
           color="success"
         />
         <StatCard
-          title="Chờ xác nhận (Trang)"
+          title="Chờ xác nhận "
           value={loading ? "—" : statistics.pendingCount}
-          subtitle="Giao dịch đang chờ thanh toán"
           icon={PendingActionsRoundedIcon}
           color="warning"
         />
         <StatCard
-          title="Doanh thu thực thu (Trang)"
+          title="Doanh thu thực thu "
           value={
             loading ? "—" : formatCurrencyVND(statistics.totalSuccessAmount)
           }
-          subtitle="Tổng tiền giao dịch thành công"
           icon={AccountBalanceWalletRoundedIcon}
           color="navy"
         />
@@ -399,53 +399,60 @@ const AdminPaymentsPage = () => {
         sx={{
           borderRadius: 2.5,
           overflowX: "auto",
-          bgcolor: "#fff",
-          borderColor: "#e2e8f0",
+          bgcolor: "background.paper",
+          borderColor: "divider",
           boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
         }}
       >
         <Table sx={{ minWidth: 900 }}>
-          <TableHead sx={{ bgcolor: "#f8fafc" }}>
+          <TableHead
+            sx={{
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+            }}
+          >
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, width: 80, color: "#1e293b" }}>
+              <TableCell
+                sx={{ fontWeight: 700, width: 80, color: "text.primary" }}
+              >
                 Mã
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 180, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 180, color: "text.primary" }}
               >
                 Người thanh toán
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 130, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 130, color: "text.primary" }}
               >
                 Loại
               </TableCell>
               <TableCell
                 align="right"
-                sx={{ fontWeight: 700, minWidth: 140, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 140, color: "text.primary" }}
               >
                 Số tiền
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, minWidth: 100, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 100, color: "text.primary" }}
               >
                 Cổng
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, minWidth: 140, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 140, color: "text.primary" }}
               >
                 Trạng thái
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 150, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 150, color: "text.primary" }}
               >
                 Thời gian
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, width: 90, color: "#1e293b" }}
+                sx={{ fontWeight: 700, width: 90, color: "text.primary" }}
               >
                 Chi tiết
               </TableCell>
@@ -484,23 +491,23 @@ const AdminPaymentsPage = () => {
                   key={payment.id}
                   hover
                   sx={{
-                    "&:hover": { bgcolor: "#f8fafc" },
-                    "& td": { borderColor: "#f1f5f9" },
+                    "&:hover": { bgcolor: "action.hover" },
+                    "& td": { borderColor: "divider" },
                   }}
                 >
-                  <TableCell sx={{ fontWeight: 600, color: "#64748b" }}>
+                  <TableCell sx={{ fontWeight: 600, color: "text.secondary" }}>
                     #{payment.id}
                   </TableCell>
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 700, color: "#1e293b" }}
+                      sx={{ fontWeight: 700, color: "text.primary" }}
                     >
                       {payment.userName || `#${payment.userId}`}
                     </Typography>
                     <Typography
                       variant="caption"
-                      sx={{ color: "#64748b", display: "block" }}
+                      sx={{ color: "text.secondary", display: "block" }}
                     >
                       {payment.userEmail || `ID: #${payment.userId}`}
                     </Typography>
@@ -508,7 +515,7 @@ const AdminPaymentsPage = () => {
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 600, color: "#334155" }}
+                      sx={{ fontWeight: 600, color: "text.primary" }}
                     >
                       {typeNames[payment.paymentType] || payment.paymentType}
                     </Typography>
@@ -516,7 +523,7 @@ const AdminPaymentsPage = () => {
                   <TableCell align="right">
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 750, color: "#102d62" }}
+                      sx={{ fontWeight: 750, color: "primary.main" }}
                     >
                       {payment.currency === "VND"
                         ? formatCurrencyVND(payment.amount)
@@ -531,8 +538,8 @@ const AdminPaymentsPage = () => {
                         px: 1.25,
                         py: 0.5,
                         borderRadius: "6px",
-                        bgcolor: "#f1f5f9",
-                        color: "#475569",
+                        bgcolor: "action.selected",
+                        color: "text.secondary",
                         letterSpacing: "0.5px",
                       }}
                     >
@@ -545,7 +552,7 @@ const AdminPaymentsPage = () => {
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ color: "#475569", fontSize: "0.8125rem" }}
+                      sx={{ color: "text.secondary", fontSize: "0.8125rem" }}
                     >
                       {formatDateTimeVN(payment.createdAt)}
                     </Typography>
@@ -557,9 +564,17 @@ const AdminPaymentsPage = () => {
                         aria-label={`Chi tiết thanh toán #${payment.id}`}
                         onClick={() => openDetail(payment)}
                         sx={{
-                          color: "#1769ff",
-                          bgcolor: "rgba(23,105,255,0.06)",
-                          "&:hover": { bgcolor: "rgba(23,105,255,0.12)" },
+                          color: "primary.main",
+                          bgcolor: (theme) =>
+                            theme.palette.mode === "dark"
+                              ? "rgba(59,130,246,0.15)"
+                              : "rgba(23,105,255,0.06)",
+                          "&:hover": {
+                            bgcolor: (theme) =>
+                              theme.palette.mode === "dark"
+                                ? "rgba(59,130,246,0.25)"
+                                : "rgba(23,105,255,0.12)",
+                          },
                         }}
                       >
                         <VisibilityOutlinedIcon fontSize="small" />
@@ -602,10 +617,14 @@ const AdminPaymentsPage = () => {
           }}
         >
           <Box>
-            <Typography variant="h6" fontWeight={750} sx={{ color: "#102d62" }}>
+            <Typography
+              variant="h6"
+              fontWeight={750}
+              sx={{ color: "text.primary" }}
+            >
               Giao dịch #{selected?.id}
             </Typography>
-            <Typography variant="caption" sx={{ color: "#64748b" }}>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
               Bằng chứng thanh toán và trạng thái đối soát
             </Typography>
           </Box>
@@ -637,8 +656,9 @@ const AdminPaymentsPage = () => {
                 sx={{
                   p: 2.5,
                   borderRadius: 2.5,
-                  bgcolor: "#f8fafc",
-                  borderColor: "#e2e8f0",
+                  bgcolor: (theme) =>
+                    theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+                  borderColor: "divider",
                 }}
               >
                 <InfoRow
@@ -668,12 +688,13 @@ const AdminPaymentsPage = () => {
                     justifyContent: "space-between",
                     alignItems: "center",
                     py: 1,
-                    borderBottom: "1px dashed #e2e8f0",
+                    borderBottom: "1px dashed",
+                    borderColor: "divider",
                   }}
                 >
                   <Typography
                     variant="body2"
-                    sx={{ color: "#64748b", fontWeight: 500 }}
+                    sx={{ color: "text.secondary", fontWeight: 500 }}
                   >
                     Trạng thái ghi nhận
                   </Typography>
@@ -742,7 +763,11 @@ const AdminPaymentsPage = () => {
               setStatusLoading(true);
               setStatusReload((value) => value + 1);
             }}
-            sx={{ textTransform: "none", fontWeight: 600, color: "#64748b" }}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              color: "text.secondary",
+            }}
           >
             Làm mới trạng thái
           </Button>

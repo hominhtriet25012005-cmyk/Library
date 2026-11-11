@@ -130,7 +130,7 @@ export const getUserSearchHistory = (userId) => {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
+  } catch {
     return [];
   }
 };
@@ -157,7 +157,7 @@ export const addUserSearchHistory = (userId, term) => {
       }
     }
     return updated;
-  } catch (error) {
+  } catch {
     return [];
   }
 };

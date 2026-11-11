@@ -52,6 +52,65 @@ test("401 có token làm hết phiên, 403 giữ phiên", async () => {
   assert.equal(expired, 1);
 });
 
+test("403 yêu cầu đồng bộ lại profile nhưng không kết thúc phiên", async () => {
+  const forbiddenPaths = [];
+  const client = createApiClient({
+    getToken: () => "abc",
+    onForbidden: (path) => forbiddenPaths.push(path),
+    fetchImpl: async () =>
+      new Response(
+        JSON.stringify({ message: "Tài khoản không còn quyền quản trị." }),
+        { status: 403, headers: { "Content-Type": "application/json" } },
+      ),
+  });
+
+  await assert.rejects(
+    client.get("/api/admin/users"),
+    (error) =>
+      error.status === 403 &&
+      error.message === "Tài khoản không còn quyền quản trị.",
+  );
+  assert.deepEqual(forbiddenPaths, ["/api/admin/users"]);
+});
+
+test("API đọc thông báo tiếng Việt từ trường Lỗi của Backend", async () => {
+  const client = createApiClient({
+    fetchImpl: async () =>
+      new Response(JSON.stringify({ Lỗi: "Mã đặt lại đã hết hạn." }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }),
+  });
+
+  await assert.rejects(
+    client.post("/auth/reset-password", { token: "expired", password: "12345678" }),
+    (error) => error.status === 400 && error.message === "Mã đặt lại đã hết hạn.",
+  );
+});
+
+test("API giữ tương thích với error/detail và không hiển thị mã HTTP thô", async () => {
+  for (const [payload, expected] of [
+    [{ error: "Khoản phạt không hợp lệ." }, "Khoản phạt không hợp lệ."],
+    [{ detail: "Ngày nhận sách không hợp lệ." }, "Ngày nhận sách không hợp lệ."],
+  ]) {
+    const client = createApiClient({
+      fetchImpl: async () => new Response(JSON.stringify(payload), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }),
+    });
+    await assert.rejects(client.get("/api/test"), (error) => error.message === expected);
+  }
+
+  const client = createApiClient({
+    fetchImpl: async () => new Response("", { status: 503 }),
+  });
+  await assert.rejects(
+    client.get("/api/test"),
+    (error) => error.message === "Máy chủ tạm thời không thể xử lý yêu cầu. Vui lòng thử lại.",
+  );
+});
+
 test("API DELETE gửi Bearer token và không gửi body", async () => {
   let captured;
   const client = createApiClient({
@@ -82,6 +141,26 @@ test("API PUT gửi JSON và Bearer token", async () => {
   assert.equal(captured.options.method, "PUT");
   assert.equal(captured.options.headers.Authorization, "Bearer abc");
   assert.equal(captured.options.body, '{"rating":4}');
+});
+
+test("API giữ nguyên thông báo nghiệp vụ khi sách đang dành cho đặt giữ", async () => {
+  const client = createApiClient({
+    fetchImpl: async () => new Response(JSON.stringify({
+      message: "Sách đã được đặt giữ và đang chờ nhận.",
+      status: false,
+    }), { status: 400, headers: { "Content-Type": "application/json" } }),
+  });
+
+  await assert.rejects(
+    client.post("/api/book-loans/checkout", {
+      bookId: 12,
+      checkoutDays: 7,
+      notes: "",
+    }),
+    (error) =>
+      error.status === 400 &&
+      error.message === "Sách đã được đặt giữ và đang chờ nhận.",
+  );
 });
 
 test("API POST FormData gửi Bearer token và không ghi đè Content-Type", async () => {

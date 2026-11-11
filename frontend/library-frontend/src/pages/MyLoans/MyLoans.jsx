@@ -21,6 +21,7 @@ import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 
 import { loansApi, loadLoanPages } from "../../api/loans.js";
+import { finesApi } from "../../api/fines.js";
 import { filterLoans, renewalDays, effectiveLoanStatus } from "./loanRules.js";
 import { tabs } from "./tab.js";
 import { loans as previewLoans } from "./loans.js";
@@ -35,12 +36,15 @@ import {
 const MyLoans = ({ preview = false }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [loans, setLoans] = useState(preview ? previewLoans : []);
+  const [fines, setFines] = useState([]);
   const [loading, setLoading] = useState(!preview);
   const [error, setError] = useState("");
+  const [finesError, setFinesError] = useState("");
   const [message, setMessage] = useState("");
   const [refresh, setRefresh] = useState(0);
   const [action, setAction] = useState(null);
   const [days, setDays] = useState("14");
+  const [returnNote, setReturnNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
 
@@ -61,9 +65,38 @@ const MyLoans = ({ preview = false }) => {
     return () => controller.abort();
   }, [preview, refresh]);
 
+  useEffect(() => {
+    if (preview) return;
+    const controller = new AbortController();
+    finesApi
+      .mine({}, { signal: controller.signal })
+      .then((entries) => {
+        if (!Array.isArray(entries))
+          throw new Error("Dữ liệu tiền phạt không hợp lệ.");
+        setFines(entries);
+        setFinesError("");
+      })
+      .catch((failure) => {
+        if (failure.name !== "AbortError") setFinesError(failure.message);
+      });
+    return () => controller.abort();
+  }, [preview, refresh]);
+
+  const finesByLoan = useMemo(() => {
+    const grouped = new Map();
+    for (const fine of fines) {
+      if (fine.bookLoanId == null) continue;
+      const current = grouped.get(fine.bookLoanId) ?? [];
+      current.push(fine);
+      grouped.set(fine.bookLoanId, current);
+    }
+    return grouped;
+  }, [fines]);
+
   const openAction = (loan, kind) => {
     setAction({ loan, kind });
     setDays("14");
+    setReturnNote("");
     setActionError("");
   };
 
@@ -78,11 +111,11 @@ const MyLoans = ({ preview = false }) => {
     try {
       if (action.kind === "renew")
         await loansApi.renew(action.loan.id, extensionDays);
-      else await loansApi.checkin(action.loan.id);
+      else await loansApi.requestReturn(action.loan.id, returnNote);
       setMessage(
         action.kind === "renew"
           ? "Đã gia hạn thành công. Danh sách đang được làm mới."
-          : "Đã xác nhận trả sách. Danh sách đang được làm mới.",
+          : "Đã gửi yêu cầu trả sách. Lượt mượn vẫn được giữ nguyên cho đến khi ADMIN tiếp nhận và kiểm tra sách.",
       );
       setAction(null);
       setLoading(true);
@@ -139,28 +172,24 @@ const MyLoans = ({ preview = false }) => {
         <StatCard
           title="Tổng lượt mượn"
           value={loading ? "—" : stats.total}
-          subtitle="Tất cả các lần mượn từ trước tới nay"
           icon={LibraryBooksRoundedIcon}
           color="primary"
         />
         <StatCard
           title="Đang mượn"
           value={loading ? "—" : stats.active}
-          subtitle="Sách đang trong thời hạn mượn"
           icon={AutoStoriesRoundedIcon}
           color="navy"
         />
         <StatCard
           title="Quá hạn trả"
           value={loading ? "—" : stats.overdue}
-          subtitle="Sách đã trễ hạn, cần hoàn trả sớm"
           icon={WarningAmberRoundedIcon}
           color="error"
         />
         <StatCard
           title="Đã trả hoàn tất"
           value={loading ? "—" : stats.returned}
-          subtitle="Sách đã trả lại thư viện an toàn"
           icon={CheckCircleOutlineRoundedIcon}
           color="success"
         />
@@ -267,10 +296,18 @@ const MyLoans = ({ preview = false }) => {
               key={loan.id}
               loan={loan}
               preview={preview}
+              fines={finesByLoan.get(loan.id) ?? []}
               onAction={openAction}
             />
           ))}
         </Box>
+      )}
+
+      {finesError && !preview && (
+        <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
+          Không tải được các khoản phạt. Bạn vẫn có thể xem lượt mượn; hãy tải
+          lại trang để cập nhật tiền phạt.
+        </Alert>
       )}
 
       {/* Dialog Gia hạn / Trả sách */}
@@ -292,7 +329,7 @@ const MyLoans = ({ preview = false }) => {
           <Typography variant="h6" sx={{ fontWeight: 750, color: "#102d62" }}>
             {action?.kind === "renew"
               ? "Gia hạn lượt mượn"
-              : "Xác nhận trả sách"}
+              : "Gửi yêu cầu trả sách"}
           </Typography>
           <IconButton
             size="small"
@@ -345,13 +382,28 @@ const MyLoans = ({ preview = false }) => {
                 />
               </>
             ) : (
-              <Alert
-                severity="warning"
-                sx={{ borderRadius: 2, fontSize: "0.8125rem" }}
-              >
-                Sách sẽ được chuyển sang trạng thái đã hoàn tất trả sách. Hãy
-                xác nhận khi bạn đã trao lại sách cho thủ thư tại quầy.
-              </Alert>
+              <>
+                <Alert
+                  severity="info"
+                  sx={{ borderRadius: 2, fontSize: "0.8125rem" }}
+                >
+                  Thao tác này chỉ gửi yêu cầu. Lượt mượn và tồn kho chưa thay
+                  đổi cho đến khi ADMIN nhận sách, kiểm tra và xác nhận kết quả.
+                  Vui lòng mang sách đến quầy thư viện.
+                </Alert>
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  maxRows={4}
+                  label="Ghi chú khi gửi yêu cầu (không bắt buộc)"
+                  value={returnNote}
+                  onChange={(event) => setReturnNote(event.target.value)}
+                  slotProps={{ htmlInput: { maxLength: 500 } }}
+                  helperText={`${returnNote.length}/500 ký tự`}
+                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+                />
+              </>
             )}
 
             {actionError && (
@@ -380,7 +432,11 @@ const MyLoans = ({ preview = false }) => {
               px: 3,
             }}
           >
-            {busy ? "Đang xử lý…" : "Xác nhận"}
+            {busy
+              ? "Đang xử lý…"
+              : action?.kind === "renew"
+                ? "Xác nhận gia hạn"
+                : "Gửi yêu cầu"}
           </Button>
         </DialogActions>
       </Dialog>

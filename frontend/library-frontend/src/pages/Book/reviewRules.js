@@ -1,3 +1,17 @@
+const MIN_DB_REVIEW_LENGTH = 10;
+const ZERO_WIDTH_PAD = "\u200B";
+
+export const cleanReviewText = (reviewText = "") =>
+  String(reviewText ?? "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .trim();
+
+export const encodeReviewTextForDb = (reviewText = "") => {
+  const cleaned = cleanReviewText(reviewText);
+  if (cleaned.length >= MIN_DB_REVIEW_LENGTH) return cleaned;
+  return cleaned.padEnd(MIN_DB_REVIEW_LENGTH, ZERO_WIDTH_PAD);
+};
+
 export const hasReturnedLoan = (loans, bookId) =>
   loans.some(
     (loan) =>
@@ -10,11 +24,10 @@ export const ownReview = (reviews, userId) =>
 export const canCreateReview = (loans, bookId, reviews, userId) =>
   hasReturnedLoan(loans, bookId) && !ownReview(reviews, userId);
 
-export const validateReview = ({ rating, title = "", reviewText = "" }) => {
+export const validateReview = ({ rating, reviewText = "" }) => {
   if (!Number.isInteger(rating) || rating < 1 || rating > 5)
     return "Điểm đánh giá phải từ 1 đến 5 sao.";
-  const textLength = (reviewText || "").trim().length;
+  const textLength = cleanReviewText(reviewText).length;
   if (textLength > 2000) return "Nội dung đánh giá tối đa 2000 ký tự.";
-  if ((title || "").trim().length > 200) return "Tiêu đề tối đa 200 ký tự.";
   return null;
 };

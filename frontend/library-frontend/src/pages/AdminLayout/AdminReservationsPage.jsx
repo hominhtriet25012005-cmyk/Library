@@ -27,7 +27,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
@@ -41,7 +40,6 @@ import {
   canAdminFulfill,
 } from "../../api/adminReservations";
 import {
-  ConfirmDialog,
   PageHeader,
   SearchFilterBar,
   StatusChip,
@@ -79,7 +77,7 @@ const Detail = ({ label, value }) => (
       sx={{
         overflowWrap: "anywhere",
         fontWeight: 500,
-        color: "#0f172a",
+        color: "text.primary",
         mt: 0.25,
       }}
     >
@@ -176,7 +174,7 @@ const AdminReservationsPage = () => {
         updated = await adminReservationsApi.cancel(action.reservation.id);
         setNotice(`Đã hủy đặt giữ #${updated.id}.`);
       } else {
-        updated = await adminReservationsApi.fulfill(action.reservation.id);
+        updated = await adminReservationsApi.fulfill(action.reservation);
         setNotice(`Đã xác nhận giao sách cho đặt giữ #${updated.id}.`);
       }
       setSelected(updated);
@@ -311,7 +309,7 @@ const AdminReservationsPage = () => {
       <TableContainer
         component={Paper}
         variant="outlined"
-        sx={{ borderRadius: 3, borderColor: "#e2e8f0" }}
+        sx={{ borderRadius: 3, borderColor: "divider" }}
       >
         <Table size="small">
           <TableHead>
@@ -346,7 +344,7 @@ const AdminReservationsPage = () => {
                   <TableCell>
                     <Typography
                       fontWeight={700}
-                      sx={{ color: "#0f172a", fontSize: "0.875rem" }}
+                      sx={{ color: "text.primary", fontSize: "0.875rem" }}
                     >
                       {res.userName || `Độc giả #${res.userId}`}
                     </Typography>
@@ -358,7 +356,7 @@ const AdminReservationsPage = () => {
                   <TableCell>
                     <Typography
                       fontWeight={650}
-                      sx={{ color: "#0f172a", fontSize: "0.875rem" }}
+                      sx={{ color: "text.primary", fontSize: "0.875rem" }}
                     >
                       {res.bookTitle || `Sách #${res.bookId}`}
                     </Typography>
@@ -416,6 +414,12 @@ const AdminReservationsPage = () => {
                       direction="row"
                       spacing={0.5}
                       justifyContent="center"
+                      alignItems="center"
+                      sx={{
+                        display: "inline-flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
                     >
                       <Tooltip title="Xem chi tiết">
                         <IconButton
@@ -502,7 +506,10 @@ const AdminReservationsPage = () => {
             pb: 1,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 750, color: "text.primary" }}
+          >
             Chi tiết đặt giữ #{selected?.id}
           </Typography>
           <IconButton size="small" onClick={() => setSelected(null)}>
@@ -567,7 +574,7 @@ const AdminReservationsPage = () => {
         </DialogContent>
 
         <DialogActions
-          sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9", gap: 1 }}
+          sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", gap: 1 }}
         >
           {canAdminFulfill(selected) && (
             <Button
@@ -609,7 +616,10 @@ const AdminReservationsPage = () => {
             pb: 1,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 750, color: "text.primary" }}
+          >
             {action?.kind === "create"
               ? "Tạo đặt giữ mới cho độc giả"
               : action?.kind === "cancel"
@@ -688,12 +698,12 @@ const AdminReservationsPage = () => {
         </DialogContent>
 
         <DialogActions
-          sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9", gap: 1 }}
+          sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", gap: 1 }}
         >
           <Button
             disabled={busy}
             onClick={closeAction}
-            sx={{ color: "#64748b" }}
+            sx={{ color: "text.secondary" }}
           >
             Hủy
           </Button>

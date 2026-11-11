@@ -1,4 +1,5 @@
 import { Chip } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 
 // Từ điển trạng thái toàn hệ thống
 const statusDictionary = {
@@ -181,9 +182,9 @@ export const StatusChip = ({
   type = "general",
   label,
   size = "small",
-  variant = "filled",
   sx = {},
 }) => {
+  const theme = useTheme();
   const normalizedKey = typeof status === "boolean" ? String(status) : status;
   const config = statusDictionary[type]?.[normalizedKey] ||
     statusDictionary.active[normalizedKey] || {
@@ -194,6 +195,17 @@ export const StatusChip = ({
     };
 
   const displayLabel = label || config.label;
+  const semanticColor = theme.palette[config.color];
+  const chipBackground =
+    theme.palette.mode === "dark"
+      ? semanticColor?.main
+        ? alpha(semanticColor.main, 0.2)
+        : theme.palette.action.hover
+      : config.bg;
+  const chipText =
+    theme.palette.mode === "dark"
+      ? semanticColor?.light || theme.palette.text.secondary
+      : config.text;
 
   return (
     <Chip
@@ -204,8 +216,8 @@ export const StatusChip = ({
         fontSize: size === "small" ? "0.75rem" : "0.8125rem",
         height: size === "small" ? 24 : 28,
         borderRadius: 1.5,
-        bgcolor: config.bg,
-        color: config.text,
+        bgcolor: chipBackground,
+        color: chipText,
         border: "1px solid transparent",
         ...sx,
       }}

@@ -35,7 +35,6 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import SubdirectoryArrowRightRoundedIcon from "@mui/icons-material/SubdirectoryArrowRightRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 
 import { adminCatalogApi } from "../../api/adminCatalog";
 import {
@@ -178,7 +177,10 @@ const GenreForm = ({ open, original, genres, onClose, onSaved }) => {
           px: 3,
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 750, color: "text.primary" }}
+        >
           {original ? "Sửa thông tin thể loại" : "Thêm thể loại mới"}
         </Typography>
         <IconButton size="small" onClick={onClose} disabled={busy}>
@@ -203,7 +205,6 @@ const GenreForm = ({ open, original, genres, onClose, onSaved }) => {
           >
             <TextField
               label="Mã thể loại"
-              placeholder="VD: CNTT, KINH_TE"
               required
               value={form.code}
               onChange={change("code")}
@@ -216,7 +217,6 @@ const GenreForm = ({ open, original, genres, onClose, onSaved }) => {
             />
             <TextField
               label="Tên thể loại"
-              placeholder="VD: Công nghệ thông tin"
               required
               value={form.name}
               onChange={change("name")}
@@ -263,7 +263,6 @@ const GenreForm = ({ open, original, genres, onClose, onSaved }) => {
 
           <TextField
             label="Mô tả"
-            placeholder="Nhập mô tả tóm tắt về loại sách này..."
             value={form.description ?? ""}
             onChange={change("description")}
             multiline
@@ -279,8 +278,21 @@ const GenreForm = ({ open, original, genres, onClose, onSaved }) => {
               justifyContent: "space-between",
               p: 2,
               borderRadius: 2.5,
-              bgcolor: form.active ? "#f0fdf4" : "#f8fafc",
-              border: `1px solid ${form.active ? "#bbf7d0" : "#e2e8f0"}`,
+              bgcolor: (theme) =>
+                form.active
+                  ? theme.palette.mode === "dark"
+                    ? "rgba(22, 163, 74, 0.15)"
+                    : "#f0fdf4"
+                  : theme.palette.mode === "dark"
+                    ? "#17243a"
+                    : "#f8fafc",
+              border: "1px solid",
+              borderColor: (theme) =>
+                form.active
+                  ? theme.palette.mode === "dark"
+                    ? "rgba(74, 222, 128, 0.3)"
+                    : "#bbf7d0"
+                  : "divider",
               transition: "all 0.2s ease",
             }}
           >
@@ -289,14 +301,26 @@ const GenreForm = ({ open, original, genres, onClose, onSaved }) => {
                 variant="subtitle2"
                 sx={{
                   fontWeight: 700,
-                  color: form.active ? "#166534" : "#334155",
+                  color: (theme) =>
+                    form.active
+                      ? theme.palette.mode === "dark"
+                        ? "#86efac"
+                        : "#166534"
+                      : "text.primary",
                 }}
               >
                 {form.active ? "Đang hoạt động" : "Tạm ngưng / Đã ẩn"}
               </Typography>
               <Typography
                 variant="caption"
-                sx={{ color: form.active ? "#15803d" : "#64748b" }}
+                sx={{
+                  color: (theme) =>
+                    form.active
+                      ? theme.palette.mode === "dark"
+                        ? "#bbf7d0"
+                        : "#15803d"
+                      : "text.secondary",
+                }}
               >
                 {form.active
                   ? "Thể loại được hiển thị công khai và xuất hiện trong bộ lọc sách của độc giả."
@@ -321,9 +345,19 @@ const GenreForm = ({ open, original, genres, onClose, onSaved }) => {
       </DialogContent>
 
       <DialogActions
-        sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9", gap: 1 }}
+        sx={{
+          px: 3,
+          py: 2,
+          borderTop: "1px solid",
+          borderColor: "divider",
+          gap: 1,
+        }}
       >
-        <Button onClick={onClose} disabled={busy} sx={{ color: "#64748b" }}>
+        <Button
+          onClick={onClose}
+          disabled={busy}
+          sx={{ color: "text.secondary" }}
+        >
           Hủy
         </Button>
         <Button variant="contained" onClick={save} disabled={busy}>
@@ -347,8 +381,9 @@ const AdminGenresPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
-  const handleSearchSubmit = () => {
-    setSearch(searchInput.trim());
+  const handleSearchSubmit = (term) => {
+    const text = typeof term === "string" ? term : searchInput;
+    setSearch(text.trim());
   };
 
   const handleResetFilters = () => {
@@ -491,7 +526,6 @@ const AdminGenresPage = () => {
         <StatCard
           title="Thể loại gốc"
           value={genres.filter((g) => g.parentGenreId == null).length}
-          detail="Các danh mục sách cấp cao nhất"
           icon={<FolderOutlinedIcon />}
           color="#1769ff"
           loading={loading}
@@ -499,7 +533,6 @@ const AdminGenresPage = () => {
         <StatCard
           title="Tổng thể loại"
           value={genres.length}
-          detail="Bao gồm cả danh mục con và danh mục ẩn"
           icon={<CategoryRoundedIcon />}
           color="#16a34a"
           loading={loading}
@@ -507,7 +540,6 @@ const AdminGenresPage = () => {
         <StatCard
           title="Đang hiển thị"
           value={genres.filter((g) => g.active).length}
-          detail="Xuất hiện trong bộ lọc của độc giả"
           icon={<VisibilityOutlinedIcon />}
           color="#0284c7"
           loading={loading}
@@ -517,53 +549,26 @@ const AdminGenresPage = () => {
       {/* Thanh tìm kiếm và bộ lọc */}
       <SearchFilterBar
         searchValue={searchInput}
-        onSearchChange={setSearchInput}
+        onSearchChange={(val) => {
+          setSearchInput(val);
+          if (val === "" && search !== "") {
+            setSearch("");
+          }
+        }}
         onSearchSubmit={handleSearchSubmit}
         showSearchButton={false}
         searchPlaceholder="Tìm tên, mã thể loại..."
-        actions={
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleSearchSubmit}
-              sx={{
-                height: 40,
-                px: 2.5,
-                borderRadius: 2,
-                textTransform: "none",
-                fontWeight: 600,
-                boxShadow: "none",
-              }}
-            >
-              Tìm
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<RestartAltRoundedIcon fontSize="small" />}
-              onClick={handleResetFilters}
-              sx={{
-                height: 40,
-                px: 2,
-                borderRadius: 2,
-                textTransform: "none",
-                color: "#64748b",
-                borderColor: "#cbd5e1",
-                "&:hover": { borderColor: "#94a3b8", bgcolor: "#f8fafc" },
-              }}
-            >
-              Đặt lại bộ lọc
-            </Button>
-          </Stack>
-        }
+        onReset={handleResetFilters}
+        searchSx={{
+          flex: 1,
+        }}
       />
 
       {/* Bảng dữ liệu thể loại */}
       <TableContainer
         component={Paper}
         variant="outlined"
-        sx={{ borderRadius: 3, borderColor: "#e2e8f0" }}
+        sx={{ borderRadius: 3, borderColor: "divider" }}
       >
         <Table size="small">
           <TableHead>
@@ -600,12 +605,12 @@ const AdminGenresPage = () => {
                     >
                       {genre.depth > 0 && (
                         <SubdirectoryArrowRightRoundedIcon
-                          sx={{ fontSize: 18, color: "#94a3b8" }}
+                          sx={{ fontSize: 18, color: "text.secondary" }}
                         />
                       )}
                       <Typography
                         fontWeight={genre.depth === 0 ? 700 : 500}
-                        color={genre.active ? "#0f172a" : "text.secondary"}
+                        color={genre.active ? "text.primary" : "text.secondary"}
                         sx={{ fontSize: "0.875rem" }}
                       >
                         {genre.name}

@@ -5,10 +5,9 @@ export const createLoansApi = (client) => ({
     client.get(`/api/book-loans/my?page=${page}&size=${size}`, options),
   checkout: (bookId, checkoutDays, notes = "") =>
     client.post("/api/book-loans/checkout", { bookId, checkoutDays, notes }),
-  checkin: (bookLoanId) =>
-    client.post("/api/book-loans/checkin", {
-      bookLoanId,
-      condition: "RETURNED",
+  requestReturn: (bookLoanId, note = "") =>
+    client.post(`/api/book-loans/${bookLoanId}/return-request`, {
+      note: String(note ?? "").trim(),
     }),
   renew: (bookLoanId, extensionDays) =>
     client.post("/api/book-loans/renew", { bookLoanId, extensionDays }),

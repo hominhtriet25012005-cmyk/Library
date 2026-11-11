@@ -1,4 +1,4 @@
-import { Box, Chip, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
+import { Box, Paper, Tab, Tabs } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import ConstructionRoundedIcon from "@mui/icons-material/ConstructionRounded";
 import { PageHeader, EmptyState } from "../../components/common";
@@ -32,7 +32,8 @@ const AdminStagePage = ({ item, page }) => {
           aria-label="Tab gói thành viên"
           sx={{
             mb: 3,
-            borderBottom: "1px solid #e2e8f0",
+            borderBottom: 1,
+            borderColor: "divider",
             "& .MuiTab-root": {
               textTransform: "none",
               fontWeight: 600,
@@ -58,9 +59,9 @@ const AdminStagePage = ({ item, page }) => {
         variant="outlined"
         sx={{
           borderRadius: 2.5,
-          borderColor: "#e2e8f0",
+          borderColor: "divider",
           p: { xs: 3, sm: 5 },
-          bgcolor: "#fff",
+          bgcolor: "background.paper",
           textAlign: "center",
         }}
       >

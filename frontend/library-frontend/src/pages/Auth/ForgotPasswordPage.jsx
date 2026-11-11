@@ -30,6 +30,7 @@ const ForgotPasswordPage = () => {
     <AuthShell
       title="Khôi phục mật khẩu"
       subtitle="Nhập email đã đăng ký để nhận liên kết thiết lập lại mật khẩu."
+      maxWidth={460}
     >
       {sent ? (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -45,7 +46,7 @@ const ForgotPasswordPage = () => {
             fullWidth
             startIcon={<ArrowBackRoundedIcon />}
             sx={{
-              py: 1.2,
+              py: 1.3,
               borderRadius: 2.5,
               fontWeight: 600,
               textTransform: "none",
@@ -61,22 +62,55 @@ const ForgotPasswordPage = () => {
           sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}
         >
           {error && (
-            <Alert severity="error" sx={{ borderRadius: 2 }}>
+            <Alert
+              severity="error"
+              sx={{
+                borderRadius: 2,
+                justifyContent: "center",
+                alignItems: "center",
+                "& .MuiAlert-icon": {
+                  mr: 1,
+                },
+                "& .MuiAlert-message": {
+                  textAlign: "center",
+                  flex: "0 1 auto",
+                },
+              }}
+            >
               {error}
             </Alert>
           )}
 
-          <TextField
-            label="Địa chỉ Email"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            fullWidth
-            autoComplete="email"
-            placeholder="example@library.edu.vn"
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: "text.primary",
+                mb: 0.75,
+                fontSize: "0.875rem",
+              }}
+            >
+              Địa chỉ Email <span style={{ color: "#ef4444" }}>*</span>
+            </Typography>
+            <TextField
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              fullWidth
+              autoComplete="email"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "10px",
+                  bgcolor: (theme) =>
+                    theme.palette.mode === "dark"
+                      ? "rgba(255, 255, 255, 0.03)"
+                      : "#f8fafc",
+                },
+              }}
+            />
+          </Box>
 
           <Button
             type="submit"
@@ -85,11 +119,13 @@ const ForgotPasswordPage = () => {
             disabled={busy}
             startIcon={<SendRoundedIcon />}
             sx={{
-              py: 1.3,
+              py: 1.35,
               borderRadius: 2.5,
               fontWeight: 700,
               fontSize: "0.95rem",
               textTransform: "none",
+              mt: 0.5,
+              boxShadow: "0 4px 14px rgba(23, 105, 255, 0.25)",
             }}
           >
             {busy ? "Đang gửi yêu cầu..." : "Gửi liên kết khôi phục"}

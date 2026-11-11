@@ -9,7 +9,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   IconButton,
   Pagination,
   Paper,
@@ -17,8 +16,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import StarRoundedIcon from "@mui/icons-material/StarRounded";
-import StarBorderRoundedIcon from "@mui/icons-material/StarBorderRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
@@ -29,11 +26,17 @@ import { useUserSettings } from "../../settings/useUserSettings.js";
 import { loansApi, loadLoanPages } from "../../api/loans.js";
 import { reviewsApi, loadReviewPages } from "../../api/reviews.js";
 import { formatDateVN } from "../../utils/formatters.js";
-import { canCreateReview, ownReview, validateReview } from "./reviewRules.js";
+import {
+  canCreateReview,
+  cleanReviewText,
+  encodeReviewTextForDb,
+  ownReview,
+  validateReview,
+} from "./reviewRules.js";
 import { ConfirmDialog, EmptyState } from "../../components/common";
 
 const pageSize = 5;
-const emptyForm = { rating: 5, title: "", reviewText: "" };
+const emptyForm = { rating: 5, reviewText: "" };
 
 const BookReviewsSection = ({ bookId }) => {
   const { user } = useAuth();
@@ -132,8 +135,7 @@ const BookReviewsSection = ({ bookId }) => {
       review
         ? {
             rating: review.rating,
-            title: review.title || "",
-            reviewText: review.reviewText,
+            reviewText: cleanReviewText(review.reviewText),
           }
         : emptyForm,
     );
@@ -142,21 +144,24 @@ const BookReviewsSection = ({ bookId }) => {
   };
 
   const save = async () => {
-    const values = {
+    const cleanedText = cleanReviewText(form.reviewText);
+    const validation = validateReview({
       rating: form.rating,
-      title: form.title.trim(),
-      reviewText: form.reviewText.trim(),
-    };
-    const validation = validateReview(values);
+      reviewText: cleanedText,
+    });
     if (validation) {
       setFormError(validation);
       return;
     }
+    const payload = {
+      rating: form.rating,
+      reviewText: encodeReviewTextForDb(cleanedText),
+    };
     setBusy(true);
     setFormError("");
     try {
-      if (editing) await reviewsApi.update(editing.id, values);
-      else await reviewsApi.create(bookId, values);
+      if (editing) await reviewsApi.update(editing.id, payload);
+      else await reviewsApi.create(bookId, payload);
       setMessage(
         editing
           ? "Đã cập nhật bài đánh giá."
@@ -528,6 +533,8 @@ const BookReviewsSection = ({ bookId }) => {
                 ? `${review.userName || "Bạn"} (Đánh giá của bạn)`
                 : review.userName || "Độc giả";
 
+            const displayReviewText = cleanReviewText(review.reviewText);
+
             return (
               <Paper
                 key={review.id}
@@ -544,7 +551,7 @@ const BookReviewsSection = ({ bookId }) => {
                     display: "flex",
                     alignItems: "flex-start",
                     justifyContent: "space-between",
-                    mb: 1.5,
+                    mb: displayReviewText ? 1.5 : 0,
                   }}
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -584,16 +591,7 @@ const BookReviewsSection = ({ bookId }) => {
                   />
                 </Box>
 
-                {review.title && (
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ fontWeight: 750, color: "#102d62", mb: 0.5 }}
-                  >
-                    {review.title}
-                  </Typography>
-                )}
-
-                {review.reviewText && (
+                {displayReviewText && (
                   <Typography
                     variant="body2"
                     sx={{
@@ -602,7 +600,7 @@ const BookReviewsSection = ({ bookId }) => {
                       whiteSpace: "pre-line",
                     }}
                   >
-                    {review.reviewText}
+                    {displayReviewText}
                   </Typography>
                 )}
               </Paper>
@@ -689,22 +687,6 @@ const BookReviewsSection = ({ bookId }) => {
                 sx={{ color: "#f59e0b" }}
               />
             </Box>
-
-            <TextField
-              fullWidth
-              size="small"
-              label="Tiêu đề tóm tắt (không bắt buộc)"
-              placeholder="VD: Cuốn sách rất bổ ích và sâu sắc..."
-              value={form.title}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-              slotProps={{ htmlInput: { maxLength: 200 } }}
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-            />
 
             <TextField
               fullWidth

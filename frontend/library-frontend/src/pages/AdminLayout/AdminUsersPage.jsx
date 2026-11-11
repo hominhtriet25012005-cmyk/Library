@@ -10,12 +10,8 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  FormControl,
   IconButton,
-  InputLabel,
-  MenuItem,
   Paper,
-  Select,
   Stack,
   Table,
   TableBody,
@@ -54,14 +50,11 @@ const AdminUsersPage = () => {
   const [error, setError] = useState("");
   const [reload, setReload] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [role, setRole] = useState("ALL");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError("");
     adminUsersApi
       .list({ signal: controller.signal })
       .then((data) => {
@@ -83,8 +76,8 @@ const AdminUsersPage = () => {
   }, [reload]);
 
   const filtered = useMemo(
-    () => filterAdminUsers(users, { searchTerm, role }),
-    [users, searchTerm, role],
+    () => filterAdminUsers(users, { searchTerm, role: "ALL" }),
+    [users, searchTerm],
   );
 
   const result = useMemo(
@@ -96,12 +89,6 @@ const AdminUsersPage = () => {
     setLoading(true);
     setError("");
     setReload((value) => value + 1);
-  };
-
-  const handleResetFilters = () => {
-    setSearchTerm("");
-    setRole("ALL");
-    setPage(0);
   };
 
   return (
@@ -133,7 +120,6 @@ const AdminUsersPage = () => {
         <StatCard
           title="Tổng tài khoản"
           value={users.length}
-          detail="Tất cả tài khoản trong cơ sở dữ liệu"
           icon={<PeopleRoundedIcon />}
           color="#1769ff"
           loading={loading}
@@ -141,7 +127,6 @@ const AdminUsersPage = () => {
         <StatCard
           title="Độc giả thư viện"
           value={users.filter((u) => u.role === "ROLE_USER").length}
-          detail="Tài khoản độc giả mượn đọc sách"
           icon={<PersonOutlineRoundedIcon />}
           color="#16a34a"
           loading={loading}
@@ -149,7 +134,6 @@ const AdminUsersPage = () => {
         <StatCard
           title="Quản trị viên"
           value={users.filter((u) => u.role === "ROLE_ADMIN").length}
-          detail="Tài khoản quản lý hệ thống"
           icon={<AdminPanelSettingsRoundedIcon />}
           color="#d97706"
           loading={loading}
@@ -157,14 +141,13 @@ const AdminUsersPage = () => {
         <StatCard
           title="Đã từng đăng nhập"
           value={users.filter((u) => Boolean(u.lastLogin)).length}
-          detail="Tài khoản đang có hoạt động sử dụng"
           icon={<LoginRoundedIcon />}
           color="#0284c7"
           loading={loading}
         />
       </StatCardGrid>
 
-      {/* Thanh tìm kiếm & lọc vai trò */}
+      {/* Thanh tìm kiếm người dùng */}
       <SearchFilterBar
         searchValue={searchTerm}
         onSearchChange={(val) => {
@@ -172,36 +155,19 @@ const AdminUsersPage = () => {
           setPage(0);
         }}
         searchPlaceholder="Tìm tên, email, số điện thoại hoặc ID..."
-        onReset={handleResetFilters}
-      >
-        <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Vai trò</InputLabel>
-          <Select
-            label="Vai trò"
-            value={role}
-            onChange={(event) => {
-              setRole(event.target.value);
-              setPage(0);
-            }}
-          >
-            <MenuItem value="ALL">Tất cả vai trò</MenuItem>
-            <MenuItem value="ROLE_USER">Độc giả (ROLE_USER)</MenuItem>
-            <MenuItem value="ROLE_ADMIN">Quản trị viên (ROLE_ADMIN)</MenuItem>
-          </Select>
-        </FormControl>
-      </SearchFilterBar>
+      />
 
       {/* Bảng danh sách người dùng */}
       <TableContainer
         component={Paper}
         variant="outlined"
-        sx={{ borderRadius: 3, borderColor: "#e2e8f0" }}
+        sx={{ borderRadius: 3, borderColor: "divider" }}
       >
         <Table size="small">
           <TableHead>
             <TableRow>
               <TableCell sx={{ width: 70 }}>ID</TableCell>
-              <TableCell>Họ và tên / Email</TableCell>
+              <TableCell>Họ và tên </TableCell>
               <TableCell>Số điện thoại</TableCell>
               <TableCell align="center">Vai trò</TableCell>
               <TableCell>Đăng nhập gần nhất</TableCell>
@@ -237,7 +203,9 @@ const AdminUsersPage = () => {
                           fontSize: "0.85rem",
                           fontWeight: 700,
                           bgcolor:
-                            user.role === "ROLE_ADMIN" ? "#102d62" : "#1769ff",
+                            user.role === "ROLE_ADMIN"
+                              ? "secondary.main"
+                              : "primary.main",
                         }}
                       >
                         {user.fullName?.trim()?.[0]?.toUpperCase() ?? "U"}
@@ -245,7 +213,7 @@ const AdminUsersPage = () => {
                       <Box>
                         <Typography
                           fontWeight={700}
-                          sx={{ color: "#0f172a", fontSize: "0.9rem" }}
+                          sx={{ color: "text.primary", fontSize: "0.9rem" }}
                         >
                           {user.fullName || "—"}
                         </Typography>
@@ -326,7 +294,10 @@ const AdminUsersPage = () => {
             pb: 1,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 750, color: "text.primary" }}
+          >
             Hồ sơ tài khoản
           </Typography>
           <IconButton size="small" onClick={() => setSelected(null)}>
@@ -345,7 +316,9 @@ const AdminUsersPage = () => {
                     fontSize: "1.4rem",
                     fontWeight: 700,
                     bgcolor:
-                      selected.role === "ROLE_ADMIN" ? "#102d62" : "#1769ff",
+                      selected.role === "ROLE_ADMIN"
+                        ? "secondary.main"
+                        : "primary.main",
                   }}
                 >
                   {selected.fullName?.trim()?.[0]?.toUpperCase() ?? "U"}
@@ -354,7 +327,7 @@ const AdminUsersPage = () => {
                   <Typography
                     variant="subtitle1"
                     fontWeight={750}
-                    color="#0f172a"
+                    color="text.primary"
                   >
                     {selected.fullName || "—"}
                   </Typography>
@@ -399,7 +372,9 @@ const AdminUsersPage = () => {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9" }}>
+        <DialogActions
+          sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider" }}
+        >
           <Button onClick={() => setSelected(null)} sx={{ borderRadius: 2 }}>
             Đóng
           </Button>

@@ -80,7 +80,7 @@ export const canAdminCancel = (entry) =>
   entry.canBeCancelled === true;
 
 export const canAdminFulfill = (entry) =>
-  ["PENDING", "AVAILABLE"].includes(entry?.status) &&
+  entry?.status === "AVAILABLE" &&
   entry.queuePosition === 1 &&
   entry.isBookAvailable === true &&
   entry.expired !== true;
@@ -105,12 +105,19 @@ export const createAdminReservationsApi = (client) => ({
     checkedReservation(
       await client.delete(`/api/reservations/${positiveId(id, "ID đặt giữ")}`),
     ),
-  fulfill: async (id) =>
-    checkedReservation(
+  fulfill: async (entry) => {
+    const reservation = checkedReservation(entry);
+    if (!canAdminFulfill(reservation)) {
+      throw new Error(
+        "Chỉ có thể giao lượt đặt giữ đang sẵn sàng nhận, đứng đầu hàng đợi, còn sách và chưa hết hạn.",
+      );
+    }
+    return checkedReservation(
       await client.post(
-        `/api/reservations/${positiveId(id, "ID đặt giữ")}/fulfill`,
+        `/api/reservations/${positiveId(reservation.id, "ID đặt giữ")}/fulfill`,
       ),
-    ),
+    );
+  },
 });
 
 export const adminReservationsApi = createAdminReservationsApi(api);

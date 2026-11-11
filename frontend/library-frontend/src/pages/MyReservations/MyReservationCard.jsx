@@ -15,15 +15,15 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
       variant="outlined"
       sx={{
         borderRadius: 3,
-        borderColor: "#e2e8f0",
-        bgcolor: "#fff",
+        borderColor: "divider",
+        bgcolor: "background.paper",
         overflow: "hidden",
         boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
         display: "flex",
         flexDirection: "column",
         transition: "all 0.2s ease-in-out",
         "&:hover": {
-          borderColor: "#cbd5e1",
+          borderColor: "primary.main",
           boxShadow: "0 6px 16px rgba(15,23,42,0.06)",
         },
       }}
@@ -33,8 +33,10 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
         sx={{
           p: 2,
           px: 2.5,
-          bgcolor: "#f8fafc",
-          borderBottom: "1px solid #e2e8f0",
+          bgcolor: (theme) =>
+            theme.palette.mode === "dark" ? "#17243a" : "#f8fafc",
+          borderBottom: "1px solid",
+          borderColor: "divider",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -42,7 +44,7 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
       >
         <Typography
           variant="caption"
-          sx={{ fontWeight: 700, color: "#64748b" }}
+          sx={{ fontWeight: 700, color: "text.secondary" }}
         >
           Mã đặt giữ #{reservation.id}
         </Typography>
@@ -58,8 +60,11 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
             sx={{
               p: 1.25,
               borderRadius: 2,
-              bgcolor: "rgba(23,105,255,0.08)",
-              color: "#1769ff",
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark"
+                  ? "rgba(96,165,250,0.15)"
+                  : "rgba(23,105,255,0.08)",
+              color: "primary.main",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -73,14 +78,14 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
               variant="subtitle1"
               sx={{
                 fontWeight: 750,
-                color: "#1e293b",
+                color: "text.primary",
                 lineHeight: 1.3,
                 mb: 0.25,
               }}
             >
               {reservation.bookTitle}
             </Typography>
-            <Typography variant="body2" sx={{ color: "#64748b" }}>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
               Tác giả: {reservation.bookAuthor || "Chưa rõ"}
             </Typography>
           </Box>
@@ -94,8 +99,15 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
                 my: 1,
                 p: 1.25,
                 borderRadius: 2,
-                bgcolor: "rgba(23,105,255,0.06)",
-                border: "1px solid rgba(23,105,255,0.15)",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(96,165,250,0.12)"
+                    : "rgba(23,105,255,0.06)",
+                border: "1px solid",
+                borderColor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(96,165,250,0.25)"
+                    : "rgba(23,105,255,0.15)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -103,7 +115,7 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
             >
               <Typography
                 variant="caption"
-                sx={{ fontWeight: 600, color: "#1769ff" }}
+                sx={{ fontWeight: 600, color: "primary.main" }}
               >
                 Vị trí trong hàng đợi:
               </Typography>
@@ -121,8 +133,8 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
         {/* Timeline chi tiết */}
         <Box sx={{ display: "grid", gap: 1, my: 1, flexGrow: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <AccessAlarm sx={{ fontSize: 16, color: "#94a3b8" }} />
-            <Typography variant="caption" sx={{ color: "#64748b" }}>
+            <AccessAlarm sx={{ fontSize: 16, color: "text.secondary" }} />
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
               Ngày đăng ký:{" "}
               <strong>{formatDateVN(reservation.reservedAt)}</strong>
             </Typography>
@@ -155,14 +167,14 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
           {reservation.fulfilledAt && (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <CheckCircle sx={{ fontSize: 16, color: "primary.main" }} />
-              <Typography variant="caption" sx={{ color: "#475569" }}>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
                 Đã nhận sách ngày: {formatDateVN(reservation.fulfilledAt)}
               </Typography>
             </Box>
           )}
 
           {reservation.cancelledAt && (
-            <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
               Đã hủy ngày: {formatDateVN(reservation.cancelledAt)}
             </Typography>
           )}
@@ -170,7 +182,7 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
           {reservation.notes && (
             <Typography
               variant="caption"
-              sx={{ color: "#64748b", fontStyle: "italic", mt: 0.5 }}
+              sx={{ color: "text.secondary", fontStyle: "italic", mt: 0.5 }}
             >
               Ghi chú: {reservation.notes}
             </Typography>
@@ -185,7 +197,8 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
             alignItems: "center",
             gap: 1,
             pt: 2,
-            borderTop: "1px solid #f1f5f9",
+            borderTop: "1px solid",
+            borderColor: "divider",
             mt: "auto",
           }}
         >

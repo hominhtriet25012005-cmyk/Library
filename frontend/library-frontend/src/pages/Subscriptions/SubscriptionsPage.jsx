@@ -332,8 +332,7 @@ const SubscriptionsPage = () => {
             mb: 2.5,
           }}
         >
-          Nâng cấp quyền lợi mượn sách không giới hạn với chi phí tiết kiệm. Giá
-          niêm yết bằng VND.
+          Nâng cấp quyền lợi mượn sách không giới hạn với chi phí tiết kiệm.
         </Typography>
 
         <Button
@@ -692,8 +691,7 @@ const SubscriptionsPage = () => {
                   mx: "auto",
                 }}
               >
-                Đầu tư cho tri thức với mức giá tối ưu nhất – Chọn gói phù hợp
-                với lộ trình học tập của bạn
+                Đầu tư cho tri thức với mức giá tối ưu nhất.
               </Typography>
             </Box>
 

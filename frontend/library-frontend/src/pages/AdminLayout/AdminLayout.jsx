@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Box, Toolbar } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import AdminSidebar, { adminDrawerWidth } from "./AdminSidebar";
 import AdminTopbar from "./AdminTopbar";
 import { readAdminDensity, saveAdminDensity } from "./adminPreferences";
+import PageLoader from "../../components/PageLoader";
 
 const AdminLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -14,7 +15,13 @@ const AdminLayout = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
       <AdminTopbar
         onMenuClick={() => setMobileOpen((open) => !open)}
         density={density}
@@ -42,7 +49,9 @@ const AdminLayout = () => {
                 : { xs: 2, sm: 3, lg: 4 },
           }}
         >
-          <Outlet />
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </Box>
       </Box>
     </Box>

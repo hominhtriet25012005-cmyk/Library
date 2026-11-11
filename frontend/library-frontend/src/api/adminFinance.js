@@ -142,20 +142,6 @@ const checkedSnapshot = (data, paymentId) => {
   return data;
 };
 
-const finePayload = (form) => {
-  const bookLoanId = positiveId(form.bookLoanId, "ID lượt mượn");
-  const amount = Number(form.amount);
-  if (!fineTypes.includes(form.type))
-    throw new Error("Loại tiền phạt không hợp lệ.");
-  if (!Number.isSafeInteger(amount) || amount < 1)
-    throw new Error("Số tiền phạt phải là số nguyên VND dương.");
-  const reason = String(form.reason ?? "").trim();
-  const notes = String(form.notes ?? "").trim();
-  if (reason.length > 500 || notes.length > 1000)
-    throw new Error("Lý do hoặc ghi chú quá dài.");
-  return { bookLoanId, type: form.type, amount, reason, notes };
-};
-
 export const canWaiveFine = (fine) =>
   ["PENDING", "PARTIALLY_PAID"].includes(fine?.status) &&
   Number(fine?.amountOutstanding) > 0;
@@ -171,7 +157,6 @@ export const createAdminFinanceApi = (client) => ({
     checkedFinePage(
       await client.get(`/api/fines?${buildFineQuery(filters)}`, options),
     ),
-  createFine: (form) => client.post("/api/fines", finePayload(form)),
   waiveFine: (fineId, reason) => {
     const normalized = String(reason ?? "").trim();
     if (!normalized || normalized.length > 500)

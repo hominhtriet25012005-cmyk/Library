@@ -40,12 +40,16 @@ test("cấp/trả/gia hạn chỉ gửi payload hợp lệ đến API thật", a
     return path.endsWith("update-overdue") ? { status: true } : { id: 7, status: "CHECKED_OUT" };
   } });
   await admin.checkout({ userId: "3", bookId: "5", checkoutDays: "7", notes: "" });
-  await admin.checkin(7, "LOST");
+  await admin.checkin(7, "LOST", "Sách bị thất lạc khi người dùng di chuyển.");
   await admin.renew(7, "2");
   await admin.updateOverdue();
   assert.deepEqual(calls, [
     { path: "/api/book-loans/checkout/user/3", body: { bookId: 5, checkoutDays: 7, notes: "" } },
-    { path: "/api/book-loans/checkin", body: { bookLoanId: 7, condition: "LOST" } },
+    { path: "/api/book-loans/checkin", body: {
+      bookLoanId: 7,
+      condition: "LOST",
+      notes: "Sách bị thất lạc khi người dùng di chuyển.",
+    } },
     { path: "/api/book-loans/renew", body: { bookLoanId: 7, extensionDays: 2 } },
     { path: "/api/book-loans/admin/update-overdue", body: {} },
   ]);
@@ -55,6 +59,56 @@ test("cấp/trả/gia hạn chỉ gửi payload hợp lệ đến API thật", a
   assert.equal(calls.length, 4);
   const failedBatch = createAdminLoansApi({ post: async () => ({ status: false }) });
   await assert.rejects(failedBatch.updateOverdue(), /Không thể xác nhận/);
+});
+
+test("ghi chú trả sách không được vượt quá 500 ký tự", async () => {
+  const calls = [];
+  const admin = createAdminLoansApi({
+    post: async (path, body) => {
+      calls.push({ path, body });
+      return { id: 7, status: "RETURNED" };
+    },
+  });
+
+  await assert.rejects(
+    admin.checkin(7, "DAMAGED", "x".repeat(501)),
+    /Ghi chú.*500 ký tự/i,
+  );
+  assert.equal(calls.length, 0);
+});
+
+test("xem trước tiền phạt gọi Backend là nguồn tính toán duy nhất", async () => {
+  const calls = [];
+  const preview = {
+    bookLoanId: 7,
+    overdueDays: 3,
+    referencePrice: 100000,
+    usesDefaultReferencePrice: false,
+    requiresDefaultReferencePriceConfirmation: false,
+    items: [{ type: "OVERDUE", label: "Quá hạn (3 ngày)", amount: 15000 }],
+    totalAmount: 15000,
+  };
+  const admin = createAdminLoansApi({
+    post: async (path, body) => {
+      calls.push({ path, body });
+      return preview;
+    },
+  });
+
+  assert.deepEqual(await admin.previewCheckin(7, {
+    condition: "RETURNED",
+    receivedDate: "2026-11-11",
+    inspectionNote: "Đã kiểm tra",
+  }), preview);
+  assert.deepEqual(calls, [{
+    path: "/api/book-loans/admin/checkin-preview",
+    body: {
+      bookLoanId: 7,
+      condition: "RETURNED",
+      receivedDate: "2026-11-11",
+      inspectionNote: "Đã kiểm tra",
+    },
+  }]);
 });
 
 test("chỉ hiển thị thao tác theo trạng thái hiện tại", () => {

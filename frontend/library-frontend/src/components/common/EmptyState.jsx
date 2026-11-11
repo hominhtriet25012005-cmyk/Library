@@ -62,8 +62,8 @@ export const EmptyState = ({
           width: 64,
           height: 64,
           borderRadius: 3.5,
-          bgcolor: "#f1f5f9",
-          color: "#94a3b8",
+          bgcolor: "action.hover",
+          color: "text.secondary",
           display: "grid",
           placeItems: "center",
           mb: 2,
@@ -74,7 +74,7 @@ export const EmptyState = ({
 
       <Typography
         variant="h6"
-        sx={{ fontWeight: 700, color: "#1e293b", mb: 0.75 }}
+        sx={{ fontWeight: 700, color: "text.primary", mb: 0.75 }}
       >
         {title}
       </Typography>

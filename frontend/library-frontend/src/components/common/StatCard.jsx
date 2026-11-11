@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Paper, Skeleton, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 const colorMap = {
   primary: "#1769ff",
@@ -12,11 +13,19 @@ const colorMap = {
   default: "#64748b",
 };
 
-const resolveColor = (color) => {
-  if (!color) return "#1769ff";
-  if (colorMap[color]) return colorMap[color];
+const resolveColor = (theme, color) => {
+  if (color === "default") {
+    return theme.palette.mode === "dark"
+      ? theme.palette.grey[300]
+      : theme.palette.grey[600];
+  }
+  if (color === "navy" || color === "secondary") {
+    return theme.palette.mode === "dark" ? "#8bb8ff" : colorMap.navy;
+  }
+  if (theme.palette[color]?.main) return theme.palette[color].main;
+  if (!color) return theme.palette.primary.main;
   if (typeof color === "string" && color.startsWith("#")) return color;
-  return "#1769ff";
+  return theme.palette.primary.main;
 };
 
 const renderIcon = (icon) => {
@@ -46,20 +55,23 @@ export const StatCard = ({
   onClick,
   sx = {},
 }) => {
+  const theme = useTheme();
+  const description = detail || subtitle;
+  const hasDescription = Boolean(description);
+
   if (loading) {
     return (
       <Skeleton
         variant="rounded"
-        height={132}
+        height={hasDescription ? 132 : 90}
         sx={{ borderRadius: 3, ...sx }}
       />
     );
   }
 
   const isClickable = Boolean(onClick);
-  const actualColor = resolveColor(color);
+  const actualColor = resolveColor(theme, color);
   const iconNode = renderIcon(icon);
-  const description = detail || subtitle;
 
   return (
     <Paper
@@ -67,6 +79,7 @@ export const StatCard = ({
       onClick={onClick}
       sx={{
         p: 2.5,
+        py: hasDescription ? 2.5 : 2,
         borderRadius: 3,
         bgcolor: "background.paper",
         borderColor: "divider",
@@ -74,15 +87,24 @@ export const StatCard = ({
         overflow: "hidden",
         transition: "all 0.2s ease-in-out",
         cursor: isClickable ? "pointer" : "default",
-        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+        boxShadow:
+          theme.palette.mode === "dark"
+            ? "0 1px 3px rgba(0, 0, 0, 0.28)"
+            : "0 1px 3px rgba(15, 23, 42, 0.04)",
         "&:hover": isClickable
           ? {
               transform: "translateY(-2px)",
-              boxShadow: "0 4px 12px rgba(15, 23, 42, 0.08)",
+              boxShadow:
+                theme.palette.mode === "dark"
+                  ? "0 4px 12px rgba(0, 0, 0, 0.36)"
+                  : "0 4px 12px rgba(15, 23, 42, 0.08)",
               borderColor: actualColor,
             }
           : {
-              boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)",
+              boxShadow:
+                theme.palette.mode === "dark"
+                  ? "0 2px 8px rgba(0, 0, 0, 0.32)"
+                  : "0 2px 8px rgba(15, 23, 42, 0.06)",
             },
         ...sx,
       }}
@@ -91,7 +113,7 @@ export const StatCard = ({
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "flex-start",
+          alignItems: hasDescription ? "flex-start" : "center",
           gap: 1.5,
         }}
       >
@@ -100,7 +122,11 @@ export const StatCard = ({
             variant="body2"
             color="text.secondary"
             noWrap
-            sx={{ fontWeight: 500, mb: 0.75, fontSize: "0.85rem" }}
+            sx={{
+              fontWeight: 500,
+              mb: hasDescription ? 0.75 : 0.5,
+              fontSize: "0.85rem",
+            }}
           >
             {title}
           </Typography>

@@ -1,6 +1,6 @@
 import { Box, Card, CardContent, Typography } from "@mui/material";
 
-const StatesCard = ({ bgColor, icon, value, title, subtitle, textColor }) => {
+const StatesCard = ({ icon, value, title, subtitle }) => {
   return (
     <Card
       variant="outlined"

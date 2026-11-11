@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { bookPayload, validateBookForm } from "../src/pages/AdminLayout/bookFormRules.js";
+import {
+  bookPayload,
+  isIsbnLocked,
+  validateBookForm,
+} from "../src/pages/AdminLayout/bookFormRules.js";
 
 const validForm = {
   isbn: "978-0-13-475759-9",
@@ -17,10 +21,32 @@ const validForm = {
   publicationDate: "2008-08-01",
 };
 
-test("book form requires and trims ISBN, title, author, and genre", () => {
+test("book form requires title, author, and genre while keeping the ISBN length limit", () => {
   assert.match(validateBookForm({ ...validForm, title: "  " }), /tên sách/);
   assert.match(validateBookForm({ ...validForm, isbn: "x".repeat(21) }), /20 ký tự/);
   assert.equal(validateBookForm({ ...validForm, title: "  Clean Code  " }), "");
+});
+
+test("book form accepts a book without ISBN", () => {
+  assert.equal(validateBookForm({ ...validForm, isbn: "  " }), "");
+});
+
+test("create payload normalizes a blank ISBN to null", () => {
+  const payload = bookPayload({ ...validForm, isbn: "  " });
+  assert.equal(payload.isbn, null);
+});
+
+test("editing locks an existing ISBN but allows adding a missing ISBN once", () => {
+  assert.equal(isIsbnLocked(null), false);
+  assert.equal(isIsbnLocked({ isbn: null }), false);
+  assert.equal(isIsbnLocked({ isbn: "   " }), false);
+  assert.equal(isIsbnLocked({ isbn: "978-0-13-475759-9" }), true);
+
+  const payload = bookPayload(
+    { ...validForm, isbn: " NEW-ISBN " },
+    { id: 4, isbn: null, totalCopies: 5, availableCopies: 5 },
+  );
+  assert.equal(payload.isbn, "NEW-ISBN");
 });
 
 test("book form validates optional field lengths against the backend contract", () => {

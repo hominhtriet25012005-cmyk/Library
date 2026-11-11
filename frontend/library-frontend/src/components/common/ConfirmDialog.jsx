@@ -8,6 +8,7 @@ import {
   DialogTitle,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 
 /**
  * ConfirmDialog - Modal xác nhận hành động an toàn
@@ -30,6 +31,7 @@ export const ConfirmDialog = ({
   onCancel,
   maxWidth = "xs",
 }) => {
+  const theme = useTheme();
   const displayContent = content ?? message;
   const displayConfirm = confirmText ?? confirmLabel ?? "Xác nhận";
   const displayCancel = cancelText ?? cancelLabel ?? "Hủy";
@@ -41,21 +43,21 @@ export const ConfirmDialog = ({
       case "danger":
       case "error":
         return {
-          bgcolor: "#dc2626",
-          color: "#ffffff",
-          "&:hover": { bgcolor: "#b91c1c" },
+          bgcolor: theme.palette.error.main,
+          color: theme.palette.error.contrastText,
+          "&:hover": { bgcolor: theme.palette.error.dark },
         };
       case "warning":
         return {
-          bgcolor: "#d97706",
-          color: "#ffffff",
-          "&:hover": { bgcolor: "#b45309" },
+          bgcolor: theme.palette.warning.main,
+          color: theme.palette.warning.contrastText,
+          "&:hover": { bgcolor: theme.palette.warning.dark },
         };
       default:
         return {
-          bgcolor: "#1769ff",
-          color: "#ffffff",
-          "&:hover": { bgcolor: "#0d4ed3" },
+          bgcolor: theme.palette.primary.main,
+          color: theme.palette.primary.contrastText,
+          "&:hover": { bgcolor: theme.palette.primary.dark },
         };
     }
   };
@@ -76,7 +78,7 @@ export const ConfirmDialog = ({
       }}
     >
       <DialogTitle
-        sx={{ pt: 2.5, px: 3, pb: 1, fontWeight: 750, color: "#0f172a" }}
+        sx={{ pt: 2.5, px: 3, pb: 1, fontWeight: 750, color: "text.primary" }}
       >
         {title}
       </DialogTitle>
@@ -101,17 +103,17 @@ export const ConfirmDialog = ({
       </DialogContent>
 
       <DialogActions
-        sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9", gap: 1 }}
+        sx={{ px: 3, py: 2, borderTop: "1px solid", borderColor: "divider", gap: 1 }}
       >
         <Button
           onClick={handleClose}
           disabled={loading}
           sx={{
-            color: "#64748b",
+            color: "text.secondary",
             fontWeight: 600,
             borderRadius: 2,
             px: 2.5,
-            "&:hover": { bgcolor: "#f1f5f9" },
+            "&:hover": { bgcolor: "action.hover" },
           }}
         >
           {displayCancel}

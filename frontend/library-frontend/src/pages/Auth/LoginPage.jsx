@@ -40,7 +40,7 @@ const LoginPage = () => {
     } catch (cause) {
       setError(
         [400, 401, 403].includes(cause.status)
-          ? "Email hoặc mật khẩu không chính xác."
+          ? "Tài khoản hoặc mật khẩu không chính xác."
           : "Không thể kết nối đến máy chủ. Vui lòng kiểm tra và thử lại.",
       );
     } finally {
@@ -49,46 +49,85 @@ const LoginPage = () => {
   };
 
   return (
-    <AuthShell
-      title="Đăng nhập hệ thống"
-      subtitle="Đăng nhập để mượn sách, quản lý gói thành viên và tài khoản bạn đọc."
-    >
+    <AuthShell title="Đăng nhập hệ thống" maxWidth={460}>
       <Box
         component="form"
         onSubmit={submit}
         sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}
       >
         {error && (
-          <Alert severity="error" sx={{ borderRadius: 2 }}>
+          <Alert
+            severity="error"
+            sx={{
+              borderRadius: 2,
+              justifyContent: "center",
+              alignItems: "center",
+              "& .MuiAlert-icon": {
+                mr: 1,
+              },
+              "& .MuiAlert-message": {
+                textAlign: "center",
+                flex: "0 1 auto",
+              },
+            }}
+          >
             {error}
           </Alert>
         )}
 
-        <TextField
-          label="Địa chỉ Email"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-          fullWidth
-          autoComplete="email"
-          placeholder="example@library.edu.vn"
-          slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-        />
-
+        {/* Tài khoản */}
         <Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: "text.primary",
+              mb: 0.75,
+              fontSize: "0.875rem",
+            }}
+          >
+            Tài khoản <span style={{ color: "#ef4444" }}>*</span>
+          </Typography>
           <TextField
-            label="Mật khẩu"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            required
+            fullWidth
+            autoComplete="email"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "#f8fafc",
+              },
+            }}
+          />
+        </Box>
+
+        {/* Mật khẩu */}
+        <Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: "text.primary",
+              mb: 0.75,
+              fontSize: "0.875rem",
+            }}
+          >
+            Mật khẩu <span style={{ color: "#ef4444" }}>*</span>
+          </Typography>
+          <TextField
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
             fullWidth
             autoComplete="current-password"
-            placeholder="••••••••"
             slotProps={{
-              inputLabel: { shrink: true },
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
@@ -97,7 +136,7 @@ const LoginPage = () => {
                       onClick={() => setShowPassword((prev) => !prev)}
                       edge="end"
                       size="small"
-                      sx={{ color: "#94a3b8" }}
+                      sx={{ color: "text.secondary" }}
                     >
                       {showPassword ? (
                         <VisibilityOffRoundedIcon fontSize="small" />
@@ -109,13 +148,21 @@ const LoginPage = () => {
                 ),
               },
             }}
-            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "#f8fafc",
+              },
+            }}
           />
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
             <RouterLink
               to="/forgot-password"
               style={{
-                fontSize: "0.875rem",
+                fontSize: "0.85rem",
                 color: "#1769ff",
                 textDecoration: "none",
                 fontWeight: 600,
@@ -126,6 +173,7 @@ const LoginPage = () => {
           </Box>
         </Box>
 
+        {/* Nút đăng nhập */}
         <Button
           type="submit"
           variant="contained"
@@ -133,20 +181,22 @@ const LoginPage = () => {
           disabled={busy}
           startIcon={<LoginRoundedIcon />}
           sx={{
-            py: 1.3,
+            py: 1.35,
             borderRadius: 2.5,
             fontWeight: 700,
             fontSize: "0.95rem",
             textTransform: "none",
             mt: 0.5,
+            boxShadow: "0 4px 14px rgba(23, 105, 255, 0.25)",
           }}
         >
           {busy ? "Đang xác thực..." : "Đăng nhập ngay"}
         </Button>
 
-        <Box sx={{ textAlign: "center", pt: 1 }}>
-          <Typography variant="body2" sx={{ color: "#64748b" }}>
-            Chưa có tài khoản độc giả?{" "}
+        {/* Chuyển qua đăng ký */}
+        <Box sx={{ textAlign: "center", pt: 1.5 }}>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Chưa có tài khoản?{" "}
             <RouterLink
               to="/register"
               style={{

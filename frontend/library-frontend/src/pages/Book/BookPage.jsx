@@ -132,10 +132,8 @@ const books = [
   },
 ];
 
-const BookPage = ({ preview = false }) => {
+const BookPageContent = ({ preview = false, urlQuery = "" }) => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const urlQuery = searchParams.get("q") || "";
   const { user } = useAuth();
   const { settings } = useUserSettings();
   const userId = user?.id ?? "guest";
@@ -144,32 +142,21 @@ const BookPage = ({ preview = false }) => {
   const [viewMode, setViewMode] = React.useState(
     settings?.appearance?.defaultBookView || "grid",
   );
-
-  React.useEffect(() => {
-    if (settings?.appearance?.defaultBookView) {
-      setViewMode(settings.appearance.defaultBookView);
-    }
-  }, [settings?.appearance?.defaultBookView]);
-
-  React.useEffect(() => {
-    if (urlQuery) {
-      setSearchTerm(urlQuery);
-      setPage(0);
-      if (!preview) setLoading(true);
-    }
-  }, [urlQuery, preview]);
-
+  const [selectedGenreId, setSelectedGenreId] = React.useState(null);
+  const [availabilityFilter, setAvailabilityFilter] = React.useState("ALL");
+  const [searchTerm, setSearchTerm] = React.useState(urlQuery);
+  const [sortBy, setSortBy] = React.useState("createdAt");
+  const [sortDirection, setSortDirection] = React.useState("DESC");
+  const [page, setPage] = React.useState(0);
+  const [catalog, setCatalog] = React.useState(null);
+  const [loadedGenres, setLoadedGenres] = React.useState([]);
+  const [loading, setLoading] = React.useState(!preview);
+  const [catalogError, setCatalogError] = React.useState("");
+  const [genreError, setGenreError] = React.useState("");
+  const [retry, setRetry] = React.useState(0);
   const [searchHistory, setSearchHistory] = React.useState(() =>
     settings?.privacy?.saveSearchHistory ? getUserSearchHistory(userId) : [],
   );
-
-  React.useEffect(() => {
-    if (settings?.privacy?.saveSearchHistory) {
-      setSearchHistory(getUserSearchHistory(userId));
-    } else {
-      setSearchHistory([]);
-    }
-  }, [settings?.privacy?.saveSearchHistory, userId]);
 
   React.useEffect(() => {
     const handleHistoryCleared = () => setSearchHistory([]);
@@ -197,19 +184,6 @@ const BookPage = ({ preview = false }) => {
       );
     };
   }, [userId]);
-
-  const [selectedGenreId, setSelectedGenreId] = React.useState(null);
-  const [availabilityFilter, setAvailabilityFilter] = React.useState("ALL");
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [sortBy, setSortBy] = React.useState("createdAt");
-  const [sortDirection, setSortDirection] = React.useState("DESC");
-  const [page, setPage] = React.useState(0);
-  const [catalog, setCatalog] = React.useState(null);
-  const [loadedGenres, setLoadedGenres] = React.useState([]);
-  const [loading, setLoading] = React.useState(!preview);
-  const [catalogError, setCatalogError] = React.useState("");
-  const [genreError, setGenreError] = React.useState("");
-  const [retry, setRetry] = React.useState(0);
 
   React.useEffect(() => {
     if (preview) return;
@@ -824,6 +798,19 @@ const BookPage = ({ preview = false }) => {
         </Box>
       </Box>
     </Box>
+  );
+};
+
+const BookPage = ({ preview = false }) => {
+  const [searchParams] = useSearchParams();
+  const urlQuery = searchParams.get("q") || "";
+
+  return (
+    <BookPageContent
+      key={`${preview ? "preview" : "catalog"}:${urlQuery}`}
+      preview={preview}
+      urlQuery={urlQuery}
+    />
   );
 };
 

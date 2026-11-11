@@ -14,6 +14,7 @@ import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import { useAuth } from "../../auth/useAuth";
 import AuthShell from "./AuthShell";
+import { validateNewPassword } from "./passwordRules";
 
 const RegisterPage = () => {
   const { signUp } = useAuth();
@@ -35,6 +36,11 @@ const RegisterPage = () => {
 
   const submit = async (event) => {
     event.preventDefault();
+    const passwordError = validateNewPassword(form.password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
     if (form.password !== form.confirm) {
       setError("Mật khẩu xác nhận không khớp.");
       return;
@@ -51,8 +57,8 @@ const RegisterPage = () => {
       navigate("/user", { replace: true });
     } catch (cause) {
       setError(
-        cause.status === 400
-          ? "Không thể đăng ký. Vui lòng kiểm tra thông tin hoặc dùng email khác."
+        cause.message && !/^HTTP \d+$/.test(cause.message)
+          ? cause.message
           : "Không thể tạo tài khoản lúc này. Vui lòng thử lại sau.",
       );
     } finally {
@@ -61,134 +67,242 @@ const RegisterPage = () => {
   };
 
   return (
-    <AuthShell
-      title="Đăng ký tài khoản"
-      subtitle="Tạo tài khoản độc giả để mượn sách và trải nghiệm dịch vụ thư viện."
-    >
+    <AuthShell title="Đăng ký tài khoản" maxWidth={480}>
       <Box
         component="form"
         onSubmit={submit}
         sx={{ display: "flex", flexDirection: "column", gap: 2 }}
       >
         {error && (
-          <Alert severity="error" sx={{ borderRadius: 2 }}>
+          <Alert
+            severity="error"
+            sx={{
+              borderRadius: 2,
+              justifyContent: "center",
+              alignItems: "center",
+              "& .MuiAlert-icon": {
+                mr: 1,
+              },
+              "& .MuiAlert-message": {
+                textAlign: "center",
+                flex: "0 1 auto",
+              },
+            }}
+          >
             {error}
           </Alert>
         )}
 
-        <TextField
-          label="Họ và tên bạn đọc"
-          value={form.fullName}
-          onChange={update("fullName")}
-          slotProps={{
-            htmlInput: { maxLength: 255 },
-            inputLabel: { shrink: true },
-          }}
-          required
-          fullWidth
-          autoComplete="name"
-          placeholder="Nguyễn Văn A"
-          sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-        />
+        {/* Họ và tên */}
+        <Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: "text.primary",
+              mb: 0.75,
+              fontSize: "0.875rem",
+            }}
+          >
+            Họ và tên <span style={{ color: "#ef4444" }}>*</span>
+          </Typography>
+          <TextField
+            value={form.fullName}
+            onChange={update("fullName")}
+            slotProps={{
+              htmlInput: { maxLength: 255 },
+            }}
+            required
+            fullWidth
+            autoComplete="name"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "#f8fafc",
+              },
+            }}
+          />
+        </Box>
 
-        <TextField
-          label="Địa chỉ Email"
-          type="email"
-          value={form.email}
-          onChange={update("email")}
-          slotProps={{
-            htmlInput: { maxLength: 255 },
-            inputLabel: { shrink: true },
-          }}
-          required
-          fullWidth
-          autoComplete="email"
-          placeholder="example@library.edu.vn"
-          sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-        />
+        {/* Địa chỉ Email */}
+        <Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: "text.primary",
+              mb: 0.75,
+              fontSize: "0.875rem",
+            }}
+          >
+            Địa chỉ Email <span style={{ color: "#ef4444" }}>*</span>
+          </Typography>
+          <TextField
+            type="email"
+            value={form.email}
+            onChange={update("email")}
+            slotProps={{
+              htmlInput: { maxLength: 255 },
+            }}
+            required
+            fullWidth
+            autoComplete="email"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "#f8fafc",
+              },
+            }}
+          />
+        </Box>
 
-        <TextField
-          label="Số điện thoại (không bắt buộc)"
-          value={form.phone}
-          onChange={update("phone")}
-          slotProps={{
-            htmlInput: { maxLength: 30 },
-            inputLabel: { shrink: true },
-          }}
-          fullWidth
-          autoComplete="tel"
-          placeholder="0912 345 678"
-          sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-        />
+        {/* Số điện thoại */}
+        <Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: "text.primary",
+              mb: 0.75,
+              fontSize: "0.875rem",
+            }}
+          >
+            Số điện thoại
+          </Typography>
+          <TextField
+            value={form.phone}
+            onChange={update("phone")}
+            slotProps={{
+              htmlInput: { maxLength: 30 },
+            }}
+            fullWidth
+            autoComplete="tel"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "#f8fafc",
+              },
+            }}
+          />
+        </Box>
 
-        <TextField
-          label="Mật khẩu"
-          type={showPassword ? "text" : "password"}
-          value={form.password}
-          onChange={update("password")}
-          required
-          fullWidth
-          autoComplete="new-password"
-          placeholder="••••••••"
-          slotProps={{
-            inputLabel: { shrink: true },
-            input: {
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="Hiện hoặc ẩn mật khẩu"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    edge="end"
-                    size="small"
-                    sx={{ color: "#94a3b8" }}
-                  >
-                    {showPassword ? (
-                      <VisibilityOffRoundedIcon fontSize="small" />
-                    ) : (
-                      <VisibilityRoundedIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-        />
+        {/* Mật khẩu */}
+        <Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: "text.primary",
+              mb: 0.75,
+              fontSize: "0.875rem",
+            }}
+          >
+            Mật khẩu <span style={{ color: "#ef4444" }}>*</span>
+          </Typography>
+          <TextField
+            type={showPassword ? "text" : "password"}
+            value={form.password}
+            onChange={update("password")}
+            required
+            fullWidth
+            autoComplete="new-password"
+            helperText="Mật khẩu phải có từ 8 đến 72 ký tự."
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="Hiện hoặc ẩn mật khẩu"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      edge="end"
+                      size="small"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      {showPassword ? (
+                        <VisibilityOffRoundedIcon fontSize="small" />
+                      ) : (
+                        <VisibilityRoundedIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "#f8fafc",
+              },
+            }}
+          />
+        </Box>
 
-        <TextField
-          label="Xác nhận mật khẩu"
-          type={showConfirm ? "text" : "password"}
-          value={form.confirm}
-          onChange={update("confirm")}
-          required
-          fullWidth
-          autoComplete="new-password"
-          placeholder="••••••••"
-          slotProps={{
-            inputLabel: { shrink: true },
-            input: {
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="Hiện hoặc ẩn mật khẩu xác nhận"
-                    onClick={() => setShowConfirm((prev) => !prev)}
-                    edge="end"
-                    size="small"
-                    sx={{ color: "#94a3b8" }}
-                  >
-                    {showConfirm ? (
-                      <VisibilityOffRoundedIcon fontSize="small" />
-                    ) : (
-                      <VisibilityRoundedIcon fontSize="small" />
-                    )}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-        />
+        {/* Xác nhận mật khẩu */}
+        <Box>
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: "text.primary",
+              mb: 0.75,
+              fontSize: "0.875rem",
+            }}
+          >
+            Xác nhận mật khẩu <span style={{ color: "#ef4444" }}>*</span>
+          </Typography>
+          <TextField
+            type={showConfirm ? "text" : "password"}
+            value={form.confirm}
+            onChange={update("confirm")}
+            required
+            fullWidth
+            autoComplete="new-password"
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="Hiện hoặc ẩn mật khẩu xác nhận"
+                      onClick={() => setShowConfirm((prev) => !prev)}
+                      edge="end"
+                      size="small"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      {showConfirm ? (
+                        <VisibilityOffRoundedIcon fontSize="small" />
+                      ) : (
+                        <VisibilityRoundedIcon fontSize="small" />
+                      )}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "#f8fafc",
+              },
+            }}
+          />
+        </Box>
 
+        {/* Nút đăng ký */}
         <Button
           type="submit"
           variant="contained"
@@ -196,19 +310,21 @@ const RegisterPage = () => {
           disabled={busy}
           startIcon={<PersonAddRoundedIcon />}
           sx={{
-            py: 1.3,
+            py: 1.35,
             borderRadius: 2.5,
             fontWeight: 700,
             fontSize: "0.95rem",
             textTransform: "none",
             mt: 1,
+            boxShadow: "0 4px 14px rgba(23, 105, 255, 0.25)",
           }}
         >
           {busy ? "Đang tạo tài khoản..." : "Hoàn tất đăng ký"}
         </Button>
 
-        <Box sx={{ textAlign: "center", pt: 1 }}>
-          <Typography variant="body2" sx={{ color: "#64748b" }}>
+        {/* Chuyển qua đăng nhập */}
+        <Box sx={{ textAlign: "center", pt: 1.5 }}>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Đã có tài khoản bạn đọc?{" "}
             <RouterLink
               to="/login"

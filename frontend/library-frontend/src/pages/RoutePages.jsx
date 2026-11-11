@@ -1,11 +1,8 @@
 import { Box, Button, Paper, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
-import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import LockPersonRoundedIcon from "@mui/icons-material/LockPersonRounded";
 import SearchOffRoundedIcon from "@mui/icons-material/SearchOffRounded";
 import ConstructionRoundedIcon from "@mui/icons-material/ConstructionRounded";
-import { useAuth } from "../auth/useAuth";
 
 const Page = ({ code, title, description, icon: Icon, children }) => (
   <Box

@@ -6,14 +6,15 @@ import {
   IconButton,
   InputAdornment,
   TextField,
+  Typography,
 } from "@mui/material";
 import { Link as RouterLink, useSearchParams } from "react-router-dom";
 import LockResetRoundedIcon from "@mui/icons-material/LockResetRounded";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
 import { api } from "../../api/client";
 import AuthShell from "./AuthShell";
+import { validateNewPassword } from "./passwordRules";
 
 const ResetPasswordPage = () => {
   const [params] = useSearchParams();
@@ -28,6 +29,11 @@ const ResetPasswordPage = () => {
 
   const submit = async (event) => {
     event.preventDefault();
+    const passwordError = validateNewPassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
     if (password !== confirm) {
       setError("Mật khẩu xác nhận không khớp.");
       return;
@@ -37,9 +43,11 @@ const ResetPasswordPage = () => {
     try {
       await api.post("/auth/reset-password", { token, password });
       setDone(true);
-    } catch {
+    } catch (cause) {
       setError(
-        "Liên kết không hợp lệ, đã hết hạn hoặc máy chủ chưa sẵn sàng. Vui lòng yêu cầu liên kết mới.",
+        cause.message && !/^HTTP \d+$/.test(cause.message)
+          ? cause.message
+          : "Không thể đặt lại mật khẩu. Vui lòng yêu cầu liên kết mới.",
       );
     } finally {
       setBusy(false);
@@ -50,6 +58,7 @@ const ResetPasswordPage = () => {
     <AuthShell
       title="Đặt lại mật khẩu mới"
       subtitle="Nhập mật khẩu mới an toàn cho tài khoản độc giả của bạn."
+      maxWidth={460}
     >
       {!token ? (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
@@ -63,7 +72,7 @@ const ResetPasswordPage = () => {
             variant="outlined"
             fullWidth
             sx={{
-              py: 1.2,
+              py: 1.3,
               borderRadius: 2.5,
               fontWeight: 600,
               textTransform: "none",
@@ -84,10 +93,11 @@ const ResetPasswordPage = () => {
             variant="contained"
             fullWidth
             sx={{
-              py: 1.3,
+              py: 1.35,
               borderRadius: 2.5,
               fontWeight: 700,
               textTransform: "none",
+              boxShadow: "0 4px 14px rgba(23, 105, 255, 0.25)",
             }}
           >
             Tiến hành đăng nhập
@@ -100,78 +110,131 @@ const ResetPasswordPage = () => {
           sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}
         >
           {error && (
-            <Alert severity="error" sx={{ borderRadius: 2 }}>
+            <Alert
+              severity="error"
+              sx={{
+                borderRadius: 2,
+                justifyContent: "center",
+                alignItems: "center",
+                "& .MuiAlert-icon": {
+                  mr: 1,
+                },
+                "& .MuiAlert-message": {
+                  textAlign: "center",
+                  flex: "0 1 auto",
+                },
+              }}
+            >
               {error}
             </Alert>
           )}
 
-          <TextField
-            label="Mật khẩu mới"
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            fullWidth
-            autoComplete="new-password"
-            placeholder="••••••••"
-            slotProps={{
-              inputLabel: { shrink: true },
-              input: {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="Hiện hoặc ẩn mật khẩu mới"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      edge="end"
-                      size="small"
-                      sx={{ color: "#94a3b8" }}
-                    >
-                      {showPassword ? (
-                        <VisibilityOffRoundedIcon fontSize="small" />
-                      ) : (
-                        <VisibilityRoundedIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-          />
+          {/* Mật khẩu mới */}
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: "text.primary",
+                mb: 0.75,
+                fontSize: "0.875rem",
+              }}
+            >
+              Mật khẩu mới <span style={{ color: "#ef4444" }}>*</span>
+            </Typography>
+            <TextField
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              fullWidth
+              autoComplete="new-password"
+              helperText="Mật khẩu phải có từ 8 đến 72 ký tự."
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="Hiện hoặc ẩn mật khẩu mới"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        edge="end"
+                        size="small"
+                        sx={{ color: "text.secondary" }}
+                      >
+                        {showPassword ? (
+                          <VisibilityOffRoundedIcon fontSize="small" />
+                        ) : (
+                          <VisibilityRoundedIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "10px",
+                  bgcolor: (theme) =>
+                    theme.palette.mode === "dark"
+                      ? "rgba(255, 255, 255, 0.03)"
+                      : "#f8fafc",
+                },
+              }}
+            />
+          </Box>
 
-          <TextField
-            label="Xác nhận mật khẩu mới"
-            type={showConfirm ? "text" : "password"}
-            value={confirm}
-            onChange={(event) => setConfirm(event.target.value)}
-            required
-            fullWidth
-            autoComplete="new-password"
-            placeholder="••••••••"
-            slotProps={{
-              inputLabel: { shrink: true },
-              input: {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="Hiện hoặc ẩn mật khẩu xác nhận"
-                      onClick={() => setShowConfirm((prev) => !prev)}
-                      edge="end"
-                      size="small"
-                      sx={{ color: "#94a3b8" }}
-                    >
-                      {showConfirm ? (
-                        <VisibilityOffRoundedIcon fontSize="small" />
-                      ) : (
-                        <VisibilityRoundedIcon fontSize="small" />
-                      )}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-          />
+          {/* Xác nhận mật khẩu mới */}
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 600,
+                color: "text.primary",
+                mb: 0.75,
+                fontSize: "0.875rem",
+              }}
+            >
+              Xác nhận mật khẩu mới <span style={{ color: "#ef4444" }}>*</span>
+            </Typography>
+            <TextField
+              type={showConfirm ? "text" : "password"}
+              value={confirm}
+              onChange={(event) => setConfirm(event.target.value)}
+              required
+              fullWidth
+              autoComplete="new-password"
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="Hiện hoặc ẩn mật khẩu xác nhận"
+                        onClick={() => setShowConfirm((prev) => !prev)}
+                        edge="end"
+                        size="small"
+                        sx={{ color: "text.secondary" }}
+                      >
+                        {showConfirm ? (
+                          <VisibilityOffRoundedIcon fontSize="small" />
+                        ) : (
+                          <VisibilityRoundedIcon fontSize="small" />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "10px",
+                  bgcolor: (theme) =>
+                    theme.palette.mode === "dark"
+                      ? "rgba(255, 255, 255, 0.03)"
+                      : "#f8fafc",
+                },
+              }}
+            />
+          </Box>
 
           <Button
             type="submit"
@@ -180,11 +243,13 @@ const ResetPasswordPage = () => {
             disabled={busy}
             startIcon={<LockResetRoundedIcon />}
             sx={{
-              py: 1.3,
+              py: 1.35,
               borderRadius: 2.5,
               fontWeight: 700,
               fontSize: "0.95rem",
               textTransform: "none",
+              mt: 0.5,
+              boxShadow: "0 4px 14px rgba(23, 105, 255, 0.25)",
             }}
           >
             {busy ? "Đang cập nhật..." : "Lưu mật khẩu mới"}

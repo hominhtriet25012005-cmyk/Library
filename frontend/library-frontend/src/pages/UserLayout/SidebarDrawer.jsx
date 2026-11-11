@@ -13,7 +13,6 @@ import { navigationItems, secondaryItems } from "./NavigationItems";
 import { isActive, navigationPath } from "./util";
 import Logout from "@mui/icons-material/Logout";
 import Login from "@mui/icons-material/LoginRounded";
-import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import { useAuth } from "../../auth/useAuth";
 

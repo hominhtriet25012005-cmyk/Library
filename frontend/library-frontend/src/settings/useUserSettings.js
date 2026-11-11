@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/useAuth";
 import {
   DEFAULT_USER_SETTINGS,
@@ -12,11 +12,13 @@ export const useUserSettings = () => {
   const { user } = useAuth();
   const userId = user?.id ?? "guest";
 
-  const [settings, setSettings] = useState(() => loadUserSettings(userId));
-
-  useEffect(() => {
-    setSettings(loadUserSettings(userId));
-  }, [userId]);
+  const loadedSettings = useMemo(() => loadUserSettings(userId), [userId]);
+  const [settingsState, setSettingsState] = useState(() => ({
+    userId,
+    settings: loadedSettings,
+  }));
+  const settings =
+    settingsState.userId === userId ? settingsState.settings : loadedSettings;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -24,7 +26,10 @@ export const useUserSettings = () => {
     const handleSettingsChanged = (event) => {
       const targetUserId = event?.detail?.userId;
       if (targetUserId === userId || targetUserId === "guest") {
-        setSettings(event.detail?.settings || loadUserSettings(userId));
+        setSettingsState({
+          userId,
+          settings: event.detail?.settings || loadUserSettings(userId),
+        });
       }
     };
 
@@ -39,21 +44,20 @@ export const useUserSettings = () => {
 
   const updateSettings = useCallback(
     (updater) => {
-      setSettings((prev) => {
-        const next =
-          typeof updater === "function"
-            ? updater(prev)
-            : { ...prev, ...updater };
-        saveUserSettings(userId, next);
-        return next;
-      });
+      const next =
+        typeof updater === "function"
+          ? updater(settings)
+          : { ...settings, ...updater };
+      const saved = saveUserSettings(userId, next);
+      setSettingsState({ userId, settings: saved });
+      return saved;
     },
-    [userId],
+    [settings, userId],
   );
 
   const resetSettings = useCallback(() => {
     const fresh = resetUserSettings(userId);
-    setSettings(fresh);
+    setSettingsState({ userId, settings: fresh });
     return fresh;
   }, [userId]);
 

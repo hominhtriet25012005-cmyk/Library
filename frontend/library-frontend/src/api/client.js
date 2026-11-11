@@ -8,11 +8,23 @@ export class ApiError extends Error {
   }
 }
 
+const fallbackMessageByStatus = (status) => {
+  if (status === 400) return "Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin.";
+  if (status === 401) return "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.";
+  if (status === 403) return "Bạn không có quyền thực hiện thao tác này.";
+  if (status === 404) return "Không tìm thấy dữ liệu được yêu cầu.";
+  if (status === 409) return "Dữ liệu đã thay đổi hoặc đang xung đột. Vui lòng tải lại.";
+  if (status >= 500)
+    return "Máy chủ tạm thời không thể xử lý yêu cầu. Vui lòng thử lại.";
+  return "Không thể xử lý yêu cầu. Vui lòng thử lại.";
+};
+
 export const createApiClient = ({
   baseUrl = "",
   fetchImpl = fetch,
   getToken = () => null,
   onUnauthorized = () => {},
+  onForbidden = () => {},
 } = {}) => {
   const request = async (path, { method = "GET", body, signal } = {}) => {
     const token = getToken();
@@ -51,9 +63,14 @@ export const createApiClient = ({
 
     if (!response.ok) {
       if (response.status === 401 && token) onUnauthorized();
+      if (response.status === 403 && token) onForbidden(path);
       throw new ApiError(
         response.status,
-        data?.message || `HTTP ${response.status}`,
+        data?.message ||
+          data?.error ||
+          data?.["Lỗi"] ||
+          data?.detail ||
+          fallbackMessageByStatus(response.status),
       );
     }
     return data;
@@ -75,5 +92,10 @@ export const api = createApiClient({
   onUnauthorized: () => {
     tokenStore.clear();
     window.dispatchEvent(new Event("library:session-expired"));
+  },
+  onForbidden: (path) => {
+    window.dispatchEvent(
+      new CustomEvent("library:access-forbidden", { detail: { path } }),
+    );
   },
 });

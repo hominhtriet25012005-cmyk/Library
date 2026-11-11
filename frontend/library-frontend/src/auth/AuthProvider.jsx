@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { tokenStore } from "../api/tokenStore";
 import { AuthContext } from "./AuthContext";
@@ -15,11 +15,19 @@ const safeProfile = (profile) => ({
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(Boolean(tokenStore.get()));
+  const roleRefreshPending = useRef(false);
 
   const signOut = useCallback(() => {
     tokenStore.clear();
     setUser(null);
     setChecking(false);
+  }, []);
+
+  const loadProfile = useCallback(async (options) => {
+    const profile = await api.get("/api/users/profile", options);
+    const nextUser = safeProfile(profile);
+    setUser(nextUser);
+    return nextUser;
   }, []);
 
   useEffect(() => {
@@ -28,6 +36,28 @@ export const AuthProvider = ({ children }) => {
     return () =>
       window.removeEventListener("library:session-expired", handleExpired);
   }, [signOut]);
+
+  useEffect(() => {
+    const handleForbidden = (event) => {
+      if (
+        event.detail?.path === "/api/users/profile" ||
+        roleRefreshPending.current ||
+        !tokenStore.get()
+      )
+        return;
+      roleRefreshPending.current = true;
+      loadProfile()
+        .catch((error) => {
+          if ([400, 401, 403, 404].includes(error.status)) signOut();
+        })
+        .finally(() => {
+          roleRefreshPending.current = false;
+        });
+    };
+    window.addEventListener("library:access-forbidden", handleForbidden);
+    return () =>
+      window.removeEventListener("library:access-forbidden", handleForbidden);
+  }, [loadProfile, signOut]);
 
   useEffect(() => {
     if (!tokenStore.get()) return;
@@ -53,9 +83,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error("Máy chủ không trả về phiên đăng nhập hợp lệ.");
     tokenStore.set(response.jwt);
     try {
-      const profile = await api.get("/api/users/profile");
-      const nextUser = safeProfile(profile);
-      setUser(nextUser);
+      const nextUser = await loadProfile();
       setChecking(false);
       return nextUser;
     } catch (error) {
@@ -70,6 +98,7 @@ export const AuthProvider = ({ children }) => {
     signIn: (data) => authenticate("/auth/login", data),
     signUp: (data) => authenticate("/auth/signup", data),
     signOut,
+    refreshProfile: loadProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

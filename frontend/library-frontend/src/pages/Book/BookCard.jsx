@@ -12,7 +12,6 @@ import {
 } from "@mui/material";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 
 const BookCard = ({ book, onViewDetails }) => {
   const [detailsOpen, setDetailsOpen] = useState(false);

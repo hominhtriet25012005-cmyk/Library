@@ -35,6 +35,7 @@ export const SearchFilterBar = ({
   filters,
   onReset,
   actions,
+  searchSx = {},
   sx = {},
 }) => {
   const handleKeyDown = (event) => {
@@ -51,16 +52,22 @@ export const SearchFilterBar = ({
         p: { xs: 1.5, sm: 2 },
         mb: 2.5,
         borderRadius: 3,
-        bgcolor: "#ffffff",
-        borderColor: "#e2e8f0",
-        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
+        bgcolor: "background.paper",
+        borderColor: "divider",
+        boxShadow: (theme) =>
+          theme.palette.mode === "dark"
+            ? "0 1px 3px rgba(0, 0, 0, 0.24)"
+            : "0 1px 3px rgba(15, 23, 42, 0.03)",
         ...sx,
       }}
     >
       <Stack
-        direction={{ xs: "column", md: "row" }}
+        direction="row"
         spacing={1.5}
-        alignItems={{ xs: "stretch", md: "center" }}
+        useFlexGap
+        flexWrap="wrap"
+        alignItems="center"
+        sx={{ minWidth: 0 }}
       >
         {onSearchChange !== undefined && (
           <TextField
@@ -73,7 +80,15 @@ export const SearchFilterBar = ({
               htmlInput: { "aria-label": searchLabel || searchPlaceholder },
               input: {
                 startAdornment: (
-                  <InputAdornment position="start" sx={{ color: "#94a3b8" }}>
+                  <InputAdornment
+                    position="start"
+                    sx={{
+                      color: "text.secondary",
+                      cursor: onSearchSubmit ? "pointer" : "default",
+                      "&:hover": onSearchSubmit ? { color: "primary.main" } : {},
+                    }}
+                    onClick={() => onSearchSubmit && onSearchSubmit(searchValue)}
+                  >
                     <SearchRoundedIcon fontSize="small" />
                   </InputAdornment>
                 ),
@@ -95,12 +110,14 @@ export const SearchFilterBar = ({
               },
             }}
             sx={{
-              flex: { xs: 1, md: 2 },
-              minWidth: { sm: 220 },
+              flex: { xs: "1 1 100%", sm: "1 1 240px" },
+              minWidth: 0,
+              width: { xs: "100%", sm: "auto" },
               "& .MuiOutlinedInput-root": {
                 height: 40,
                 borderRadius: 2,
               },
+              ...searchSx,
             }}
           />
         )}
@@ -110,8 +127,17 @@ export const SearchFilterBar = ({
             direction={{ xs: "column", sm: "row" }}
             spacing={1.5}
             alignItems={{ xs: "stretch", sm: "center" }}
+            useFlexGap
             flexWrap="wrap"
-            sx={{ flex: { md: 3 } }}
+            sx={{
+              flex: { xs: "1 1 100%", sm: "2 1 320px" },
+              minWidth: 0,
+              width: { xs: "100%", sm: "auto" },
+              "& > *": {
+                width: { xs: "100%", sm: "auto" },
+                maxWidth: "100%",
+              },
+            }}
           >
             {children}
             {filters}
@@ -122,9 +148,16 @@ export const SearchFilterBar = ({
           <Stack
             direction="row"
             spacing={1}
+            useFlexGap
+            flexWrap="wrap"
             alignItems="center"
-            justifyContent={{ xs: "flex-end", md: "flex-end" }}
-            sx={{ ml: { md: "auto" } }}
+            justifyContent="flex-end"
+            sx={{
+              ml: { lg: "auto" },
+              flex: { xs: "1 1 100%", sm: "0 1 auto" },
+              minWidth: 0,
+              width: { xs: "100%", sm: "auto" },
+            }}
           >
             {onSearchSubmit && showSearchButton && (
               <Button
@@ -144,9 +177,13 @@ export const SearchFilterBar = ({
                     height: 38,
                     width: 38,
                     borderRadius: 2,
-                    border: "1px solid #e2e8f0",
-                    color: "#64748b",
-                    "&:hover": { bgcolor: "#f8fafc", color: "#0f172a" },
+                    border: "1px solid",
+                    borderColor: "divider",
+                    color: "text.secondary",
+                    "&:hover": {
+                      bgcolor: "action.hover",
+                      color: "text.primary",
+                    },
                   }}
                 >
                   <RestartAltRoundedIcon fontSize="small" />

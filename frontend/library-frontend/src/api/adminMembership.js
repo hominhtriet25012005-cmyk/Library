@@ -100,6 +100,17 @@ const checkedPlans = (data) => {
   return data;
 };
 
+const checkedPlan = (data) => {
+  if (!Number.isSafeInteger(data?.id) || data.id < 1)
+    throw new Error("Dữ liệu gói thành viên không hợp lệ.");
+  return data;
+};
+
+const checkedAction = (data, fallbackMessage) => {
+  if (data?.status !== true) throw new Error(fallbackMessage);
+  return data;
+};
+
 const checkedMembers = (data) => {
   if (
     !Array.isArray(data?.content) ||
@@ -127,6 +138,25 @@ export const createAdminMembershipApi = (client) => ({
     checkedPlans(await client.get("/api/subscription-plans/admin", options)),
   createPlan: (form) =>
     client.post("/api/subscription-plans/admin/create", buildPlanPayload(form)),
+  updatePlan: async (id, form) =>
+    checkedPlan(
+      await client.put(
+        `/api/subscription-plans/admin/${positiveInteger(id, "ID gói")}`,
+        buildPlanPayload(form),
+      ),
+    ),
+  deletePlan: async (id) =>
+    checkedAction(
+      await client.delete(
+        `/api/subscription-plans/admin/${positiveInteger(id, "ID gói")}`,
+      ),
+      "Không thể xóa hoặc ngừng bán gói thành viên.",
+    ),
+  deactivateExpired: async () =>
+    checkedAction(
+      await client.post("/api/subscriptions/admin/deactivate-expired", {}),
+      "Không thể xử lý các gói đăng ký hết hạn.",
+    ),
   members: async (filters, options) =>
     checkedMembers(
       await client.get(

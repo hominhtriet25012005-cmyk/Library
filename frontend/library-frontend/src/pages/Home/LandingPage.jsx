@@ -1,13 +1,9 @@
 import {
   AppBar,
-  Avatar,
   Box,
   Button,
   Chip,
   Container,
-  Divider,
-  Grid,
-  IconButton,
   Paper,
   Stack,
   Toolbar,
@@ -20,12 +16,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import BookmarkAddedRoundedIcon from "@mui/icons-material/BookmarkAddedRounded";
 import QrCode2RoundedIcon from "@mui/icons-material/QrCode2Rounded";
 import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
-import SpeedRoundedIcon from "@mui/icons-material/SpeedRounded";
-import DevicesRoundedIcon from "@mui/icons-material/DevicesRounded";
 import LoginRoundedIcon from "@mui/icons-material/LoginRounded";
 import PersonAddRoundedIcon from "@mui/icons-material/PersonAddRounded";
 import { useAuth } from "../../auth/useAuth";

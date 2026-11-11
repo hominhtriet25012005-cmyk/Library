@@ -1,21 +1,28 @@
 import { useState } from "react";
-import { Box, Button, Collapse, Paper, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Collapse, Paper, Typography } from "@mui/material";
 import MenuBook from "@mui/icons-material/MenuBookRounded";
 import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
 import EventBusyRoundedIcon from "@mui/icons-material/EventBusyRounded";
 import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
+import HourglassTopRoundedIcon from "@mui/icons-material/HourglassTopRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import { Link } from "react-router-dom";
-import { formatDateVN } from "../../utils/formatters.js";
+import {
+  formatCurrencyVND,
+  formatDateTimeVN,
+  formatDateVN,
+} from "../../utils/formatters.js";
 import { StatusChip } from "../../components/common";
+import { fineTypeLabels } from "../Fines/fineRules.js";
 import {
   canRenewLoan,
   canReturnLoan,
   effectiveLoanStatus,
+  hasPendingReturnRequest,
 } from "./loanRules.js";
 
-const LoanCard = ({ loan, preview = false, onAction }) => {
+const LoanCard = ({ loan, preview = false, fines = [], onAction }) => {
   const [expanded, setExpanded] = useState(false);
   const [coverFailed, setCoverFailed] = useState(false);
   const status = effectiveLoanStatus(loan);
@@ -93,7 +100,25 @@ const LoanCard = ({ loan, preview = false, onAction }) => {
             >
               {loan.bookTitle}
             </Typography>
-            <StatusChip type="loan" status={status} />
+            <Box
+              sx={{
+                display: "flex",
+                gap: 0.75,
+                flexWrap: "wrap",
+                justifyContent: "flex-end",
+              }}
+            >
+              <StatusChip type="loan" status={status} />
+              {hasPendingReturnRequest(loan) && (
+                <Chip
+                  size="small"
+                  icon={<HourglassTopRoundedIcon />}
+                  label="Chờ ADMIN xác nhận"
+                  color="warning"
+                  variant="outlined"
+                />
+              )}
+            </Box>
           </Box>
 
           <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.25 }}>
@@ -191,6 +216,55 @@ const LoanCard = ({ loan, preview = false, onAction }) => {
         </Box>
       </Box>
 
+      {hasPendingReturnRequest(loan) && (
+        <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
+          Đã gửi yêu cầu trả lúc {formatDateTimeVN(loan.returnRequestedAt)}. Lượt
+          mượn chỉ hoàn tất sau khi ADMIN tiếp nhận và kiểm tra sách.
+          {loan.returnRequestNote && (
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
+              Ghi chú của bạn: {loan.returnRequestNote}
+            </Typography>
+          )}
+        </Alert>
+      )}
+
+      {fines.length > 0 && (
+        <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
+            Khoản phạt sau khi ADMIN kiểm tra
+          </Typography>
+          <Box sx={{ display: "grid", gap: 0.75 }}>
+            {fines.map((fine) => (
+              <Box
+                key={fine.id}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 1,
+                }}
+              >
+                <Typography variant="body2">
+                  {fineTypeLabels[fine.type] ?? "Khoản phạt"}: {formatCurrencyVND(fine.amount)}
+                  {Number(fine.amountOutstanding) > 0 &&
+                    ` · Còn phải thanh toán ${formatCurrencyVND(fine.amountOutstanding)}`}
+                </Typography>
+                <StatusChip type="fine" status={fine.status} />
+              </Box>
+            ))}
+          </Box>
+          <Button
+            component={Link}
+            to="/user/my-fines"
+            size="small"
+            sx={{ mt: 0.5, ml: -1, textTransform: "none", fontWeight: 700 }}
+          >
+            Xem và thanh toán khoản phạt
+          </Button>
+        </Alert>
+      )}
+
       {/* Chi tiết mở rộng */}
       <Collapse in={expanded}>
         <Box
@@ -207,6 +281,19 @@ const LoanCard = ({ loan, preview = false, onAction }) => {
             <Typography variant="caption" sx={{ color: "#475569" }}>
               Ngày hoàn trả thực tế:{" "}
               <strong>{formatDateVN(loan.returnDate)}</strong>
+            </Typography>
+          )}
+          {loan.checkedInAt && (
+            <Typography variant="caption" sx={{ color: "#475569" }}>
+              ADMIN tiếp nhận lúc: <strong>{formatDateTimeVN(loan.checkedInAt)}</strong>
+            </Typography>
+          )}
+          {loan.inspectionNote && (
+            <Typography
+              variant="caption"
+              sx={{ color: "#475569", gridColumn: { sm: "1 / -1" } }}
+            >
+              Kết quả kiểm tra của ADMIN: {loan.inspectionNote}
             </Typography>
           )}
           {status === "OVERDUE" && (
@@ -296,7 +383,7 @@ const LoanCard = ({ loan, preview = false, onAction }) => {
                 fontWeight: 700,
               }}
             >
-              Trả sách
+              Gửi yêu cầu trả sách
             </Button>
           )}
         </Box>

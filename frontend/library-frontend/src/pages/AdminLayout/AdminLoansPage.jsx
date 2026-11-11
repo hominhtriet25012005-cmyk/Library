@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Alert,
   Box,
   Button,
   Chip,
   CircularProgress,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputLabel,
   MenuItem,
@@ -29,8 +31,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink } from "react-router-dom";
-import LocalLibraryRoundedIcon from "@mui/icons-material/LocalLibraryRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import UpdateRoundedIcon from "@mui/icons-material/UpdateRounded";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
@@ -41,6 +41,7 @@ import {
   adminLoansApi,
   canCheckinLoan,
   canRenewLoan,
+  needsCheckinDescription,
 } from "../../api/adminLoans";
 import {
   PageHeader,
@@ -48,9 +49,15 @@ import {
   StatusChip,
   TablePaginationBar,
 } from "../../components/common";
-import { formatDateVN } from "../../utils/formatters";
+import { formatCurrencyVND, formatDateTimeVN, formatDateVN } from "../../utils/formatters";
 
 const loanTabs = [
+  {
+    id: "returnRequests",
+    label: "Chờ xác nhận trả",
+    mode: "returnRequests",
+    value: "",
+  },
   { id: "all", label: "Tất cả", mode: "all", value: "" },
   {
     id: "CHECKED_OUT",
@@ -64,12 +71,30 @@ const loanTabs = [
   { id: "DAMAGED", label: "Hư hỏng", mode: "status", value: "DAMAGED" },
 ];
 
-const statusNames = {
-  CHECKED_OUT: "Đang mượn",
-  OVERDUE: "Quá hạn",
-  RETURNED: "Đã trả",
-  LOST: "Báo mất",
-  DAMAGED: "Hư hỏng",
+const localDateToday = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+};
+
+const minimumReceivedDate = (loan) => {
+  const checkoutDate = loan?.checkoutDate || "";
+  const requestedDate = loan?.returnRequestedAt?.slice(0, 10) || "";
+  return requestedDate > checkoutDate ? requestedDate : checkoutDate;
+};
+
+const hasPendingReturnRequest = (loan) =>
+  Boolean(loan?.returnRequestedAt && !loan?.checkedInAt);
+
+const canRenewInAdmin = (loan) =>
+  canRenewLoan(loan) && !hasPendingReturnRequest(loan);
+
+const daysBetweenLocalDates = (start, end) => {
+  if (!start || !end) return 0;
+  const [startYear, startMonth, startDay] = start.split("-").map(Number);
+  const [endYear, endMonth, endDay] = end.split("-").map(Number);
+  const startTime = Date.UTC(startYear, startMonth - 1, startDay);
+  const endTime = Date.UTC(endYear, endMonth - 1, endDay);
+  return Math.max(0, Math.floor((endTime - startTime) / 86_400_000));
 };
 
 const Detail = ({ label, value }) => (
@@ -86,7 +111,7 @@ const Detail = ({ label, value }) => (
       sx={{
         overflowWrap: "anywhere",
         fontWeight: 500,
-        color: "#0f172a",
+        color: "text.primary",
         mt: 0.25,
       }}
     >
@@ -96,11 +121,18 @@ const Detail = ({ label, value }) => (
 );
 
 const AdminLoansPage = () => {
-  const [currentTab, setCurrentTab] = useState("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [currentTab, setCurrentTab] = useState(() =>
+    searchParams.get("tab") === "returnRequests" ? "returnRequests" : "all",
+  );
   const [counts, setCounts] = useState({});
   const [searchType, setSearchType] = useState("user");
   const [searchValue, setSearchValue] = useState("");
-  const [filter, setFilter] = useState({ mode: "all", value: "" });
+  const [filter, setFilter] = useState(() =>
+    searchParams.get("tab") === "returnRequests"
+      ? { mode: "returnRequests", value: "" }
+      : { mode: "all", value: "" },
+  );
   const [page, setPage] = useState(0);
   const [reload, setReload] = useState(0);
   const [result, setResult] = useState(null);
@@ -115,10 +147,27 @@ const AdminLoansPage = () => {
     checkoutDays: "",
     notes: "",
     condition: "RETURNED",
+    damageLevel: "",
+    receivedDate: localDateToday(),
+    confirmDefaultReferencePrice: false,
     extensionDays: "",
   });
   const [actionError, setActionError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [returnFinePreview, setReturnFinePreview] = useState(null);
+  const [finePreviewLoading, setFinePreviewLoading] = useState(false);
+  const [finePreviewError, setFinePreviewError] = useState("");
+
+  useEffect(() => {
+    if (searchParams.get("tab") !== "returnRequests") return;
+    setCurrentTab("returnRequests");
+    setSearchValue("");
+    setNotice("");
+    setLoadError("");
+    setLoading(true);
+    setPage(0);
+    setFilter({ mode: "returnRequests", value: "" });
+  }, [searchParams]);
 
   // Tải số lượng bản ghi tương ứng cho từng Tab (Ý tưởng 2)
   useEffect(() => {
@@ -132,6 +181,7 @@ const AdminLoansPage = () => {
           returnedRes,
           lostRes,
           damagedRes,
+          returnRequestsRes,
         ] = await Promise.allSettled([
           adminLoansApi.search(
             { mode: "all", page: 0, size: 1 },
@@ -155,6 +205,10 @@ const AdminLoansPage = () => {
           ),
           adminLoansApi.search(
             { mode: "status", value: "DAMAGED", page: 0, size: 1 },
+            { signal: controller.signal },
+          ),
+          adminLoansApi.returnRequests(
+            { page: 0, size: 1 },
             { signal: controller.signal },
           ),
         ]);
@@ -183,6 +237,10 @@ const AdminLoansPage = () => {
               damagedRes.status === "fulfilled"
                 ? damagedRes.value.totalElements
                 : null,
+            returnRequests:
+              returnRequestsRes.status === "fulfilled"
+                ? returnRequestsRes.value.totalElements
+                : null,
           });
         }
       } catch {
@@ -195,8 +253,11 @@ const AdminLoansPage = () => {
 
   useEffect(() => {
     const controller = new AbortController();
-    adminLoansApi
-      .search({ ...filter, page }, { signal: controller.signal })
+    const request =
+      filter.mode === "returnRequests"
+        ? adminLoansApi.returnRequests({ page, size: 10 }, { signal: controller.signal })
+        : adminLoansApi.search({ ...filter, page }, { signal: controller.signal });
+    request
       .then((data) => {
         if (controller.signal.aborted) return;
         if (page > 0 && page >= data.totalPages) {
@@ -216,6 +277,45 @@ const AdminLoansPage = () => {
     return () => controller.abort();
   }, [filter, page, reload]);
 
+  useEffect(() => {
+    if (operation?.type !== "checkin" || !operation.loan?.id) {
+      return undefined;
+    }
+
+    if (!form.receivedDate || (form.condition === "DAMAGED" && !form.damageLevel)) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    queueMicrotask(() => {
+      if (controller.signal.aborted) return;
+      setReturnFinePreview(null);
+      setFinePreviewLoading(true);
+      setFinePreviewError("");
+    });
+    adminLoansApi
+      .previewCheckin(
+        operation.loan.id,
+        {
+          condition: form.condition,
+          damageLevel: form.damageLevel,
+          receivedDate: form.receivedDate,
+        },
+        { signal: controller.signal },
+      )
+      .then((preview) => {
+        if (!controller.signal.aborted) setReturnFinePreview(preview);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted && error.name !== "AbortError")
+          setFinePreviewError(error.message || "Không thể xem trước tiền phạt.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setFinePreviewLoading(false);
+      });
+    return () => controller.abort();
+  }, [operation, form.condition, form.damageLevel, form.receivedDate]);
+
   const handleTabChange = (tabId) => {
     const targetTab = loanTabs.find((t) => t.id === tabId);
     if (!targetTab) return;
@@ -226,6 +326,10 @@ const AdminLoansPage = () => {
     setLoading(true);
     setPage(0);
     setFilter({ mode: targetTab.mode, value: targetTab.value });
+    const nextSearchParams = new URLSearchParams(searchParams);
+    if (tabId === "returnRequests") nextSearchParams.set("tab", "returnRequests");
+    else nextSearchParams.delete("tab");
+    setSearchParams(nextSearchParams, { replace: true });
   };
 
   const handleSearchSubmit = () => {
@@ -247,6 +351,9 @@ const AdminLoansPage = () => {
     setPage(0);
     setCurrentTab(false); // Bỏ chọn tab vì đang tìm theo ID
     setFilter({ mode: searchType, value: trimmed });
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete("tab");
+    setSearchParams(nextSearchParams, { replace: true });
   };
 
   const handleResetFilters = () => {
@@ -264,12 +371,18 @@ const AdminLoansPage = () => {
     setSelected(null);
     setOperation({ type, loan });
     setActionError("");
+    setReturnFinePreview(null);
+    setFinePreviewLoading(type === "checkin");
+    setFinePreviewError("");
     setForm({
       userId: "",
       bookId: "",
       checkoutDays: "",
       notes: "",
       condition: "RETURNED",
+      damageLevel: "",
+      receivedDate: localDateToday(),
+      confirmDefaultReferencePrice: false,
       extensionDays: "",
     });
   };
@@ -280,6 +393,18 @@ const AdminLoansPage = () => {
 
   const submitAction = async () => {
     if (!operation || busy) return;
+    if (operation.type === "checkin") {
+      const minimumDate = minimumReceivedDate(operation.loan);
+      const today = localDateToday();
+      if (!form.receivedDate || form.receivedDate < minimumDate || form.receivedDate > today) {
+        setActionError(
+          operation.loan.returnRequestedAt
+            ? "Ngày nhận sách không được trước ngày độc giả gửi yêu cầu trả hoặc sau hôm nay."
+            : "Ngày nhận sách không được trước ngày mượn hoặc sau hôm nay.",
+        );
+        return;
+      }
+    }
     setBusy(true);
     setActionError("");
     setNotice("");
@@ -291,7 +416,13 @@ const AdminLoansPage = () => {
       } else if (operation.type === "checkin") {
         updated = await adminLoansApi.checkin(
           operation.loan.id,
-          form.condition,
+          {
+            condition: form.condition,
+            damageLevel: form.damageLevel,
+            receivedDate: form.receivedDate,
+            inspectionNote: form.notes,
+            confirmDefaultReferencePrice: form.confirmDefaultReferencePrice,
+          },
         );
         setNotice(`Đã ghi nhận trả sách cho lượt mượn #${updated.id}.`);
       } else if (operation.type === "renew") {
@@ -317,6 +448,11 @@ const AdminLoansPage = () => {
     }
   };
 
+  const requiresDefaultPriceConfirmation =
+    returnFinePreview?.requiresDefaultReferencePriceConfirmation === true;
+  const finePreviewReady =
+    form.condition !== "DAMAGED" || Boolean(form.damageLevel);
+
   return (
     <Box
       component="section"
@@ -324,7 +460,7 @@ const AdminLoansPage = () => {
     >
       <PageHeader
         title="Quản lý mượn – trả sách"
-        subtitle="Tra cứu lượt mượn toàn hệ thống, cấp sách tại quầy, xử lý trả, gia hạn và cập nhật quá hạn."
+        subtitle="Tra cứu lượt mượn, xử lý yêu cầu trả tại quầy, gia hạn và cập nhật quá hạn."
         action={
           <Stack direction="row" spacing={1.5}>
             <Button
@@ -346,74 +482,79 @@ const AdminLoansPage = () => {
       />
 
       {/* Thanh tìm kiếm & bộ lọc chuẩn hóa */}
-      <SearchFilterBar
-        searchValue={searchValue}
-        onSearchChange={setSearchValue}
-        onSearchSubmit={handleSearchSubmit}
-        showSearchButton={false}
-        searchPlaceholder={
-          searchType === "user"
-            ? "Nhập ID người dùng (VD: 2)..."
-            : "Nhập ID sách (VD: 15)..."
-        }
-        actions={
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleSearchSubmit}
-              sx={{
-                height: 40,
-                px: 2.5,
-                borderRadius: 2,
-                textTransform: "none",
-                fontWeight: 600,
-                boxShadow: "none",
-              }}
+      {currentTab !== "returnRequests" && (
+        <SearchFilterBar
+          searchValue={searchValue}
+          onSearchChange={setSearchValue}
+          onSearchSubmit={handleSearchSubmit}
+          showSearchButton={false}
+          searchPlaceholder={
+            searchType === "user"
+              ? "Nhập ID người dùng (VD: 2)..."
+              : "Nhập ID sách (VD: 15)..."
+          }
+          actions={
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleSearchSubmit}
+                sx={{
+                  height: 40,
+                  px: 2.5,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  boxShadow: "none",
+                }}
+              >
+                Tìm
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<RestartAltRoundedIcon fontSize="small" />}
+                onClick={handleResetFilters}
+                sx={{
+                  height: 40,
+                  px: 2,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  color: "text.secondary",
+                  borderColor: "divider",
+                  "&:hover": {
+                    borderColor: "text.secondary",
+                    bgcolor: "action.hover",
+                  },
+                }}
+              >
+                Đặt lại bộ lọc
+              </Button>
+            </Stack>
+          }
+        >
+          <FormControl size="small" sx={{ minWidth: 170 }}>
+            <InputLabel id="search-type-label">Tra cứu theo</InputLabel>
+            <Select
+              labelId="search-type-label"
+              label="Tra cứu theo"
+              value={searchType}
+              onChange={(e) => setSearchType(e.target.value)}
             >
-              Tìm
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<RestartAltRoundedIcon fontSize="small" />}
-              onClick={handleResetFilters}
-              sx={{
-                height: 40,
-                px: 2,
-                borderRadius: 2,
-                textTransform: "none",
-                color: "#64748b",
-                borderColor: "#cbd5e1",
-                "&:hover": { borderColor: "#94a3b8", bgcolor: "#f8fafc" },
-              }}
-            >
-              Đặt lại bộ lọc
-            </Button>
-          </Stack>
-        }
-      >
-        <FormControl size="small" sx={{ minWidth: 170 }}>
-          <InputLabel id="search-type-label">Tra cứu theo</InputLabel>
-          <Select
-            labelId="search-type-label"
-            label="Tra cứu theo"
-            value={searchType}
-            onChange={(e) => setSearchType(e.target.value)}
-          >
-            <MenuItem value="user">ID người dùng</MenuItem>
-            <MenuItem value="book">ID sách</MenuItem>
-          </Select>
-        </FormControl>
-      </SearchFilterBar>
+              <MenuItem value="user">ID người dùng</MenuItem>
+              <MenuItem value="book">ID sách</MenuItem>
+            </Select>
+          </FormControl>
+        </SearchFilterBar>
+      )}
 
-      {/* Thanh Tab phân loại nhanh theo trạng thái (Ý tưởng 2) */}
+      {/* Thanh Tab phân loại nhanh theo trạng thái và hàng chờ trả */}
       <Paper
         variant="outlined"
         sx={{
           borderRadius: 2.5,
-          borderColor: "#e2e8f0",
-          bgcolor: "#ffffff",
+          borderColor: "divider",
+          bgcolor: "background.paper",
           mb: 2.5,
           overflow: "hidden",
         }}
@@ -423,7 +564,7 @@ const AdminLoansPage = () => {
           scrollButtons="auto"
           value={currentTab === "" ? false : currentTab}
           onChange={(_, tabId) => handleTabChange(tabId)}
-          aria-label="Phân loại lượt mượn theo trạng thái"
+          aria-label="Phân loại lượt mượn và yêu cầu trả sách"
           sx={{
             px: 1.5,
             minHeight: 52,
@@ -434,13 +575,13 @@ const AdminLoansPage = () => {
               minHeight: 52,
               py: 1,
               px: 2,
-              color: "#64748b",
+              color: "text.secondary",
               "&.Mui-selected": {
-                color: "#1769ff",
+                color: "primary.main",
               },
             },
             "& .MuiTabs-indicator": {
-              backgroundColor: "#1769ff",
+              backgroundColor: "primary.main",
               height: 3,
               borderRadius: "3px 3px 0 0",
             },
@@ -471,16 +612,23 @@ const AdminLoansPage = () => {
                           fontWeight: 700,
                           borderRadius: "10px",
                           cursor: "pointer",
-                          bgcolor: isWarning
-                            ? "#fee2e2"
-                            : isSelected
-                              ? "#e0e7ff"
-                              : "#f1f5f9",
+                          bgcolor: (theme) =>
+                            isWarning
+                              ? theme.palette.mode === "dark"
+                                ? "rgba(239, 68, 68, 0.2)"
+                                : "#fee2e2"
+                              : isSelected
+                                ? theme.palette.mode === "dark"
+                                  ? "rgba(99, 102, 241, 0.2)"
+                                  : "#e0e7ff"
+                                : theme.palette.mode === "dark"
+                                  ? "rgba(255, 255, 255, 0.08)"
+                                  : "#f1f5f9",
                           color: isWarning
-                            ? "#dc2626"
+                            ? "error.main"
                             : isSelected
-                              ? "#3730a3"
-                              : "#64748b",
+                              ? "primary.main"
+                              : "text.secondary",
                         }}
                       />
                     )}
@@ -520,7 +668,7 @@ const AdminLoansPage = () => {
       <TableContainer
         component={Paper}
         variant="outlined"
-        sx={{ borderRadius: 3, borderColor: "#e2e8f0" }}
+        sx={{ borderRadius: 3, borderColor: "divider" }}
       >
         <Table size="small">
           <TableHead>
@@ -531,7 +679,9 @@ const AdminLoansPage = () => {
               <TableCell align="center">Trạng thái</TableCell>
               <TableCell>Ngày mượn</TableCell>
               <TableCell>Hạn trả</TableCell>
-              <TableCell align="center">Ngày trả</TableCell>
+              <TableCell align="center">
+                {currentTab === "returnRequests" ? "Yêu cầu trả" : "Ngày trả"}
+              </TableCell>
               <TableCell align="center" sx={{ width: 150 }}>
                 Thao tác
               </TableCell>
@@ -556,7 +706,7 @@ const AdminLoansPage = () => {
                   <TableCell>
                     <Typography
                       fontWeight={700}
-                      sx={{ color: "#0f172a", fontSize: "0.875rem" }}
+                      sx={{ color: "text.primary", fontSize: "0.875rem" }}
                     >
                       {loan.userName || `Độc giả #${loan.userId}`}
                     </Typography>
@@ -568,7 +718,7 @@ const AdminLoansPage = () => {
                   <TableCell>
                     <Typography
                       fontWeight={650}
-                      sx={{ color: "#0f172a", fontSize: "0.875rem" }}
+                      sx={{ color: "text.primary", fontSize: "0.875rem" }}
                     >
                       {loan.bookTitle || `Sách #${loan.bookId}`}
                     </Typography>
@@ -578,7 +728,17 @@ const AdminLoansPage = () => {
                   </TableCell>
 
                   <TableCell align="center">
-                    <StatusChip status={loan.status} type="loan" />
+                    <Stack spacing={0.5} alignItems="center">
+                      <StatusChip status={loan.status} type="loan" />
+                      {hasPendingReturnRequest(loan) && (
+                        <Chip
+                          label="Chờ tiếp nhận"
+                          color="warning"
+                          size="small"
+                          variant="outlined"
+                        />
+                      )}
+                    </Stack>
                   </TableCell>
 
                   <TableCell
@@ -591,9 +751,16 @@ const AdminLoansPage = () => {
                     <Typography
                       sx={{
                         fontSize: "0.8125rem",
-                        fontWeight: loan.status === "OVERDUE" ? 700 : 500,
+                        fontWeight:
+                          loan.status === "OVERDUE" ||
+                          (currentTab === "returnRequests" &&
+                            daysBetweenLocalDates(loan.dueDate, localDateToday()) > 0)
+                            ? 700
+                            : 500,
                         color:
-                          loan.status === "OVERDUE"
+                          loan.status === "OVERDUE" ||
+                          (currentTab === "returnRequests" &&
+                            daysBetweenLocalDates(loan.dueDate, localDateToday()) > 0)
                             ? "error.main"
                             : "text.secondary",
                       }}
@@ -601,6 +768,7 @@ const AdminLoansPage = () => {
                       {formatDateVN(loan.dueDate)}
                     </Typography>
                     {loan.status === "OVERDUE" &&
+                      currentTab !== "returnRequests" &&
                       loan.remainingDays != null &&
                       loan.remainingDays < 0 && (
                         <Typography
@@ -612,6 +780,15 @@ const AdminLoansPage = () => {
                           }}
                         >
                           (Quá hạn {Math.abs(loan.remainingDays)} ngày)
+                        </Typography>
+                      )}
+                    {currentTab === "returnRequests" &&
+                      daysBetweenLocalDates(loan.dueDate, localDateToday()) > 0 && (
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "error.main", fontWeight: 700, display: "block" }}
+                        >
+                          (Quá hạn {daysBetweenLocalDates(loan.dueDate, localDateToday())} ngày)
                         </Typography>
                       )}
                     {loan.status === "CHECKED_OUT" &&
@@ -640,7 +817,22 @@ const AdminLoansPage = () => {
                     align="center"
                     sx={{ fontSize: "0.8125rem", color: "text.secondary" }}
                   >
-                    {loan.returnDate ? formatDateVN(loan.returnDate) : "—"}
+                    {currentTab === "returnRequests" ? (
+                      <Stack spacing={0.25} alignItems="center">
+                        <Typography variant="body2" sx={{ fontSize: "0.8125rem" }}>
+                          {formatDateTimeVN(loan.returnRequestedAt)}
+                        </Typography>
+                        {loan.returnRequestNote && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ maxWidth: 220, whiteSpace: "normal", overflowWrap: "anywhere" }}
+                          >
+                            {loan.returnRequestNote}
+                          </Typography>
+                        )}
+                      </Stack>
+                    ) : loan.returnDate ? formatDateVN(loan.returnDate) : "—"}
                   </TableCell>
 
                   <TableCell align="center">
@@ -649,6 +841,11 @@ const AdminLoansPage = () => {
                       spacing={0.75}
                       justifyContent="center"
                       alignItems="center"
+                      sx={{
+                        display: "inline-flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
                     >
                       <Tooltip title="Xem chi tiết">
                         <IconButton
@@ -676,11 +873,13 @@ const AdminLoansPage = () => {
                             textTransform: "none",
                           }}
                         >
-                          Trả sách
+                          {currentTab === "returnRequests" || hasPendingReturnRequest(loan)
+                            ? "Kiểm tra & nhận"
+                            : "Tiếp nhận sách"}
                         </Button>
                       )}
 
-                      {canRenewLoan(loan) && (
+                      {canRenewInAdmin(loan) && (
                         <Button
                           size="small"
                           variant="outlined"
@@ -710,7 +909,9 @@ const AdminLoansPage = () => {
                   align="center"
                   sx={{ py: 6, color: "text.secondary" }}
                 >
-                  Không tìm thấy lượt mượn phù hợp với bộ lọc.
+                  {currentTab === "returnRequests"
+                    ? "Hiện không có yêu cầu trả sách nào đang chờ xác nhận."
+                    : "Không tìm thấy lượt mượn phù hợp với bộ lọc."}
                 </TableCell>
               </TableRow>
             )}
@@ -749,7 +950,10 @@ const AdminLoansPage = () => {
             pb: 1,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 750, color: "text.primary" }}
+          >
             Chi tiết lượt mượn #{selected?.id}
           </Typography>
           <IconButton size="small" onClick={() => setSelected(null)}>
@@ -799,6 +1003,26 @@ const AdminLoansPage = () => {
                 value={formatDateVN(selected.returnDate)}
               />
               <Detail
+                label="Thời điểm yêu cầu trả"
+                value={formatDateTimeVN(selected.returnRequestedAt)}
+              />
+              <Detail
+                label="Ngày ADMIN tiếp nhận"
+                value={formatDateVN(selected.checkedInAt)}
+              />
+              <Box sx={{ gridColumn: { sm: "1 / -1" } }}>
+                <Detail
+                  label="Ghi chú yêu cầu trả của độc giả"
+                  value={selected.returnRequestNote || "Không có ghi chú"}
+                />
+              </Box>
+              <Box sx={{ gridColumn: { sm: "1 / -1" } }}>
+                <Detail
+                  label="Kết quả kiểm tra của ADMIN"
+                  value={selected.inspectionNote || "Chưa có ghi chú kiểm tra"}
+                />
+              </Box>
+              <Detail
                 label="Số lần gia hạn"
                 value={`${selected.renewalCount ?? 0}/${selected.maxRenewals ?? 0}`}
               />
@@ -821,9 +1045,9 @@ const AdminLoansPage = () => {
         </DialogContent>
 
         <DialogActions
-          sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9", gap: 1 }}
+          sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", gap: 1 }}
         >
-          {canRenewLoan(selected) && (
+          {canRenewInAdmin(selected) && (
             <Button
               variant="outlined"
               color="primary"
@@ -863,7 +1087,10 @@ const AdminLoansPage = () => {
             pb: 1,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 750, color: "text.primary" }}
+          >
             {operation?.type === "checkout"
               ? "Cấp sách cho độc giả"
               : operation?.type === "checkin"
@@ -886,20 +1113,18 @@ const AdminLoansPage = () => {
                   tồn kho và hạn mức mượn của gói hội viên khi xác nhận.
                 </Typography>
                 <TextField
-                  label="ID người dùng (User ID)"
+                  label="ID người dùng "
                   type="number"
                   required
-                  placeholder="VD: 2"
                   value={form.userId}
                   onChange={(event) =>
                     setForm({ ...form, userId: event.target.value })
                   }
                 />
                 <TextField
-                  label="ID sách (Book ID)"
+                  label="ID sách "
                   type="number"
                   required
-                  placeholder="VD: 12"
                   value={form.bookId}
                   onChange={(event) =>
                     setForm({ ...form, bookId: event.target.value })
@@ -909,7 +1134,6 @@ const AdminLoansPage = () => {
                   label="Số ngày mượn"
                   type="number"
                   required
-                  placeholder="VD: 14"
                   value={form.checkoutDays}
                   onChange={(event) =>
                     setForm({ ...form, checkoutDays: event.target.value })
@@ -930,28 +1154,171 @@ const AdminLoansPage = () => {
             {operation?.type === "checkin" && (
               <>
                 <Typography variant="body2" color="text.secondary">
-                  Chọn tình trạng thực tế của cuốn sách khi nhận lại tại quầy.
+                  Kiểm tra sách thực tế tại quầy. Khi xác nhận, hệ thống hoàn tất lượt mượn và tự tạo các khoản phạt nếu phát sinh.
                 </Typography>
+                {operation.loan.returnRequestedAt && (
+                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    Độc giả gửi yêu cầu trả lúc {formatDateTimeVN(operation.loan.returnRequestedAt)}.
+                    {operation.loan.returnRequestNote ? ` Ghi chú: ${operation.loan.returnRequestNote}` : ""}
+                  </Alert>
+                )}
                 <FormControl fullWidth>
                   <InputLabel>Tình trạng sách khi trả</InputLabel>
                   <Select
                     label="Tình trạng sách khi trả"
                     value={form.condition}
                     onChange={(event) =>
-                      setForm({ ...form, condition: event.target.value })
+                      setForm((previous) => ({
+                        ...previous,
+                        condition: event.target.value,
+                        damageLevel:
+                          event.target.value === "DAMAGED"
+                            ? previous.damageLevel
+                            : "",
+                      }))
                     }
                   >
                     <MenuItem value="RETURNED">
                       Bình thường (Còn nguyên vẹn)
                     </MenuItem>
                     <MenuItem value="LOST">Báo mất sách</MenuItem>
-                    <MenuItem value="DAMAGED">Hư hỏng / Rách nát</MenuItem>
+                    <MenuItem value="DAMAGED">Hư hỏng sách</MenuItem>
                   </Select>
                 </FormControl>
+                <TextField
+                  label="Ngày thư viện thực tế nhận sách"
+                  type="date"
+                  required
+                  value={form.receivedDate}
+                  onChange={(event) =>
+                    setForm({ ...form, receivedDate: event.target.value })
+                  }
+                  slotProps={{
+                    inputLabel: { shrink: true },
+                    htmlInput: {
+                      min: minimumReceivedDate(operation.loan),
+                      max: localDateToday(),
+                    },
+                  }}
+                  helperText={
+                    operation.loan.returnRequestedAt
+                      ? `Ngày nhận không được trước yêu cầu trả (${formatDateVN(minimumReceivedDate(operation.loan))}) hoặc sau hôm nay.`
+                      : `Ngày nhận không được trước ngày mượn (${formatDateVN(minimumReceivedDate(operation.loan))}) hoặc sau hôm nay.`
+                  }
+                />
                 {form.condition === "DAMAGED" && (
+                  <FormControl fullWidth required>
+                    <InputLabel>Mức độ hư hỏng</InputLabel>
+                    <Select
+                      label="Mức độ hư hỏng"
+                      value={form.damageLevel}
+                      onChange={(event) =>
+                        setForm({ ...form, damageLevel: event.target.value })
+                      }
+                    >
+                      <MenuItem value="LIGHT">Hư hỏng nhẹ · phạt 25%</MenuItem>
+                      <MenuItem value="SEVERE">Hư hỏng nặng · phạt 75%</MenuItem>
+                    </Select>
+                  </FormControl>
+                )}
+                <TextField
+                  label={
+                    needsCheckinDescription(form.condition)
+                      ? "Mô tả kết quả kiểm tra *"
+                      : "Ghi chú trả sách (không bắt buộc)"
+                  }
+                  multiline
+                  minRows={3}
+                  value={form.notes}
+                  onChange={(event) =>
+                    setForm({ ...form, notes: event.target.value })
+                  }
+                  helperText={
+                    needsCheckinDescription(form.condition)
+                      ? `Bắt buộc mô tả rõ tình trạng sách. ${form.notes.length}/500 ký tự.`
+                      : `${form.notes.length}/500 ký tự.`
+                  }
+                  slotProps={{ htmlInput: { maxLength: 500 } }}
+                />
+                {finePreviewLoading && (
+                  <Stack direction="row" spacing={1.25} alignItems="center">
+                    <CircularProgress size={18} />
+                    <Typography variant="body2" color="text.secondary">
+                      Đang để Backend tính tiền phạt dự kiến…
+                    </Typography>
+                  </Stack>
+                )}
+                {finePreviewError && (
+                  <Alert severity="error" sx={{ borderRadius: 2 }}>
+                    {finePreviewError} Chưa thể xác nhận trả sách khi chưa đối chiếu được tiền phạt.
+                  </Alert>
+                )}
+                {form.condition === "DAMAGED" && !form.damageLevel && (
+                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    Chọn mức độ hư hỏng để xem đầy đủ khoản phạt dự kiến.
+                  </Alert>
+                )}
+                {!finePreviewLoading && !finePreviewError && returnFinePreview?.items?.length > 0 && finePreviewReady && (
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5 }}>
+                    <Typography fontWeight={700} sx={{ mb: 1 }}>
+                      Tiền phạt dự kiến
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>
+                      Giá tham chiếu: {formatCurrencyVND(returnFinePreview.referencePrice)}
+                      {returnFinePreview.usesDefaultReferencePrice ? " (mức mặc định)" : " (giá sách)"}
+                    </Typography>
+                    {returnFinePreview.items.map((item) => (
+                      <Stack
+                        key={item.label}
+                        direction="row"
+                        justifyContent="space-between"
+                        spacing={2}
+                        sx={{ py: 0.35 }}
+                      >
+                        <Typography variant="body2">{item.label}</Typography>
+                        <Typography variant="body2" fontWeight={650}>
+                          {formatCurrencyVND(item.amount)}
+                        </Typography>
+                      </Stack>
+                    ))}
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      sx={{ mt: 1, pt: 1, borderTop: 1, borderColor: "divider" }}
+                    >
+                      <Typography fontWeight={700}>Tổng dự kiến</Typography>
+                      <Typography color="primary.main" fontWeight={800}>
+                        {formatCurrencyVND(returnFinePreview.totalAmount)}
+                      </Typography>
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                      Số tiền cuối cùng do Backend tính lại khi ADMIN xác nhận.
+                    </Typography>
+                  </Paper>
+                )}
+                {requiresDefaultPriceConfirmation && (
                   <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                    Vui lòng kiểm tra kỹ tình trạng sách và tạo khoản phạt hư
-                    hỏng tương ứng ở mục Tiền phạt.
+                    Sách chưa có giá hợp lệ. Xác nhận dùng giá tham chiếu 100.000đ để tính khoản phạt.
+                    <FormControlLabel
+                      sx={{ display: "flex", mt: 0.5, ml: 0 }}
+                      control={
+                        <Checkbox
+                          checked={form.confirmDefaultReferencePrice}
+                          onChange={(event) =>
+                            setForm({
+                              ...form,
+                              confirmDefaultReferencePrice: event.target.checked,
+                            })
+                          }
+                        />
+                      }
+                      label="Tôi xác nhận dùng giá tham chiếu 100.000đ"
+                    />
+                  </Alert>
+                )}
+                {returnFinePreview && returnFinePreview.items?.length === 0 && !finePreviewError && (
+                  <Alert severity="success" sx={{ borderRadius: 2 }}>
+                    Theo ngày nhận và tình trạng đã chọn, không phát sinh tiền phạt.
                   </Alert>
                 )}
               </>
@@ -999,16 +1366,30 @@ const AdminLoansPage = () => {
         </DialogContent>
 
         <DialogActions
-          sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9", gap: 1 }}
+          sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", gap: 1 }}
         >
           <Button
             disabled={busy}
             onClick={closeAction}
-            sx={{ color: "#64748b" }}
+            sx={{ color: "text.secondary" }}
           >
             Hủy
           </Button>
-          <Button variant="contained" disabled={busy} onClick={submitAction}>
+          <Button
+            variant="contained"
+            disabled={
+              busy ||
+              (operation?.type === "checkin" &&
+                (finePreviewLoading ||
+                  Boolean(finePreviewError) ||
+                  !returnFinePreview ||
+                  (requiresDefaultPriceConfirmation && !form.confirmDefaultReferencePrice) ||
+                  (form.condition === "DAMAGED" && !form.damageLevel) ||
+                  (needsCheckinDescription(form.condition) && !form.notes.trim()) ||
+                  !form.receivedDate))
+            }
+            onClick={submitAction}
+          >
             {busy ? "Đang xử lý…" : "Xác nhận"}
           </Button>
         </DialogActions>

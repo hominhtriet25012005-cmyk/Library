@@ -26,6 +26,50 @@ test("tạo gói chỉ nhận giá nguyên VND và quyền lợi hợp lệ", as
   assert.deepEqual(calls, [["/api/subscription-plans/admin/create", payload]]);
 });
 
+test("ADMIN cập nhật gói qua endpoint PUT", async () => {
+  const calls = [];
+  const admin = createAdminMembershipApi({
+    put: async (path, body) => {
+      calls.push([path, body]);
+      return { id: 4, ...body };
+    },
+  });
+  const form = { planCode: "PLUS", name: "Nâng cao", durationDays: "30",
+    price: "120000", maxBooksAllowed: "5", maxDaysPerBook: "21", displayOrder: "1" };
+
+  await admin.updatePlan(4, form);
+
+  assert.deepEqual(calls, [["/api/subscription-plans/admin/4", buildPlanPayload(form)]]);
+});
+
+test("ADMIN xóa hoặc ngừng bán gói qua endpoint DELETE", async () => {
+  const calls = [];
+  const admin = createAdminMembershipApi({
+    delete: async (path) => {
+      calls.push(path);
+      return { status: true, message: "Đã xóa vĩnh viễn gói thành công." };
+    },
+  });
+
+  await admin.deletePlan(4);
+
+  assert.deepEqual(calls, ["/api/subscription-plans/admin/4"]);
+});
+
+test("ADMIN chạy xử lý các gói đăng ký hết hạn qua endpoint POST", async () => {
+  const calls = [];
+  const admin = createAdminMembershipApi({
+    post: async (path, body) => {
+      calls.push([path, body]);
+      return { status: true, message: "Đã ngừng các gói đăng ký hết hạn." };
+    },
+  });
+
+  await admin.deactivateExpired();
+
+  assert.deepEqual(calls, [["/api/subscriptions/admin/deactivate-expired", {}]]);
+});
+
 test("danh sách thành viên đăng ký phân trang thật và không tự suy ra đã thanh toán", async () => {
   const calls = [];
   const admin = createAdminMembershipApi({ get: async (path) => { calls.push(path); return {

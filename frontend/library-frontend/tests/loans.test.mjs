@@ -11,12 +11,12 @@ test("API khoản mượn dùng đúng endpoint và payload", async () => {
   });
   await api.list(2, 20);
   await api.checkout(12, 10, "Ghi chú");
-  await api.checkin(7);
+  await api.requestReturn(7, "Đã để sách tại quầy.");
   await api.renew(7, 5);
   assert.deepEqual(calls, [
     ["GET", "/api/book-loans/my?page=2&size=20"],
     ["POST", "/api/book-loans/checkout", { bookId: 12, checkoutDays: 10, notes: "Ghi chú" }],
-    ["POST", "/api/book-loans/checkin", { bookLoanId: 7, condition: "RETURNED" }],
+    ["POST", "/api/book-loans/7/return-request", { note: "Đã để sách tại quầy." }],
     ["POST", "/api/book-loans/renew", { bookLoanId: 7, extensionDays: 5 }],
   ]);
 });
@@ -45,6 +45,8 @@ test("chỉ lượt còn hạn và chưa hết lần mới được gia hạn", 
   const today = new Date(2026, 9, 6);
   const active = { status: "CHECKED_OUT", dueDate: "2026-10-06", returnDate: null, renewalCount: 1, maxRenewals: 2 };
   assert.equal(canRenewLoan(active, today), true);
+  assert.equal(canRenewLoan({ ...active, returnPending: true }, today), false);
+  assert.equal(canRenewLoan({ ...active, returnRequestedAt: "2026-10-06T12:00:00" }, today), false);
   assert.equal(canRenewLoan({ ...active, renewalCount: 2 }, today), false);
   assert.equal(canReturnLoan({ ...active, status: "RETURNED" }), false);
   assert.equal(renewalDays(14), 14);

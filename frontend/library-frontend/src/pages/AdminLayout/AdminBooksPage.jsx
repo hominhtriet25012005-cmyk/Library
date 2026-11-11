@@ -27,17 +27,16 @@ import {
   Typography,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
-import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
 
 import { adminCatalogApi } from "../../api/adminCatalog";
 import {
   bookPayload,
+  isIsbnLocked,
   validateBookForm,
   validateCoverImageFile,
 } from "./bookFormRules.js";
@@ -78,6 +77,7 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
       ? {
           ...emptyBook,
           ...original,
+          isbn: original.isbn ?? "",
           genreId: original.genreId ?? "",
           publicationDate: original.publicationDate ?? "",
           publicationYear: original.publicationYear ?? "",
@@ -97,6 +97,7 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
+  const isbnLocked = isIsbnLocked(original);
 
   const change = (name) => (event) => {
     if (name === "coverImageUrl") {
@@ -185,7 +186,10 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
           pb: 1,
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 750, color: "text.primary" }}
+        >
           {original ? "Sửa thông tin sách" : "Thêm đầu sách mới"}
         </Typography>
         <IconButton size="small" onClick={onClose} disabled={busy || uploading}>
@@ -211,21 +215,26 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
           >
             <Typography
               variant="subtitle2"
-              sx={{ gridColumn: "1 / -1", fontWeight: 750, color: "#334155" }}
+              sx={{
+                gridColumn: "1 / -1",
+                fontWeight: 750,
+                color: "text.primary",
+              }}
             >
               Thông tin sách
             </Typography>
             <TextField
               label="ISBN"
-              required
               value={form.isbn}
               onChange={change("isbn")}
-              disabled={Boolean(original)}
+              disabled={isbnLocked}
               placeholder="VD: 978-0-13-475759-9"
               helperText={
-                original
-                  ? "ISBN không thể chỉnh sửa sau khi tạo."
-                  : "Tối đa 20 ký tự."
+                isbnLocked
+                  ? "ISBN không thể chỉnh sửa sau khi được ghi nhận."
+                  : original
+                    ? "Sách chưa có ISBN; có thể bổ sung một lần. Tối đa 20 ký tự."
+                    : "Không bắt buộc. Tối đa 20 ký tự."
               }
               slotProps={{ htmlInput: { maxLength: 20 } }}
             />
@@ -234,7 +243,6 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
               required
               value={form.title}
               onChange={change("title")}
-              placeholder="VD: Clean Code"
               slotProps={{ htmlInput: { maxLength: 255 } }}
             />
             <TextField
@@ -242,7 +250,6 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
               required
               value={form.author}
               onChange={change("author")}
-              placeholder="VD: Robert C. Martin"
               slotProps={{ htmlInput: { maxLength: 255 } }}
             />
             <FormControl required fullWidth>
@@ -269,7 +276,11 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
             <Divider sx={{ gridColumn: "1 / -1", my: 0.5 }} />
             <Typography
               variant="subtitle2"
-              sx={{ gridColumn: "1 / -1", fontWeight: 750, color: "#334155" }}
+              sx={{
+                gridColumn: "1 / -1",
+                fontWeight: 750,
+                color: "text.primary",
+              }}
             >
               Tồn kho và thông tin xuất bản
             </Typography>
@@ -302,7 +313,7 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
               disabled
               helperText={
                 original
-                  ? "Ước tính; backend tính lại theo dữ liệu mới nhất khi lưu."
+                  ? "Ước tính;  Tính lại theo dữ liệu mới nhất khi lưu."
                   : "Sách mới: bằng tổng số bản."
               }
             />
@@ -334,7 +345,6 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
                 required
                 value={form.publicationYear}
                 onChange={change("publicationYear")}
-                placeholder="VD: 2015"
                 slotProps={{
                   htmlInput: {
                     min: 1,
@@ -379,7 +389,6 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
               type="number"
               value={form.price}
               onChange={change("price")}
-              placeholder="VD: 150000"
               slotProps={{
                 htmlInput: {
                   min: 0,
@@ -404,8 +413,10 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
                 gap: 1.5,
                 p: 2,
                 borderRadius: 2.5,
-                border: "1px solid #e2e8f0",
-                bgcolor: "#f8fafc",
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark" ? "#17243a" : "#f8fafc",
               }}
             >
               <Box
@@ -419,7 +430,7 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
               >
                 <Typography
                   variant="subtitle2"
-                  sx={{ fontWeight: 700, color: "#334155" }}
+                  sx={{ fontWeight: 700, color: "text.primary" }}
                 >
                   Ảnh bìa sách
                 </Typography>
@@ -500,9 +511,10 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
                     alignItems: "center",
                     gap: 2,
                     p: 1.5,
-                    bgcolor: "#ffffff",
+                    bgcolor: "background.paper",
                     borderRadius: 2,
-                    border: "1px dashed #cbd5e1",
+                    border: "1px dashed",
+                    borderColor: "divider",
                   }}
                 >
                   <Box
@@ -511,12 +523,14 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
                       height: 80,
                       borderRadius: 1.5,
                       overflow: "hidden",
-                      bgcolor: "#e2e8f0",
+                      bgcolor: (theme) =>
+                        theme.palette.mode === "dark" ? "#24334a" : "#e2e8f0",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
-                      border: "1px solid #e2e8f0",
+                      border: "1px solid",
+                      borderColor: "divider",
                     }}
                   >
                     {uploading ? (
@@ -533,13 +547,13 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
                         }}
                       />
                     ) : (
-                      <MenuBookRoundedIcon sx={{ color: "#94a3b8" }} />
+                      <MenuBookRoundedIcon sx={{ color: "text.secondary" }} />
                     )}
                   </Box>
                   <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 600, color: "#1e293b" }}
+                      sx={{ fontWeight: 600, color: "text.primary" }}
                     >
                       {uploading
                         ? "Đang tải ảnh bìa lên máy chủ…"
@@ -571,7 +585,11 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
             <Divider sx={{ gridColumn: "1 / -1", my: 0.5 }} />
             <Typography
               variant="subtitle2"
-              sx={{ gridColumn: "1 / -1", fontWeight: 750, color: "#334155" }}
+              sx={{
+                gridColumn: "1 / -1",
+                fontWeight: 750,
+                color: "text.primary",
+              }}
             >
               Mô tả
             </Typography>
@@ -582,7 +600,6 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
               multiline
               minRows={3}
               sx={{ gridColumn: { sm: "1 / -1" } }}
-              placeholder="Nhập giới thiệu tóm tắt về nội dung cuốn sách..."
               slotProps={{ htmlInput: { maxLength: 2000 } }}
             />
           </Box>
@@ -590,12 +607,12 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
       </DialogContent>
 
       <DialogActions
-        sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9", gap: 1 }}
+        sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider", gap: 1 }}
       >
         <Button
           onClick={onClose}
           disabled={busy || uploading}
-          sx={{ color: "#64748b" }}
+          sx={{ color: "text.secondary" }}
         >
           Hủy
         </Button>
@@ -800,49 +817,29 @@ const AdminBooksPage = () => {
       {/* Thanh tìm kiếm và bộ lọc chuẩn hóa */}
       <SearchFilterBar
         searchValue={searchInput}
-        onSearchChange={setSearchInput}
+        onSearchChange={(val) => {
+          setSearchInput(val);
+          if (val === "" && searchTerm !== "") {
+            setLoading(true);
+            setError("");
+            setPage(0);
+            setSearchTerm("");
+          }
+        }}
         onSearchSubmit={handleSearchSubmit}
         showSearchButton={false}
         searchPlaceholder="Tìm ISBN, tên sách, tác giả..."
-        actions={
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleSearchSubmit}
-              sx={{
-                height: 40,
-                px: 2.5,
-                borderRadius: 2,
-                textTransform: "none",
-                fontWeight: 600,
-                boxShadow: "none",
-              }}
-            >
-              Tìm
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<RestartAltRoundedIcon fontSize="small" />}
-              onClick={handleResetFilters}
-              sx={{
-                height: 40,
-                px: 2,
-                borderRadius: 2,
-                textTransform: "none",
-                color: "#64748b",
-                borderColor: "#cbd5e1",
-                "&:hover": { borderColor: "#94a3b8", bgcolor: "#f8fafc" },
-              }}
-            >
-              Đặt lại bộ lọc
-            </Button>
-          </Stack>
-        }
+        onReset={handleResetFilters}
+        searchSx={{
+          flex: { xs: 1, md: 3, lg: 3.5 },
+          minWidth: { sm: 260, md: 300 },
+        }}
       >
         {/* 1. Lọc theo thể loại */}
-        <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 160 } }}>
+        <FormControl
+          size="small"
+          sx={{ flex: 1, minWidth: { xs: "100%", sm: 160 } }}
+        >
           <InputLabel id="filter-genre-label">Thể loại</InputLabel>
           <Select
             labelId="filter-genre-label"
@@ -865,7 +862,10 @@ const AdminBooksPage = () => {
         </FormControl>
 
         {/* 2. Tình trạng */}
-        <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 150 } }}>
+        <FormControl
+          size="small"
+          sx={{ flex: 1, minWidth: { xs: "100%", sm: 150 } }}
+        >
           <InputLabel id="filter-status-label">Tình trạng</InputLabel>
           <Select
             labelId="filter-status-label"
@@ -886,7 +886,10 @@ const AdminBooksPage = () => {
         </FormControl>
 
         {/* 3. Sắp xếp theo */}
-        <FormControl size="small" sx={{ minWidth: { xs: "100%", sm: 165 } }}>
+        <FormControl
+          size="small"
+          sx={{ flex: 1, minWidth: { xs: "100%", sm: 165 } }}
+        >
           <InputLabel id="filter-sort-label">Sắp xếp theo</InputLabel>
           <Select
             labelId="filter-sort-label"
@@ -944,7 +947,7 @@ const AdminBooksPage = () => {
       <TableContainer
         component={Paper}
         variant="outlined"
-        sx={{ borderRadius: 3, borderColor: "#e2e8f0" }}
+        sx={{ borderRadius: 3, borderColor: "divider" }}
       >
         <Table size="small">
           <TableHead>
@@ -984,12 +987,14 @@ const AdminBooksPage = () => {
                         height: 56,
                         borderRadius: 1.5,
                         overflow: "hidden",
-                        bgcolor: "#f1f5f9",
+                        bgcolor: (theme) =>
+                          theme.palette.mode === "dark" ? "#17243a" : "#f1f5f9",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         mx: "auto",
-                        border: "1px solid #e2e8f0",
+                        border: "1px solid",
+                        borderColor: "divider",
                         cursor: "pointer",
                         transition: "transform 0.15s ease",
                         "&:hover": { transform: "scale(1.05)" },
@@ -1010,7 +1015,7 @@ const AdminBooksPage = () => {
                         />
                       ) : (
                         <MenuBookRoundedIcon
-                          sx={{ fontSize: 22, color: "#94a3b8" }}
+                          sx={{ fontSize: 22, color: "text.secondary" }}
                         />
                       )}
                     </Box>
@@ -1021,7 +1026,7 @@ const AdminBooksPage = () => {
                       fontWeight={700}
                       onClick={() => openBook(book.id, false)}
                       sx={{
-                        color: "#0f172a",
+                        color: "text.primary",
                         fontSize: "0.925rem",
                         cursor: "pointer",
                         "&:hover": {
@@ -1041,14 +1046,14 @@ const AdminBooksPage = () => {
                   <TableCell
                     sx={{ fontFamily: "monospace", fontSize: "0.85rem" }}
                   >
-                    {book.isbn}
+                    {book.isbn || "—"}
                   </TableCell>
 
                   <TableCell>{book.genreName || "—"}</TableCell>
 
                   {/* Tách riêng: Tổng số bản */}
                   <TableCell align="right">
-                    <Typography fontWeight={600} sx={{ color: "#334155" }}>
+                    <Typography fontWeight={600} sx={{ color: "text.primary" }}>
                       {book.totalCopies}
                     </Typography>
                   </TableCell>
@@ -1077,6 +1082,12 @@ const AdminBooksPage = () => {
                       direction="row"
                       spacing={0.5}
                       justifyContent="center"
+                      alignItems="center"
+                      sx={{
+                        display: "inline-flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
                     >
                       <Tooltip title="Chỉnh sửa">
                         <IconButton
@@ -1165,7 +1176,10 @@ const AdminBooksPage = () => {
             pb: 1,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 750, color: "#0f172a" }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 750, color: "text.primary" }}
+          >
             Chi tiết đầu sách
           </Typography>
           <IconButton size="small" onClick={() => setDetail(null)}>
@@ -1183,12 +1197,14 @@ const AdminBooksPage = () => {
                     height: 126,
                     borderRadius: 2,
                     overflow: "hidden",
-                    bgcolor: "#f1f5f9",
+                    bgcolor: (theme) =>
+                      theme.palette.mode === "dark" ? "#17243a" : "#f1f5f9",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
-                    border: "1px solid #e2e8f0",
+                    border: "1px solid",
+                    borderColor: "divider",
                   }}
                 >
                   {detail.coverImageUrl ? (
@@ -1203,7 +1219,7 @@ const AdminBooksPage = () => {
                     />
                   ) : (
                     <MenuBookRoundedIcon
-                      sx={{ fontSize: 40, color: "#94a3b8" }}
+                      sx={{ fontSize: 40, color: "text.secondary" }}
                     />
                   )}
                 </Box>
@@ -1211,7 +1227,11 @@ const AdminBooksPage = () => {
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography
                     variant="h6"
-                    sx={{ fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}
+                    sx={{
+                      fontWeight: 700,
+                      color: "text.primary",
+                      lineHeight: 1.3,
+                    }}
                   >
                     {detail.title}
                   </Typography>
@@ -1239,7 +1259,7 @@ const AdminBooksPage = () => {
                 }}
               >
                 <Typography variant="body2">
-                  <strong>ISBN:</strong> {detail.isbn}
+                  <strong>ISBN:</strong> {detail.isbn || "—"}
                 </Typography>
                 <Typography variant="body2">
                   <strong>Thể loại:</strong> {detail.genreName || "—"}
@@ -1271,12 +1291,21 @@ const AdminBooksPage = () => {
               </Box>
 
               {detail.description && (
-                <Box sx={{ bgcolor: "#f8fafc", p: 2, borderRadius: 2 }}>
+                <Box
+                  sx={{
+                    bgcolor: (theme) =>
+                      theme.palette.mode === "dark" ? "#17243a" : "#f8fafc",
+                    p: 2,
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
                   <Typography
                     variant="caption"
                     sx={{
                       fontWeight: 700,
-                      color: "#64748b",
+                      color: "text.secondary",
                       display: "block",
                       mb: 0.5,
                     }}
@@ -1285,7 +1314,7 @@ const AdminBooksPage = () => {
                   </Typography>
                   <Typography
                     variant="body2"
-                    sx={{ color: "#334155", lineHeight: 1.6 }}
+                    sx={{ color: "text.primary", lineHeight: 1.6 }}
                   >
                     {detail.description}
                   </Typography>
@@ -1295,7 +1324,9 @@ const AdminBooksPage = () => {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, py: 2, borderTop: "1px solid #f1f5f9" }}>
+        <DialogActions
+          sx={{ px: 3, py: 2, borderTop: 1, borderColor: "divider" }}
+        >
           <Button onClick={() => setDetail(null)} sx={{ borderRadius: 2 }}>
             Đóng
           </Button>

@@ -9,7 +9,6 @@ import {
   Typography,
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
 import LocalLibraryRoundedIcon from "@mui/icons-material/LocalLibraryRounded";
@@ -179,7 +178,6 @@ const AdminDashboard = () => {
         <StatCard
           title="Đầu sách đang hiển thị"
           value={state.data?.totalActiveBooks?.toLocaleString("vi-VN") ?? null}
-          detail="Các đầu sách đang ở trạng thái hoạt động"
           icon={<AutoStoriesRoundedIcon />}
           color="#1769ff"
           loading={state.loading}
@@ -189,7 +187,6 @@ const AdminDashboard = () => {
           value={
             state.data?.totalAvailableBooks?.toLocaleString("vi-VN") ?? null
           }
-          detail="Đầu sách có ít nhất một bản sẵn sàng cho mượn"
           icon={<LibraryBooksRoundedIcon />}
           color="#16a34a"
           loading={state.loading}
@@ -197,7 +194,6 @@ const AdminDashboard = () => {
         <StatCard
           title="Tổng lượt mượn"
           value={loanState.data?.totalLoans?.toLocaleString("vi-VN") ?? null}
-          detail="Bao gồm cả các lượt mượn đã hoàn tất trả"
           icon={<LocalLibraryRoundedIcon />}
           color="#0284c7"
           loading={loanState.loading}
@@ -205,7 +201,6 @@ const AdminDashboard = () => {
         <StatCard
           title="Lượt mượn quá hạn"
           value={loanState.data?.overdueLoans?.toLocaleString("vi-VN") ?? null}
-          detail="Chưa trả và đã quá thời hạn quy định"
           icon={<EventBusyRoundedIcon />}
           color="#dc2626"
           loading={loanState.loading}
@@ -220,8 +215,8 @@ const AdminDashboard = () => {
             p: 2.5,
             mb: 3,
             borderRadius: 3,
-            bgcolor: "#ffffff",
-            borderColor: "#e2e8f0",
+            bgcolor: "background.paper",
+            borderColor: "divider",
           }}
         >
           <Stack
@@ -234,7 +229,7 @@ const AdminDashboard = () => {
             <Box>
               <Typography
                 variant="subtitle1"
-                sx={{ fontWeight: 700, color: "#102d62" }}
+                sx={{ fontWeight: 700, color: "text.primary" }}
               >
                 Tỷ lệ sẵn sàng phục vụ sách
               </Typography>
@@ -253,7 +248,8 @@ const AdminDashboard = () => {
             sx={{
               height: 8,
               borderRadius: 4,
-              bgcolor: "#f1f5f9",
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark" ? "#24334a" : "#f1f5f9",
               "& .MuiLinearProgress-bar": {
                 borderRadius: 4,
                 bgcolor: availabilityRate > 50 ? "#16a34a" : "#d97706",
@@ -267,15 +263,18 @@ const AdminDashboard = () => {
       <Paper
         variant="outlined"
         sx={{
-          borderColor: "#e2e8f0",
+          borderColor: "divider",
           borderRadius: 3,
           p: { xs: 2.5, sm: 3 },
-          bgcolor: "#ffffff",
+          bgcolor: "background.paper",
           mb: 3,
         }}
       >
         <Box sx={{ mb: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: "#102d62" }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 700, color: "text.primary" }}
+          >
             Lối tắt nghiệp vụ
           </Typography>
           <Typography color="text.secondary" variant="body2">
@@ -304,8 +303,8 @@ const AdminDashboard = () => {
                 p: 2,
                 borderRadius: 2.5,
                 textDecoration: "none",
-                borderColor: "#e2e8f0",
-                bgcolor: "#ffffff",
+                borderColor: "divider",
+                bgcolor: "background.paper",
                 transition: "all 0.2s ease-in-out",
                 display: "flex",
                 flexDirection: "column",
@@ -337,7 +336,7 @@ const AdminDashboard = () => {
                 <Box sx={{ minWidth: 0 }}>
                   <Typography
                     variant="subtitle2"
-                    sx={{ fontWeight: 700, color: "#0f172a" }}
+                    sx={{ fontWeight: 700, color: "text.primary" }}
                   >
                     {item.title}
                   </Typography>

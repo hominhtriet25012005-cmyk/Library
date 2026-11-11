@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Box, Toolbar } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import UserSidebar from "./UserSidebar";
 import Navbar from "./Navbar";
 import { drawerWidth } from "./layout";
+import PageLoader from "../../components/PageLoader";
 
 const UserLayout = ({ preview = false }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "background.default" }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
       <Navbar
         preview={preview}
         handleDrawerToggle={() => setMobileOpen((open) => !open)}
@@ -33,7 +40,9 @@ const UserLayout = ({ preview = false }) => {
       >
         <Toolbar />
         <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 3, md: 3.5 } }}>
-          <Outlet />
+          <Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </Suspense>
         </Box>
       </Box>
     </Box>

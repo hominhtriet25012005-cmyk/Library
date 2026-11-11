@@ -171,3 +171,11 @@ html[data-theme="dark"] .MuiAlert-standardInfo {
   background-color: rgba(2, 132, 199, 0.15);
   color: #7dd3fc;
 }
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}

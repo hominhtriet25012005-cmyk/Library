@@ -18,6 +18,8 @@ const isValidDate = (value) => {
 export const ALLOWED_COVER_IMAGE_TYPES = ["image/jpeg", "image/png"];
 export const MAX_COVER_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 
+export const isIsbnLocked = (book) => Boolean(String(book?.isbn ?? "").trim());
+
 export const validateCoverImageFile = (file) => {
   if (!file || file.size === 0) {
     return "Vui lòng chọn ảnh bìa để tải lên.";
@@ -40,8 +42,8 @@ export const validateBookForm = (form, original = null) => {
   const author = String(form.author ?? "").trim();
   const genreId = Number(form.genreId);
 
-  if (!isbn || !title || !author || !form.genreId) {
-    return "Vui lòng nhập ISBN, tên sách, tác giả và thể loại.";
+  if (!title || !author || !form.genreId) {
+    return "Vui lòng nhập tên sách, tác giả và thể loại.";
   }
   if (isbn.length > 20) return "ISBN không được vượt quá 20 ký tự.";
   if (title.length > 255) return "Tên sách không được vượt quá 255 ký tự.";
@@ -121,7 +123,7 @@ export const bookPayload = (form, original = null) => {
 
   return {
     ...payloadForm,
-    isbn: String(form.isbn ?? "").trim(),
+    isbn: optionalText(form.isbn),
     title: String(form.title ?? "").trim(),
     author: String(form.author ?? "").trim(),
     genreId: Number(form.genreId),

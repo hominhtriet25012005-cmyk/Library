@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import { EmptyState } from "../../components/common";
 
-const ReadingHistory = ({ loans = [], preview = false }) => {
+const ReadingHistory = ({ loans = [] }) => {
   const returnedLoans = (loans || []).filter(
     (loan) => loan.status === "RETURNED",
   );

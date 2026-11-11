@@ -34,12 +34,16 @@ test("ADMIN không chấp nhận trang kết quả sai định dạng", async ()
 test("ADMIN tạo, hủy, xác nhận nhận sách qua đúng endpoint và payload", async () => {
   const calls = [];
   const admin = createAdminReservationsApi({
-    post: async (path, body) => { calls.push(["POST", path, body]); return { id: 8, status: "PENDING" }; },
+    post: async (path, body) => {
+      calls.push(["POST", path, body]);
+      return { id: 8, status: path.endsWith("/fulfill") ? "FULFILLED" : "PENDING" };
+    },
     delete: async (path) => { calls.push(["DELETE", path]); return { id: 8, status: "CANCELLED" }; },
   });
   await admin.create({ userId: "3", bookId: "5", notes: "Đặt tại quầy" });
   await admin.cancel(8);
-  await admin.fulfill(8);
+  await admin.fulfill({ id: 8, status: "AVAILABLE", queuePosition: 1,
+    isBookAvailable: true, expired: false });
   assert.deepEqual(calls, [
     ["POST", "/api/reservations/user/3", { bookId: 5, notes: "Đặt tại quầy" }],
     ["DELETE", "/api/reservations/8"],
@@ -49,13 +53,31 @@ test("ADMIN tạo, hủy, xác nhận nhận sách qua đúng endpoint và paylo
   assert.equal(calls.length, 3);
 });
 
+test("ADMIN không gửi API giao sách khi lượt đặt giữ chưa AVAILABLE", async () => {
+  const calls = [];
+  const admin = createAdminReservationsApi({
+    post: async (...args) => {
+      calls.push(args);
+      return { id: 8, status: "FULFILLED" };
+    },
+  });
+
+  await assert.rejects(
+    admin.fulfill({ id: 8, status: "PENDING", queuePosition: 1,
+      isBookAvailable: true, expired: false }),
+    /sẵn sàng nhận/i,
+  );
+  assert.equal(calls.length, 0);
+});
+
 test("chỉ xác nhận người đầu hàng, sách sẵn và đặt giữ chưa hết hạn", () => {
   const first = { status: "PENDING", queuePosition: 1, isBookAvailable: true,
     expired: false, canBeCancelled: true };
-  assert.equal(canAdminFulfill(first), true);
-  assert.equal(canAdminFulfill({ ...first, queuePosition: 2 }), false);
-  assert.equal(canAdminFulfill({ ...first, isBookAvailable: false }), false);
-  assert.equal(canAdminFulfill({ ...first, expired: true }), false);
+  assert.equal(canAdminFulfill(first), false);
+  assert.equal(canAdminFulfill({ ...first, status: "AVAILABLE" }), true);
+  assert.equal(canAdminFulfill({ ...first, status: "AVAILABLE", queuePosition: 2 }), false);
+  assert.equal(canAdminFulfill({ ...first, status: "AVAILABLE", isBookAvailable: false }), false);
+  assert.equal(canAdminFulfill({ ...first, status: "AVAILABLE", expired: true }), false);
   assert.equal(canAdminFulfill({ ...first, status: "CANCELLED" }), false);
   assert.equal(canAdminCancel(first), true);
   assert.equal(canAdminCancel({ ...first, status: "FULFILLED" }), false);

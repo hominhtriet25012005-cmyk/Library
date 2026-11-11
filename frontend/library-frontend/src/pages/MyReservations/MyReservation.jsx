@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Button, Paper, Tab, Tabs } from "@mui/material";
-import AccessAlarm from "@mui/icons-material/AccessAlarmRounded";
+import {
+  Alert,
+  Box,
+  Button,
+  Paper,
+  Tab,
+  Tabs,
+  Typography,
+} from "@mui/material";
 import Book from "@mui/icons-material/BookRounded";
 import CalendarToday from "@mui/icons-material/CalendarTodayRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
@@ -77,7 +84,7 @@ const MyReservation = ({ preview = false }) => {
   return (
     <Box
       component="section"
-      aria-label="Sách đặt giữ của tôi"
+      aria-label="Sách đặt giữ "
       sx={{
         width: "100%",
         maxWidth: 1200,
@@ -87,7 +94,7 @@ const MyReservation = ({ preview = false }) => {
     >
       {/* Header */}
       <PageHeader
-        title="Sách đặt giữ của tôi"
+        title="Sách đặt giữ "
         subtitle={
           preview
             ? "Bản xem thử với dữ liệu mẫu, không làm thay đổi các đặt giữ thật."
@@ -98,27 +105,31 @@ const MyReservation = ({ preview = false }) => {
       />
 
       {/* Thẻ thống kê */}
-      <StatCardGrid columns={{ xs: 1, sm: 3 }} sx={{ mb: 3 }}>
+      <StatCardGrid columns={{ xs: 1, sm: 3 }} sx={{ mb: 2.5 }}>
         <StatCard
           title="Tổng lượt đặt giữ"
           value={loading || error ? "—" : counts.total}
-          subtitle="Tất cả các lượt đăng ký xếp hàng"
           icon={Book}
           color="primary"
+          onClick={() => setActiveTab(0)}
         />
         <StatCard
           title="Đang xếp hàng"
-          value={loading || error ? "—" : counts.active}
-          subtitle="Đang chờ bạn đọc khác hoàn trả sách"
+          value={
+            loading || error
+              ? "—"
+              : Math.max(0, counts.active - counts.available)
+          }
           icon={HourglassTopRoundedIcon}
           color="navy"
+          onClick={() => setActiveTab(1)}
         />
         <StatCard
           title="Sẵn sàng nhận sách"
           value={loading || error ? "—" : counts.available}
-          subtitle="Sách đã về quầy, mời bạn đến mượn"
           icon={CalendarToday}
           color="success"
+          onClick={() => setActiveTab(2)}
         />
       </StatCardGrid>
 
@@ -153,49 +164,103 @@ const MyReservation = ({ preview = false }) => {
         </Alert>
       )}
 
-      {/* Tabs Filter Bar */}
+      {/* Thanh 3 Tab lọc trạng thái liền mạch, đồng bộ với 3 thẻ ở trên */}
       <Paper
         variant="outlined"
         sx={{
-          borderRadius: 2.5,
-          borderColor: "#e2e8f0",
-          bgcolor: "#fff",
+          borderRadius: 3,
+          borderColor: "divider",
+          bgcolor: "background.paper",
           mb: 3,
+          overflow: "hidden",
         }}
       >
         <Tabs
           value={activeTab}
           onChange={(_, value) => setActiveTab(value)}
-          variant="scrollable"
-          scrollButtons="auto"
+          variant="fullWidth"
           aria-label="Lọc đặt giữ"
           sx={{
-            px: 2,
+            minHeight: 52,
             "& .MuiTab-root": {
               textTransform: "none",
               fontWeight: 600,
-              fontSize: "0.9375rem",
-              minHeight: 48,
-              color: "#64748b",
+              fontSize: { xs: "0.85rem", sm: "0.9375rem" },
+              minHeight: 52,
+              py: 1.5,
+              color: "text.secondary",
+              transition: "all 0.2s ease",
+              "&:not(:last-of-type)": {
+                borderRight: (theme) => `1px solid ${theme.palette.divider}`,
+              },
               "&.Mui-selected": {
-                color: "#1769ff",
+                color: "primary.main",
+                fontWeight: 700,
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(23, 105, 255, 0.08)"
+                    : "rgba(23, 105, 255, 0.04)",
+              },
+              "&:hover": {
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(255, 255, 255, 0.03)"
+                    : "rgba(0, 0, 0, 0.02)",
               },
             },
             "& .MuiTabs-indicator": {
-              backgroundColor: "#1769ff",
+              backgroundColor: "primary.main",
               height: 3,
-              borderRadius: "3px 3px 0 0",
             },
           }}
         >
-          {tabs.map((tab) => (
-            <Tab
-              key={tab.value}
-              icon={tab.icon}
-              iconPosition="start"
-              label={tab.label}
-            />
-          ))}
+          {tabs.map((tab, idx) => {
+            const count =
+              tab.value === "all"
+                ? counts.total
+                : tab.value === "pending"
+                  ? Math.max(0, counts.active - counts.available)
+                  : counts.available;
+            return (
+              <Tab
+                key={tab.value}
+                icon={tab.icon}
+                iconPosition="start"
+                label={
+                  <Box
+                    sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 1,
+                    }}
+                  >
+                    <span>{tab.label}</span>
+                    <Box
+                      component="span"
+                      sx={{
+                        px: 0.9,
+                        py: 0.15,
+                        borderRadius: "10px",
+                        fontSize: "0.75rem",
+                        fontWeight: 700,
+                        bgcolor:
+                          activeTab === idx
+                            ? "primary.main"
+                            : (theme) =>
+                                theme.palette.mode === "dark"
+                                  ? "rgba(255, 255, 255, 0.08)"
+                                  : "#e2e8f0",
+                        color: activeTab === idx ? "#ffffff" : "text.secondary",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {count}
+                    </Box>
+                  </Box>
+                }
+              />
+            );
+          })}
         </Tabs>
       </Paper>
 
@@ -205,9 +270,10 @@ const MyReservation = ({ preview = false }) => {
           sx={{
             py: 8,
             textAlign: "center",
-            bgcolor: "#fff",
+            bgcolor: "background.paper",
             borderRadius: 3,
-            border: "1px solid #e2e8f0",
+            border: "1px solid",
+            borderColor: "divider",
           }}
         >
           <Alert severity="info" sx={{ display: "inline-flex" }}>

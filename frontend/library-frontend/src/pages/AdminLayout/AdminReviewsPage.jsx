@@ -197,28 +197,24 @@ const AdminReviewsPage = () => {
         <StatCard
           title="Đánh giá (Trang)"
           value={loading ? "—" : stats.totalOnPage}
-          subtitle="Số nhận xét đang hiển thị"
           icon={RateReviewRoundedIcon}
           color="primary"
         />
         <StatCard
           title="Đang hiển thị"
           value={loading ? "—" : stats.activeCount}
-          subtitle="Đánh giá công khai trên trang sách"
           icon={CheckCircleRoundedIcon}
           color="success"
         />
         <StatCard
           title="Đã ẩn"
           value={loading ? "—" : stats.hiddenCount}
-          subtitle="Đánh giá bị kiểm duyệt ẩn đi"
           icon={BlockRoundedIcon}
           color="error"
         />
         <StatCard
           title="Điểm trung bình (Trang)"
           value={loading ? "—" : stats.avgRating}
-          subtitle="Xếp hạng sao bình quân"
           icon={StarRoundedIcon}
           color="warning"
         />
@@ -278,46 +274,53 @@ const AdminReviewsPage = () => {
         sx={{
           borderRadius: 2.5,
           overflowX: "auto",
-          bgcolor: "#fff",
-          borderColor: "#e2e8f0",
+          bgcolor: "background.paper",
+          borderColor: "divider",
           boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
         }}
       >
         <Table sx={{ minWidth: 850 }}>
-          <TableHead sx={{ bgcolor: "#f8fafc" }}>
+          <TableHead
+            sx={{
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+            }}
+          >
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, width: 80, color: "#1e293b" }}>
+              <TableCell
+                sx={{ fontWeight: 700, width: 80, color: "text.primary" }}
+              >
                 Mã
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 160, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 160, color: "text.primary" }}
               >
                 Người đánh giá
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 180, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 180, color: "text.primary" }}
               >
                 Sách được nhận xét
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 150, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 150, color: "text.primary" }}
               >
                 Điểm xếp hạng
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, minWidth: 130, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 130, color: "text.primary" }}
               >
                 Trạng thái
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 140, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 140, color: "text.primary" }}
               >
                 Thời gian
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, width: 110, color: "#1e293b" }}
+                sx={{ fontWeight: 700, width: 110, color: "text.primary" }}
               >
                 Thao tác
               </TableCell>
@@ -356,23 +359,23 @@ const AdminReviewsPage = () => {
                   key={entry.id}
                   hover
                   sx={{
-                    "&:hover": { bgcolor: "#f8fafc" },
-                    "& td": { borderColor: "#f1f5f9" },
+                    "&:hover": { bgcolor: "action.hover" },
+                    "& td": { borderColor: "divider" },
                   }}
                 >
-                  <TableCell sx={{ fontWeight: 600, color: "#64748b" }}>
+                  <TableCell sx={{ fontWeight: 600, color: "text.secondary" }}>
                     #{entry.id}
                   </TableCell>
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 700, color: "#1e293b" }}
+                      sx={{ fontWeight: 700, color: "text.primary" }}
                     >
                       {entry.userName || `Độc giả #${entry.userId}`}
                     </Typography>
                     <Typography
                       variant="caption"
-                      sx={{ color: "#64748b", display: "block" }}
+                      sx={{ color: "text.secondary", display: "block" }}
                     >
                       ID: #{entry.userId}
                     </Typography>
@@ -380,13 +383,13 @@ const AdminReviewsPage = () => {
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 600, color: "#102d62" }}
+                      sx={{ fontWeight: 600, color: "text.primary" }}
                     >
                       {entry.bookTitle || `Sách #${entry.bookId}`}
                     </Typography>
                     <Typography
                       variant="caption"
-                      sx={{ color: "#64748b", display: "block" }}
+                      sx={{ color: "text.secondary", display: "block" }}
                     >
                       ID sách: #{entry.bookId}
                     </Typography>
@@ -397,11 +400,11 @@ const AdminReviewsPage = () => {
                         value={Number(entry.rating) || 0}
                         readOnly
                         size="small"
-                        sx={{ color: "#f59e0b" }}
+                        sx={{ color: "warning.main" }}
                       />
                       <Typography
                         variant="body2"
-                        sx={{ fontWeight: 700, color: "#b45309" }}
+                        sx={{ fontWeight: 700, color: "warning.dark" }}
                       >
                         {entry.rating}/5
                       </Typography>
@@ -416,7 +419,7 @@ const AdminReviewsPage = () => {
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ color: "#475569", fontSize: "0.8125rem" }}
+                      sx={{ color: "text.secondary", fontSize: "0.8125rem" }}
                     >
                       {formatDateTimeVN(entry.createdAt)}
                     </Typography>
@@ -426,6 +429,12 @@ const AdminReviewsPage = () => {
                       direction="row"
                       spacing={0.5}
                       justifyContent="center"
+                      alignItems="center"
+                      sx={{
+                        display: "inline-flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
                     >
                       <Tooltip title="Xem nội dung chi tiết">
                         <IconButton
@@ -433,9 +442,17 @@ const AdminReviewsPage = () => {
                           aria-label={`Xem đánh giá #${entry.id}`}
                           onClick={() => setSelected(entry)}
                           sx={{
-                            color: "#1769ff",
-                            bgcolor: "rgba(23,105,255,0.06)",
-                            "&:hover": { bgcolor: "rgba(23,105,255,0.12)" },
+                            color: "primary.main",
+                            bgcolor: (theme) =>
+                              theme.palette.mode === "dark"
+                                ? "rgba(59,130,246,0.15)"
+                                : "rgba(23,105,255,0.06)",
+                            "&:hover": {
+                              bgcolor: (theme) =>
+                                theme.palette.mode === "dark"
+                                  ? "rgba(59,130,246,0.25)"
+                                  : "rgba(23,105,255,0.12)",
+                            },
                           }}
                         >
                           <VisibilityOutlinedIcon fontSize="small" />
@@ -451,9 +468,17 @@ const AdminReviewsPage = () => {
                               setActionError("");
                             }}
                             sx={{
-                              color: "#ef4444",
-                              bgcolor: "rgba(239,68,68,0.06)",
-                              "&:hover": { bgcolor: "rgba(239,68,68,0.12)" },
+                              color: "error.main",
+                              bgcolor: (theme) =>
+                                theme.palette.mode === "dark"
+                                  ? "rgba(239,68,68,0.15)"
+                                  : "rgba(239,68,68,0.06)",
+                              "&:hover": {
+                                bgcolor: (theme) =>
+                                  theme.palette.mode === "dark"
+                                    ? "rgba(239,68,68,0.25)"
+                                    : "rgba(239,68,68,0.12)",
+                              },
                             }}
                           >
                             <VisibilityOffOutlinedIcon fontSize="small" />
@@ -498,10 +523,14 @@ const AdminReviewsPage = () => {
           }}
         >
           <Box>
-            <Typography variant="h6" fontWeight={750} sx={{ color: "#102d62" }}>
+            <Typography
+              variant="h6"
+              fontWeight={750}
+              sx={{ color: "text.primary" }}
+            >
               Đánh giá #{selected?.id}
             </Typography>
-            <Typography variant="caption" sx={{ color: "#64748b" }}>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
               Chi tiết nhận xét từ độc giả
             </Typography>
           </Box>
@@ -515,9 +544,11 @@ const AdminReviewsPage = () => {
               <Box
                 sx={{
                   p: 2,
-                  bgcolor: "#f8fafc",
+                  bgcolor: (theme) =>
+                    theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
                   borderRadius: 2.5,
-                  border: "1px solid #e2e8f0",
+                  border: 1,
+                  borderColor: "divider",
                 }}
               >
                 <Box
@@ -531,11 +562,14 @@ const AdminReviewsPage = () => {
                   <Box>
                     <Typography
                       variant="subtitle2"
-                      sx={{ fontWeight: 750, color: "#1e293b" }}
+                      sx={{ fontWeight: 750, color: "text.primary" }}
                     >
                       {selected.userName || `Độc giả #${selected.userId}`}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: "#64748b" }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "text.secondary" }}
+                    >
                       Nhận xét cuốn:{" "}
                       <strong>
                         {selected.bookTitle || `ID: #${selected.bookId}`}
@@ -554,39 +588,22 @@ const AdminReviewsPage = () => {
                     value={Number(selected.rating) || 0}
                     readOnly
                     size="small"
-                    sx={{ color: "#f59e0b" }}
+                    sx={{ color: "warning.main" }}
                   />
                   <Typography
                     variant="caption"
-                    sx={{ fontWeight: 700, color: "#b45309" }}
+                    sx={{ fontWeight: 700, color: "warning.dark" }}
                   >
                     ({selected.rating} / 5 sao)
                   </Typography>
                 </Box>
               </Box>
 
-              {selected.title && (
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "#64748b", fontWeight: 600, display: "block" }}
-                  >
-                    Tiêu đề bài viết
-                  </Typography>
-                  <Typography
-                    variant="subtitle1"
-                    sx={{ fontWeight: 700, color: "#1e293b" }}
-                  >
-                    {selected.title}
-                  </Typography>
-                </Box>
-              )}
-
               <Box>
                 <Typography
                   variant="caption"
                   sx={{
-                    color: "#64748b",
+                    color: "text.secondary",
                     fontWeight: 600,
                     display: "block",
                     mb: 0.5,
@@ -599,8 +616,8 @@ const AdminReviewsPage = () => {
                   sx={{
                     p: 2,
                     borderRadius: 2,
-                    bgcolor: "#fff",
-                    borderColor: "#e2e8f0",
+                    bgcolor: "background.paper",
+                    borderColor: "divider",
                   }}
                 >
                   <Typography
@@ -609,21 +626,26 @@ const AdminReviewsPage = () => {
                       whiteSpace: "pre-wrap",
                       overflowWrap: "anywhere",
                       lineHeight: 1.6,
-                      color: "#334155",
+                      color: "text.primary",
                     }}
                   >
-                    {selected.reviewText || "Không có nội dung mô tả chi tiết."}
+                    {String(selected.reviewText ?? "")
+                      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+                      .trim() || "Không có nội dung mô tả chi tiết."}
                   </Typography>
                 </Paper>
               </Box>
 
               <Box sx={{ display: "flex", gap: 3 }}>
-                <Typography variant="caption" sx={{ color: "#64748b" }}>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
                   Ngày tạo:{" "}
                   <strong>{formatDateTimeVN(selected.createdAt)}</strong>
                 </Typography>
                 {selected.updatedAt && (
-                  <Typography variant="caption" sx={{ color: "#64748b" }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.secondary" }}
+                  >
                     Cập nhật:{" "}
                     <strong>{formatDateTimeVN(selected.updatedAt)}</strong>
                   </Typography>

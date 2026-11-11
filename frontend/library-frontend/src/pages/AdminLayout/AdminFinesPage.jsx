@@ -10,7 +10,6 @@ import {
   DialogTitle,
   FormControl,
   IconButton,
-  InputAdornment,
   InputLabel,
   MenuItem,
   Paper,
@@ -26,10 +25,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import HourglassTopRoundedIcon from "@mui/icons-material/HourglassTopRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import PaidRoundedIcon from "@mui/icons-material/PaidRounded";
@@ -65,7 +62,12 @@ const InfoItem = ({ label, value }) => (
   <Box>
     <Typography
       variant="caption"
-      sx={{ color: "#64748b", fontWeight: 500, display: "block", mb: 0.25 }}
+      sx={{
+        color: "text.secondary",
+        fontWeight: 500,
+        display: "block",
+        mb: 0.25,
+      }}
     >
       {label}
     </Typography>
@@ -73,7 +75,7 @@ const InfoItem = ({ label, value }) => (
       sx={{
         overflowWrap: "anywhere",
         fontWeight: 600,
-        color: "#1e293b",
+        color: "text.primary",
         fontSize: "0.875rem",
       }}
     >
@@ -83,13 +85,6 @@ const InfoItem = ({ label, value }) => (
 );
 
 const initialFilter = { userId: "", status: "ALL", type: "ALL" };
-const initialForm = {
-  bookLoanId: "",
-  type: "OVERDUE",
-  amount: "",
-  reason: "",
-  notes: "",
-};
 
 const AdminFinesPage = () => {
   const [draft, setDraft] = useState(initialFilter);
@@ -102,7 +97,6 @@ const AdminFinesPage = () => {
   const [notice, setNotice] = useState("");
   const [selected, setSelected] = useState(null);
   const [action, setAction] = useState(null);
-  const [form, setForm] = useState(initialForm);
   const [waiveReason, setWaiveReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -153,11 +147,10 @@ const AdminFinesPage = () => {
     setReload((value) => value + 1);
   };
 
-  const openAction = (kind, fine = null) => {
+  const openAction = (fine) => {
     setSelected(null);
-    setAction({ kind, fine });
+    setAction({ fine });
     setActionError("");
-    setForm(initialForm);
     setWaiveReason("");
   };
 
@@ -167,15 +160,8 @@ const AdminFinesPage = () => {
     setActionError("");
     setNotice("");
     try {
-      const saved =
-        action.kind === "create"
-          ? await adminFinanceApi.createFine(form)
-          : await adminFinanceApi.waiveFine(action.fine.id, waiveReason);
-      setNotice(
-        action.kind === "create"
-          ? `Đã tạo thành công khoản phạt #${saved.id}.`
-          : `Đã miễn phần còn nợ của khoản phạt #${saved.id}.`,
-      );
+      const saved = await adminFinanceApi.waiveFine(action.fine.id, waiveReason);
+      setNotice(`Đã miễn phần còn nợ của khoản phạt #${saved.id}.`);
       setAction(null);
       setSelected(saved);
       setLoading(true);
@@ -231,11 +217,6 @@ const AdminFinesPage = () => {
             ? `${result.totalElements} khoản phạt`
             : undefined
         }
-        action={{
-          label: "Tạo khoản phạt",
-          icon: AddRoundedIcon,
-          onClick: () => openAction("create"),
-        }}
       />
 
       {/* Thông báo Alert */}
@@ -265,30 +246,26 @@ const AdminFinesPage = () => {
       {/* Thẻ thống kê */}
       <StatCardGrid columns={{ xs: 1, sm: 2, lg: 4 }} sx={{ mb: 3 }}>
         <StatCard
-          title="Chờ thanh toán (Trang)"
+          title="Chờ thanh toán "
           value={loading ? "—" : statistics.pendingCount}
-          subtitle="Khoản phạt còn nợ trên trang"
           icon={HourglassTopRoundedIcon}
           color="warning"
         />
         <StatCard
-          title="Đã thanh toán (Trang)"
+          title="Đã thanh toán "
           value={loading ? "—" : statistics.paidCount}
-          subtitle="Khoản phạt đã thu đủ"
           icon={CheckCircleOutlineRoundedIcon}
           color="success"
         />
         <StatCard
-          title="Tổng đã thu (Trang)"
+          title="Tổng đã thu "
           value={loading ? "—" : formatCurrencyVND(statistics.totalCollected)}
-          subtitle="Tiền phạt thực tế đã thu"
           icon={PaidRoundedIcon}
           color="primary"
         />
         <StatCard
-          title="Tổng còn nợ (Trang)"
+          title="Tổng còn nợ "
           value={loading ? "—" : formatCurrencyVND(statistics.totalDebt)}
-          subtitle="Tiền phạt chưa thanh toán"
           icon={ReportProblemRoundedIcon}
           color="error"
         />
@@ -355,47 +332,54 @@ const AdminFinesPage = () => {
         sx={{
           borderRadius: 2.5,
           overflowX: "auto",
-          bgcolor: "#fff",
-          borderColor: "#e2e8f0",
+          bgcolor: "background.paper",
+          borderColor: "divider",
           boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
         }}
       >
         <Table sx={{ minWidth: 850 }}>
-          <TableHead sx={{ bgcolor: "#f8fafc" }}>
+          <TableHead
+            sx={{
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+            }}
+          >
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, width: 80, color: "#1e293b" }}>
+              <TableCell
+                sx={{ fontWeight: 700, width: 80, color: "text.primary" }}
+              >
                 Mã
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 180, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 180, color: "text.primary" }}
               >
                 Độc giả
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 200, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 200, color: "text.primary" }}
               >
                 Sách / Lượt mượn
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 120, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 120, color: "text.primary" }}
               >
                 Loại phạt
               </TableCell>
               <TableCell
                 align="right"
-                sx={{ fontWeight: 700, minWidth: 160, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 160, color: "text.primary" }}
               >
                 Tổng phạt / Còn nợ
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, minWidth: 140, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 140, color: "text.primary" }}
               >
                 Trạng thái
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, width: 100, color: "#1e293b" }}
+                sx={{ fontWeight: 700, width: 100, color: "text.primary" }}
               >
                 Chi tiết
               </TableCell>
@@ -434,23 +418,23 @@ const AdminFinesPage = () => {
                   key={fine.id}
                   hover
                   sx={{
-                    "&:hover": { bgcolor: "#f8fafc" },
-                    "& td": { borderColor: "#f1f5f9" },
+                    "&:hover": { bgcolor: "action.hover" },
+                    "& td": { borderColor: "divider" },
                   }}
                 >
-                  <TableCell sx={{ fontWeight: 600, color: "#64748b" }}>
+                  <TableCell sx={{ fontWeight: 600, color: "text.secondary" }}>
                     #{fine.id}
                   </TableCell>
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 700, color: "#1e293b" }}
+                      sx={{ fontWeight: 700, color: "text.primary" }}
                     >
                       {fine.userName || `#${fine.userId}`}
                     </Typography>
                     <Typography
                       variant="caption"
-                      sx={{ color: "#64748b", display: "block" }}
+                      sx={{ color: "text.secondary", display: "block" }}
                     >
                       {fine.userEmail || `ID: ${fine.userId}`}
                     </Typography>
@@ -458,13 +442,13 @@ const AdminFinesPage = () => {
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 600, color: "#1e293b" }}
+                      sx={{ fontWeight: 600, color: "text.primary" }}
                     >
                       {fine.bookTitle || `Lượt mượn #${fine.bookLoanId}`}
                     </Typography>
                     <Typography
                       variant="caption"
-                      sx={{ color: "#64748b", display: "block" }}
+                      sx={{ color: "text.secondary", display: "block" }}
                     >
                       Mã mượn: #{fine.bookLoanId}
                     </Typography>
@@ -472,7 +456,7 @@ const AdminFinesPage = () => {
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 500, color: "#334155" }}
+                      sx={{ fontWeight: 500, color: "text.primary" }}
                     >
                       {fineTypes[fine.type] || fine.type}
                     </Typography>
@@ -480,7 +464,7 @@ const AdminFinesPage = () => {
                   <TableCell align="right">
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 700, color: "#1e293b" }}
+                      sx={{ fontWeight: 700, color: "text.primary" }}
                     >
                       {formatCurrencyVND(fine.amount)}
                     </Typography>
@@ -510,9 +494,17 @@ const AdminFinesPage = () => {
                         aria-label={`Xem chi tiết khoản phạt #${fine.id}`}
                         onClick={() => setSelected(fine)}
                         sx={{
-                          color: "#1769ff",
-                          bgcolor: "rgba(23,105,255,0.06)",
-                          "&:hover": { bgcolor: "rgba(23,105,255,0.12)" },
+                          color: "primary.main",
+                          bgcolor: (theme) =>
+                            theme.palette.mode === "dark"
+                              ? "rgba(59,130,246,0.15)"
+                              : "rgba(23,105,255,0.06)",
+                          "&:hover": {
+                            bgcolor: (theme) =>
+                              theme.palette.mode === "dark"
+                                ? "rgba(59,130,246,0.25)"
+                                : "rgba(23,105,255,0.12)",
+                          },
                         }}
                       >
                         <VisibilityOutlinedIcon fontSize="small" />
@@ -556,10 +548,14 @@ const AdminFinesPage = () => {
           }}
         >
           <Box>
-            <Typography variant="h6" fontWeight={750} sx={{ color: "#102d62" }}>
+            <Typography
+              variant="h6"
+              fontWeight={750}
+              sx={{ color: "text.primary" }}
+            >
               Khoản phạt #{selected?.id}
             </Typography>
-            <Typography variant="caption" sx={{ color: "#64748b" }}>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
               Chi tiết công nợ và lịch sử thanh toán
             </Typography>
           </Box>
@@ -594,7 +590,7 @@ const AdminFinesPage = () => {
                 <Typography
                   variant="caption"
                   sx={{
-                    color: "#64748b",
+                    color: "text.secondary",
                     fontWeight: 500,
                     display: "block",
                     mb: 0.5,
@@ -657,7 +653,7 @@ const AdminFinesPage = () => {
             <Button
               variant="outlined"
               color="warning"
-              onClick={() => openAction("waive", selected)}
+              onClick={() => openAction(selected)}
               sx={{
                 borderRadius: "10px",
                 textTransform: "none",
@@ -681,7 +677,7 @@ const AdminFinesPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Dialog Tạo mới / Miễn tiền phạt */}
+      {/* Dialog miễn khoản phạt */}
       <Dialog
         open={Boolean(action)}
         onClose={busy ? undefined : () => setAction(null)}
@@ -707,18 +703,19 @@ const AdminFinesPage = () => {
             px: 3,
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 700, color: "#102d62" }}>
-            {action?.kind === "create"
-              ? "Tạo khoản phạt mới"
-              : `Miễn khoản phạt #${action?.fine?.id}`}
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 700, color: "text.primary" }}
+          >
+            Miễn khoản phạt #{action?.fine?.id}
           </Typography>
           <IconButton
             size="small"
             onClick={() => setAction(null)}
             disabled={busy}
             sx={{
-              color: "#94a3b8",
-              "&:hover": { bgcolor: "#f1f5f9", color: "#0f172a" },
+              color: "text.secondary",
+              "&:hover": { bgcolor: "action.hover", color: "text.primary" },
             }}
           >
             <CloseRoundedIcon fontSize="small" />
@@ -727,138 +724,23 @@ const AdminFinesPage = () => {
 
         <DialogContent sx={{ px: 3, py: 2 }}>
           <Stack spacing={2.5} sx={{ mt: 1 }}>
-            {action?.kind === "create" ? (
-              <>
-                <Alert
-                  severity="info"
-                  sx={{
-                    borderRadius: 2,
-                    fontSize: "0.875rem",
-                    alignItems: "center",
-                  }}
-                >
-                  Độc giả phải nộp phạt sẽ được tự động trích xuất từ ID lượt
-                  mượn sách tương ứng.
-                </Alert>
-
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                    gap: 2,
-                  }}
-                >
-                  <TextField
-                    label="Mã lượt mượn (Book Loan ID)"
-                    type="number"
-                    placeholder="VD: 102"
-                    required
-                    value={form.bookLoanId}
-                    onChange={(event) =>
-                      setForm({ ...form, bookLoanId: event.target.value })
-                    }
-                    sx={{
-                      "& .MuiOutlinedInput-root": { borderRadius: "10px" },
-                    }}
-                  />
-                  <FormControl required fullWidth>
-                    <InputLabel id="fine-type-label">Loại vi phạm</InputLabel>
-                    <Select
-                      labelId="fine-type-label"
-                      label="Loại vi phạm"
-                      value={form.type}
-                      onChange={(event) =>
-                        setForm({ ...form, type: event.target.value })
-                      }
-                      sx={{ borderRadius: "10px" }}
-                    >
-                      {Object.entries(fineTypes).map(([key, value]) => (
-                        <MenuItem key={key} value={key}>
-                          {value}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-
-                <TextField
-                  label="Số tiền phạt"
-                  type="number"
-                  placeholder="Nhập số tiền VNĐ..."
-                  required
-                  value={form.amount}
-                  onChange={(event) =>
-                    setForm({ ...form, amount: event.target.value })
-                  }
-                  slotProps={{
-                    input: {
-                      endAdornment: (
-                        <InputAdornment position="end">₫</InputAdornment>
-                      ),
-                      inputProps: { min: 1, step: 1000 },
-                    },
-                  }}
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-                />
-
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                    gap: 2,
-                  }}
-                >
-                  <TextField
-                    label="Lý do xử phạt"
-                    placeholder="VD: Trả trễ 5 ngày, làm hỏng gáy sách..."
-                    multiline
-                    minRows={2}
-                    value={form.reason}
-                    onChange={(event) =>
-                      setForm({ ...form, reason: event.target.value })
-                    }
-                    slotProps={{ htmlInput: { maxLength: 500 } }}
-                    sx={{
-                      "& .MuiOutlinedInput-root": { borderRadius: "10px" },
-                    }}
-                  />
-                  <TextField
-                    label="Ghi chú nội bộ"
-                    placeholder="Ghi chú thêm nếu cần..."
-                    multiline
-                    minRows={2}
-                    value={form.notes}
-                    onChange={(event) =>
-                      setForm({ ...form, notes: event.target.value })
-                    }
-                    slotProps={{ htmlInput: { maxLength: 1000 } }}
-                    sx={{
-                      "& .MuiOutlinedInput-root": { borderRadius: "10px" },
-                    }}
-                  />
-                </Box>
-              </>
-            ) : (
-              <>
-                <Alert severity="warning" sx={{ borderRadius: 2 }}>
-                  Chỉ miễn phần còn nợ (
-                  {formatCurrencyVND(action?.fine?.amountOutstanding)}). Số tiền
-                  đã thanh toán trước đó sẽ không tự động hoàn. Thao tác miễn
-                  giảm không thể hoàn tác.
-                </Alert>
-                <TextField
-                  label="Lý do miễn phạt"
-                  required
-                  multiline
-                  minRows={3}
-                  placeholder="Nhập lý do miễn giảm nợ cho độc giả..."
-                  value={waiveReason}
-                  onChange={(event) => setWaiveReason(event.target.value)}
-                  slotProps={{ htmlInput: { maxLength: 500 } }}
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-                />
-              </>
-            )}
+            <Alert severity="warning" sx={{ borderRadius: 2 }}>
+              Chỉ miễn phần còn nợ (
+              {formatCurrencyVND(action?.fine?.amountOutstanding)}). Số tiền đã
+              thanh toán trước đó sẽ không tự động hoàn. Thao tác miễn giảm
+              không thể hoàn tác.
+            </Alert>
+            <TextField
+              label="Lý do miễn phạt"
+              required
+              multiline
+              minRows={3}
+              placeholder="Nhập lý do miễn giảm nợ cho độc giả..."
+              value={waiveReason}
+              onChange={(event) => setWaiveReason(event.target.value)}
+              slotProps={{ htmlInput: { maxLength: 500 } }}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+            />
 
             {actionError && (
               <Alert severity="error" sx={{ borderRadius: 2 }}>
@@ -872,7 +754,8 @@ const AdminFinesPage = () => {
           sx={{
             px: 3,
             py: 2,
-            borderTop: "1px solid #f1f5f9",
+            borderTop: 1,
+            borderColor: "divider",
             gap: 1,
           }}
         >
@@ -880,12 +763,12 @@ const AdminFinesPage = () => {
             disabled={busy}
             onClick={() => setAction(null)}
             sx={{
-              color: "#64748b",
+              color: "text.secondary",
               fontWeight: 600,
               textTransform: "none",
               borderRadius: "10px",
               px: 2.5,
-              "&:hover": { bgcolor: "#f1f5f9" },
+              "&:hover": { bgcolor: "action.hover" },
             }}
           >
             Hủy bỏ
@@ -893,7 +776,7 @@ const AdminFinesPage = () => {
           <Button
             disabled={busy}
             variant="contained"
-            color={action?.kind === "waive" ? "warning" : "primary"}
+            color="warning"
             onClick={submitAction}
             sx={{
               fontWeight: 600,

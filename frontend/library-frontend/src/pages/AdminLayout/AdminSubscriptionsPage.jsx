@@ -34,11 +34,13 @@ import { Link as RouterLink } from "react-router-dom";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import CardMembershipRoundedIcon from "@mui/icons-material/CardMembershipRounded";
 import LoyaltyRoundedIcon from "@mui/icons-material/LoyaltyRounded";
 import PeopleAltRoundedIcon from "@mui/icons-material/PeopleAltRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
+import UpdateRoundedIcon from "@mui/icons-material/UpdateRounded";
 
 import {
   adminMembershipApi,
@@ -71,6 +73,24 @@ const emptyPlan = {
   adminNotes: "",
 };
 
+const planToForm = (plan) =>
+  plan
+    ? {
+        planCode: plan.planCode ?? "",
+        name: plan.name ?? "",
+        description: plan.description ?? "",
+        durationDays: String(plan.durationDays ?? ""),
+        price: String(plan.price ?? ""),
+        maxBooksAllowed: String(plan.maxBooksAllowed ?? ""),
+        maxDaysPerBook: String(plan.maxDaysPerBook ?? ""),
+        displayOrder: String(plan.displayOrder ?? 0),
+        isActive: plan.isActive !== false,
+        isFeatured: plan.isFeatured === true,
+        badgeText: plan.badgeText ?? "",
+        adminNotes: plan.adminNotes ?? "",
+      }
+    : { ...emptyPlan };
+
 const SubscriptionsHeader = ({ activeTab, actionButton = null }) => (
   <Box sx={{ mb: 3 }}>
     <PageHeader
@@ -82,20 +102,21 @@ const SubscriptionsHeader = ({ activeTab, actionButton = null }) => (
       value={activeTab}
       aria-label="Tab gói thành viên"
       sx={{
-        borderBottom: "1px solid #e2e8f0",
+        borderBottom: 1,
+        borderColor: "divider",
         "& .MuiTab-root": {
           textTransform: "none",
           fontWeight: 600,
           fontSize: "0.9375rem",
           minHeight: 44,
           px: 2.5,
-          color: "#64748b",
+          color: "text.secondary",
           "&.Mui-selected": {
-            color: "#1769ff",
+            color: "primary.main",
           },
         },
         "& .MuiTabs-indicator": {
-          backgroundColor: "#1769ff",
+          backgroundColor: "primary.main",
           height: 3,
           borderRadius: "3px 3px 0 0",
         },
@@ -125,7 +146,12 @@ const DetailRow = ({ label, children }) => (
   <Box>
     <Typography
       variant="caption"
-      sx={{ color: "#64748b", fontWeight: 500, display: "block", mb: 0.25 }}
+      sx={{
+        color: "text.secondary",
+        fontWeight: 500,
+        display: "block",
+        mb: 0.25,
+      }}
     >
       {label}
     </Typography>
@@ -133,7 +159,7 @@ const DetailRow = ({ label, children }) => (
       sx={{
         overflowWrap: "anywhere",
         fontWeight: 600,
-        color: "#1e293b",
+        color: "text.primary",
         fontSize: "0.875rem",
       }}
     >
@@ -142,10 +168,11 @@ const DetailRow = ({ label, children }) => (
   </Box>
 );
 
-const PlanCreateDialog = ({ open, onClose, onSaved }) => {
-  const [form, setForm] = useState(emptyPlan);
+const PlanDialog = ({ open, plan = null, onClose, onSaved }) => {
+  const [form, setForm] = useState(() => planToForm(plan));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const editing = Boolean(plan?.id);
 
   const change = (field) => (event) =>
     setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -155,11 +182,18 @@ const PlanCreateDialog = ({ open, onClose, onSaved }) => {
     try {
       const payload = buildPlanPayload(form);
       setBusy(true);
-      const created = await adminMembershipApi.createPlan(payload);
-      setForm(emptyPlan);
-      onSaved(created);
+      const saved = editing
+        ? await adminMembershipApi.updatePlan(plan.id, payload)
+        : await adminMembershipApi.createPlan(payload);
+      setForm({ ...emptyPlan });
+      onSaved(saved, editing);
     } catch (cause) {
-      setError(cause.message || "Không tạo được gói mới.");
+      setError(
+        cause.message ||
+          (editing
+            ? "Không cập nhật được gói thành viên."
+            : "Không tạo được gói mới."),
+      );
     } finally {
       setBusy(false);
     }
@@ -191,16 +225,19 @@ const PlanCreateDialog = ({ open, onClose, onSaved }) => {
           px: 3,
         }}
       >
-        <Typography variant="h6" sx={{ fontWeight: 700, color: "#102d62" }}>
-          Thêm gói thành viên mới
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 700, color: "text.primary" }}
+        >
+          {editing ? "Sửa gói thành viên" : "Thêm gói thành viên mới"}
         </Typography>
         <IconButton
           size="small"
           onClick={onClose}
           disabled={busy}
           sx={{
-            color: "#94a3b8",
-            "&:hover": { bgcolor: "#f1f5f9", color: "#0f172a" },
+            color: "text.secondary",
+            "&:hover": { bgcolor: "action.hover", color: "text.primary" },
           }}
         >
           <CloseRoundedIcon fontSize="small" />
@@ -234,6 +271,8 @@ const PlanCreateDialog = ({ open, onClose, onSaved }) => {
               required
               value={form.planCode}
               onChange={change("planCode")}
+              disabled={editing}
+              helperText={editing ? "Mã gói được giữ cố định sau khi tạo." : ""}
               slotProps={{ htmlInput: { maxLength: 100 } }}
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
             />
@@ -365,7 +404,7 @@ const PlanCreateDialog = ({ open, onClose, onSaved }) => {
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
             />
             <TextField
-              label="Huy hiệu nổi bật (Badge)"
+              label="Huy hiệu nổi bật "
               placeholder="VD: Phổ biến nhất"
               value={form.badgeText}
               onChange={change("badgeText")}
@@ -416,7 +455,8 @@ const PlanCreateDialog = ({ open, onClose, onSaved }) => {
         sx={{
           px: 3,
           py: 2,
-          borderTop: "1px solid #f1f5f9",
+          borderTop: 1,
+          borderColor: "divider",
           gap: 1,
         }}
       >
@@ -424,12 +464,12 @@ const PlanCreateDialog = ({ open, onClose, onSaved }) => {
           disabled={busy}
           onClick={onClose}
           sx={{
-            color: "#64748b",
+            color: "text.secondary",
             fontWeight: 600,
             textTransform: "none",
             borderRadius: "10px",
             px: 2.5,
-            "&:hover": { bgcolor: "#f1f5f9" },
+            "&:hover": { bgcolor: "action.hover" },
           }}
         >
           Hủy bỏ
@@ -446,7 +486,7 @@ const PlanCreateDialog = ({ open, onClose, onSaved }) => {
             height: 40,
           }}
         >
-          {busy ? "Đang xử lý…" : "Tạo gói"}
+          {busy ? "Đang xử lý…" : editing ? "Lưu thay đổi" : "Tạo gói"}
         </Button>
       </DialogActions>
     </Dialog>
@@ -461,8 +501,12 @@ export const AdminSubscriptionPlansPage = () => {
   const [status, setStatus] = useState("ALL");
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [selected, setSelected] = useState(null);
   const [notice, setNotice] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [actionBusy, setActionBusy] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -499,6 +543,25 @@ export const AdminSubscriptionPlansPage = () => {
     const inactive = all.length - active;
     return { total: all.length, active, inactive };
   }, [plans]);
+
+  const deletePlan = async () => {
+    if (!deleting || actionBusy) return;
+    setActionBusy(true);
+    setActionError("");
+    try {
+      const response = await adminMembershipApi.deletePlan(deleting.id);
+      setNotice(response.message || "Đã cập nhật trạng thái gói thành viên.");
+      setDeleting(null);
+      setLoading(true);
+      setReload((value) => value + 1);
+    } catch (cause) {
+      setActionError(
+        cause.message || "Không thể xóa hoặc ngừng bán gói thành viên.",
+      );
+    } finally {
+      setActionBusy(false);
+    }
+  };
 
   return (
     <Box
@@ -556,21 +619,18 @@ export const AdminSubscriptionPlansPage = () => {
         <StatCard
           title="Tổng số gói"
           value={loading ? "—" : stats.total}
-          subtitle="Tất cả chính sách gói đã tạo"
           icon={LoyaltyRoundedIcon}
           color="primary"
         />
         <StatCard
           title="Đang mở bán"
           value={loading ? "—" : stats.active}
-          subtitle="Gói độc giả có thể mua trên ứng dụng"
           icon={CheckCircleOutlineRoundedIcon}
           color="success"
         />
         <StatCard
           title="Tạm ngừng bán"
           value={loading ? "—" : stats.inactive}
-          subtitle="Gói tạm thời ẩn khỏi cửa hàng"
           icon={BlockRoundedIcon}
           color="warning"
         />
@@ -614,44 +674,49 @@ export const AdminSubscriptionPlansPage = () => {
         sx={{
           borderRadius: 2.5,
           overflowX: "auto",
-          bgcolor: "#fff",
-          borderColor: "#e2e8f0",
+          bgcolor: "background.paper",
+          borderColor: "divider",
           boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
         }}
       >
         <Table sx={{ minWidth: 800 }}>
-          <TableHead sx={{ bgcolor: "#f8fafc" }}>
+          <TableHead
+            sx={{
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+            }}
+          >
             <TableRow>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 200, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 200, color: "text.primary" }}
               >
                 Gói thành viên
               </TableCell>
               <TableCell
                 align="right"
-                sx={{ fontWeight: 700, minWidth: 140, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 140, color: "text.primary" }}
               >
                 Giá cước
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 110, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 110, color: "text.primary" }}
               >
                 Thời hạn
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 200, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 200, color: "text.primary" }}
               >
                 Quyền lợi mượn
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, minWidth: 130, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 130, color: "text.primary" }}
               >
                 Trạng thái
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, width: 90, color: "#1e293b" }}
+                sx={{ fontWeight: 700, width: 90, color: "text.primary" }}
               >
                 Chi tiết
               </TableCell>
@@ -664,7 +729,7 @@ export const AdminSubscriptionPlansPage = () => {
                   <CircularProgress size={28} />
                   <Typography
                     variant="body2"
-                    sx={{ mt: 1.5, color: "#64748b" }}
+                    sx={{ mt: 1.5, color: "text.secondary" }}
                   >
                     Đang tải danh sách các gói...
                   </Typography>
@@ -690,15 +755,15 @@ export const AdminSubscriptionPlansPage = () => {
                   key={plan.id}
                   hover
                   sx={{
-                    "&:hover": { bgcolor: "#f8fafc" },
-                    "& td": { borderColor: "#f1f5f9" },
+                    "&:hover": { bgcolor: "action.hover" },
+                    "& td": { borderColor: "divider" },
                   }}
                 >
                   <TableCell>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <Typography
                         variant="body2"
-                        sx={{ fontWeight: 700, color: "#1e293b" }}
+                        sx={{ fontWeight: 700, color: "text.primary" }}
                       >
                         {plan.name}
                       </Typography>
@@ -709,8 +774,11 @@ export const AdminSubscriptionPlansPage = () => {
                             px: 1,
                             py: 0.25,
                             borderRadius: "12px",
-                            bgcolor: "rgba(23,105,255,0.1)",
-                            color: "#1769ff",
+                            bgcolor: (theme) =>
+                              theme.palette.mode === "dark"
+                                ? "rgba(59,130,246,0.2)"
+                                : "rgba(23,105,255,0.1)",
+                            color: "primary.main",
                             fontWeight: 700,
                             fontSize: "0.7rem",
                           }}
@@ -721,7 +789,7 @@ export const AdminSubscriptionPlansPage = () => {
                     </Box>
                     <Typography
                       variant="caption"
-                      sx={{ color: "#64748b", display: "block" }}
+                      sx={{ color: "text.secondary", display: "block" }}
                     >
                       Mã: <code>{plan.planCode}</code> · ID: #{plan.id}
                     </Typography>
@@ -729,7 +797,7 @@ export const AdminSubscriptionPlansPage = () => {
                   <TableCell align="right">
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 750, color: "#102d62" }}
+                      sx={{ fontWeight: 750, color: "primary.main" }}
                     >
                       {formatCurrencyVND(plan.price)}
                     </Typography>
@@ -737,7 +805,7 @@ export const AdminSubscriptionPlansPage = () => {
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 600, color: "#334155" }}
+                      sx={{ fontWeight: 600, color: "text.primary" }}
                     >
                       {plan.durationDays} ngày
                     </Typography>
@@ -745,13 +813,13 @@ export const AdminSubscriptionPlansPage = () => {
                   <TableCell>
                     <Typography
                       variant="body2"
-                      sx={{ fontWeight: 600, color: "#1e293b" }}
+                      sx={{ fontWeight: 600, color: "text.primary" }}
                     >
                       Tối đa {plan.maxBooksAllowed} cuốn
                     </Typography>
                     <Typography
                       variant="caption"
-                      sx={{ color: "#64748b", display: "block" }}
+                      sx={{ color: "text.secondary", display: "block" }}
                     >
                       {plan.maxDaysPerBook} ngày / cuốn sách
                     </Typography>
@@ -769,9 +837,17 @@ export const AdminSubscriptionPlansPage = () => {
                         aria-label={`Chi tiết gói #${plan.id}`}
                         onClick={() => setSelected(plan)}
                         sx={{
-                          color: "#1769ff",
-                          bgcolor: "rgba(23,105,255,0.06)",
-                          "&:hover": { bgcolor: "rgba(23,105,255,0.12)" },
+                          color: "primary.main",
+                          bgcolor: (theme) =>
+                            theme.palette.mode === "dark"
+                              ? "rgba(59,130,246,0.15)"
+                              : "rgba(23,105,255,0.06)",
+                          "&:hover": {
+                            bgcolor: (theme) =>
+                              theme.palette.mode === "dark"
+                                ? "rgba(59,130,246,0.25)"
+                                : "rgba(23,105,255,0.12)",
+                          },
                         }}
                       >
                         <VisibilityOutlinedIcon fontSize="small" />
@@ -786,24 +862,33 @@ export const AdminSubscriptionPlansPage = () => {
 
       <Typography
         variant="caption"
-        sx={{ mt: 1.5, display: "block", color: "#64748b" }}
+        sx={{ mt: 1.5, display: "block", color: "text.secondary" }}
       >
         Hiển thị {visible.length}/{plans?.length ?? 0} gói. Thông tin gói đã lưu
         được bảo toàn cho các đăng ký cũ.
       </Typography>
 
-      <PlanCreateDialog
-        open={creating}
-        onClose={() => setCreating(false)}
-        onSaved={(created) => {
-          setCreating(false);
-          setNotice(
-            `Đã tạo thành công gói thành viên #${created.id} (${created.name}).`,
-          );
-          setLoading(true);
-          setReload((value) => value + 1);
-        }}
-      />
+      {(creating || editing) && (
+        <PlanDialog
+          open
+          plan={editing}
+          onClose={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+          onSaved={(saved, wasEditing) => {
+            setCreating(false);
+            setEditing(null);
+            setNotice(
+              wasEditing
+                ? `Đã cập nhật gói thành viên #${saved.id} (${saved.name}).`
+                : `Đã tạo thành công gói thành viên #${saved.id} (${saved.name}).`,
+            );
+            setLoading(true);
+            setReload((value) => value + 1);
+          }}
+        />
+      )}
 
       {/* Modal chi tiết gói */}
       <Dialog
@@ -822,10 +907,14 @@ export const AdminSubscriptionPlansPage = () => {
           }}
         >
           <Box>
-            <Typography variant="h6" fontWeight={750} sx={{ color: "#102d62" }}>
+            <Typography
+              variant="h6"
+              fontWeight={750}
+              sx={{ color: "text.primary" }}
+            >
               Gói #{selected?.id} · {selected?.name}
             </Typography>
-            <Typography variant="caption" sx={{ color: "#64748b" }}>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
               Chi tiết đặc quyền và chính sách giá
             </Typography>
           </Box>
@@ -860,7 +949,7 @@ export const AdminSubscriptionPlansPage = () => {
                 <Typography
                   variant="caption"
                   sx={{
-                    color: "#64748b",
+                    color: "text.secondary",
                     fontWeight: 500,
                     display: "block",
                     mb: 0.5,
@@ -901,7 +990,34 @@ export const AdminSubscriptionPlansPage = () => {
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button
+            color="error"
+            startIcon={<DeleteOutlineRoundedIcon />}
+            onClick={() => {
+              setDeleting(selected);
+              setSelected(null);
+              setActionError("");
+            }}
+            sx={{ mr: "auto", textTransform: "none", fontWeight: 600 }}
+          >
+            Xóa / Ngừng bán
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<EditRoundedIcon />}
+            onClick={() => {
+              setEditing(selected);
+              setSelected(null);
+            }}
+            sx={{
+              borderRadius: "10px",
+              textTransform: "none",
+              fontWeight: 600,
+            }}
+          >
+            Sửa gói
+          </Button>
           <Button
             variant="contained"
             onClick={() => setSelected(null)}
@@ -912,6 +1028,47 @@ export const AdminSubscriptionPlansPage = () => {
             }}
           >
             Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(deleting)}
+        onClose={actionBusy ? undefined : () => setDeleting(null)}
+        fullWidth
+        maxWidth="xs"
+        slotProps={{ paper: { sx: { borderRadius: 3 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 750, color: "text.primary" }}>
+          Xác nhận xử lý gói thành viên
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Alert severity="warning" sx={{ borderRadius: 2 }}>
+              Gói chưa có lịch sử đăng ký sẽ bị xóa vĩnh viễn. Nếu đã có lịch
+              sử, chỉ ngừng bán và vẫn giữ nguyên dữ liệu cũ.
+            </Alert>
+            <Typography variant="body2" color="text.secondary">
+              Gói #{deleting?.id} · {deleting?.name}
+            </Typography>
+            {actionError && (
+              <Alert severity="error" sx={{ borderRadius: 2 }}>
+                {actionError}
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button disabled={actionBusy} onClick={() => setDeleting(null)}>
+            Hủy
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            disabled={actionBusy}
+            onClick={deletePlan}
+          >
+            {actionBusy ? "Đang xử lý…" : "Xác nhận"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -928,6 +1085,10 @@ export const AdminSubscriptionMembersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState(null);
+  const [notice, setNotice] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [confirmMaintenance, setConfirmMaintenance] = useState(false);
+  const [maintenanceBusy, setMaintenanceBusy] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -972,6 +1133,26 @@ export const AdminSubscriptionMembersPage = () => {
     setError("");
   };
 
+  const deactivateExpired = async () => {
+    if (maintenanceBusy) return;
+    setMaintenanceBusy(true);
+    setActionError("");
+    try {
+      const response = await adminMembershipApi.deactivateExpired();
+      setNotice(response.message || "Đã xử lý các gói đăng ký hết hạn.");
+      setConfirmMaintenance(false);
+      setResult(null);
+      setLoading(true);
+      setReload((value) => value + 1);
+    } catch (cause) {
+      setActionError(
+        cause.message || "Không thể xử lý các gói đăng ký hết hạn.",
+      );
+    } finally {
+      setMaintenanceBusy(false);
+    }
+  };
+
   return (
     <Box
       component="section"
@@ -984,7 +1165,28 @@ export const AdminSubscriptionMembersPage = () => {
         py: { xs: 2, sm: 3 },
       }}
     >
-      <SubscriptionsHeader activeTab="members" />
+      <SubscriptionsHeader
+        activeTab="members"
+        actionButton={{
+          label: "Xử lý gói hết hạn",
+          icon: UpdateRoundedIcon,
+          variant: "outlined",
+          onClick: () => {
+            setActionError("");
+            setConfirmMaintenance(true);
+          },
+        }}
+      />
+
+      {notice && (
+        <Alert
+          severity="success"
+          sx={{ mb: 2.5, borderRadius: 2 }}
+          onClose={() => setNotice("")}
+        >
+          {notice}
+        </Alert>
+      )}
 
       {error && (
         <Alert
@@ -1061,47 +1263,54 @@ export const AdminSubscriptionMembersPage = () => {
         sx={{
           borderRadius: 2.5,
           overflowX: "auto",
-          bgcolor: "#fff",
-          borderColor: "#e2e8f0",
+          bgcolor: "background.paper",
+          borderColor: "divider",
           boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
         }}
       >
         <Table sx={{ minWidth: 850 }}>
-          <TableHead sx={{ bgcolor: "#f8fafc" }}>
+          <TableHead
+            sx={{
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+            }}
+          >
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, width: 80, color: "#1e293b" }}>
+              <TableCell
+                sx={{ fontWeight: 700, width: 80, color: "text.primary" }}
+              >
                 Mã
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 180, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 180, color: "text.primary" }}
               >
                 Độc giả
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 160, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 160, color: "text.primary" }}
               >
                 Gói đăng ký
               </TableCell>
               <TableCell
-                sx={{ fontWeight: 700, minWidth: 180, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 180, color: "text.primary" }}
               >
                 Thời hạn hiệu lực
               </TableCell>
               <TableCell
                 align="right"
-                sx={{ fontWeight: 700, minWidth: 130, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 130, color: "text.primary" }}
               >
                 Giá thanh toán
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, minWidth: 140, color: "#1e293b" }}
+                sx={{ fontWeight: 700, minWidth: 140, color: "text.primary" }}
               >
                 Trạng thái
               </TableCell>
               <TableCell
                 align="center"
-                sx={{ fontWeight: 700, width: 90, color: "#1e293b" }}
+                sx={{ fontWeight: 700, width: 90, color: "text.primary" }}
               >
                 Chi tiết
               </TableCell>
@@ -1142,23 +1351,25 @@ export const AdminSubscriptionMembersPage = () => {
                     key={entry.id}
                     hover
                     sx={{
-                      "&:hover": { bgcolor: "#f8fafc" },
-                      "& td": { borderColor: "#f1f5f9" },
+                      "&:hover": { bgcolor: "action.hover" },
+                      "& td": { borderColor: "divider" },
                     }}
                   >
-                    <TableCell sx={{ fontWeight: 600, color: "#64748b" }}>
+                    <TableCell
+                      sx={{ fontWeight: 600, color: "text.secondary" }}
+                    >
                       #{entry.id}
                     </TableCell>
                     <TableCell>
                       <Typography
                         variant="body2"
-                        sx={{ fontWeight: 750, color: "#1e293b" }}
+                        sx={{ fontWeight: 750, color: "text.primary" }}
                       >
                         {entry.userName || `Độc giả #${entry.userId}`}
                       </Typography>
                       <Typography
                         variant="caption"
-                        sx={{ color: "#64748b", display: "block" }}
+                        sx={{ color: "text.secondary", display: "block" }}
                       >
                         {entry.userEmail || `ID: #${entry.userId}`}
                       </Typography>
@@ -1166,7 +1377,7 @@ export const AdminSubscriptionMembersPage = () => {
                     <TableCell>
                       <Typography
                         variant="body2"
-                        sx={{ fontWeight: 600, color: "#102d62" }}
+                        sx={{ fontWeight: 600, color: "primary.main" }}
                       >
                         {entry.planName ||
                           entry.planCode ||
@@ -1176,7 +1387,7 @@ export const AdminSubscriptionMembersPage = () => {
                     <TableCell>
                       <Typography
                         variant="body2"
-                        sx={{ color: "#334155", fontSize: "0.8125rem" }}
+                        sx={{ color: "text.primary", fontSize: "0.8125rem" }}
                       >
                         {formatDateVN(entry.startDate)} –{" "}
                         {formatDateVN(entry.endDate)}
@@ -1185,7 +1396,7 @@ export const AdminSubscriptionMembersPage = () => {
                     <TableCell align="right">
                       <Typography
                         variant="body2"
-                        sx={{ fontWeight: 700, color: "#1e293b" }}
+                        sx={{ fontWeight: 700, color: "text.primary" }}
                       >
                         {entry.currency === "VND"
                           ? formatCurrencyVND(entry.price)
@@ -1196,10 +1407,10 @@ export const AdminSubscriptionMembersPage = () => {
                       <StatusChip
                         status={
                           statusText === "Đang hiệu lực"
-                            ? "ACTIVE"
+                            ? "HOẠT ĐỘNG"
                             : statusText === "Đã hủy"
-                              ? "CANCELLED"
-                              : "EXPIRED"
+                              ? "HỦY"
+                              : "HẾT HẠN"
                         }
                       />
                     </TableCell>
@@ -1210,9 +1421,17 @@ export const AdminSubscriptionMembersPage = () => {
                           aria-label={`Chi tiết đăng ký #${entry.id}`}
                           onClick={() => setSelected(entry)}
                           sx={{
-                            color: "#1769ff",
-                            bgcolor: "rgba(23,105,255,0.06)",
-                            "&:hover": { bgcolor: "rgba(23,105,255,0.12)" },
+                            color: "primary.main",
+                            bgcolor: (theme) =>
+                              theme.palette.mode === "dark"
+                                ? "rgba(59,130,246,0.15)"
+                                : "rgba(23,105,255,0.06)",
+                            "&:hover": {
+                              bgcolor: (theme) =>
+                                theme.palette.mode === "dark"
+                                  ? "rgba(59,130,246,0.25)"
+                                  : "rgba(23,105,255,0.12)",
+                            },
                           }}
                         >
                           <VisibilityOutlinedIcon fontSize="small" />
@@ -1256,10 +1475,14 @@ export const AdminSubscriptionMembersPage = () => {
           }}
         >
           <Box>
-            <Typography variant="h6" fontWeight={750} sx={{ color: "#102d62" }}>
+            <Typography
+              variant="h6"
+              fontWeight={750}
+              sx={{ color: "text.primary" }}
+            >
               Lượt đăng ký #{selected?.id}
             </Typography>
-            <Typography variant="caption" sx={{ color: "#64748b" }}>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
               Thông tin quyền lợi và hạn sử dụng của độc giả
             </Typography>
           </Box>
@@ -1336,6 +1559,47 @@ export const AdminSubscriptionMembersPage = () => {
             }}
           >
             Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={confirmMaintenance}
+        onClose={
+          maintenanceBusy ? undefined : () => setConfirmMaintenance(false)
+        }
+        fullWidth
+        maxWidth="xs"
+        slotProps={{ paper: { sx: { borderRadius: 3 } } }}
+      >
+        <DialogTitle sx={{ fontWeight: 750, color: "text.primary" }}>
+          Xử lý các gói đăng ký hết hạn
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Alert severity="info" sx={{ borderRadius: 2 }}>
+              Rà soát các lượt đăng ký đã qua ngày kết thúc và tắt hiệu lực.
+            </Alert>
+            {actionError && (
+              <Alert severity="error" sx={{ borderRadius: 2 }}>
+                {actionError}
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button
+            disabled={maintenanceBusy}
+            onClick={() => setConfirmMaintenance(false)}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            disabled={maintenanceBusy}
+            onClick={deactivateExpired}
+          >
+            {maintenanceBusy ? "Đang xử lý…" : "Bắt đầu xử lý"}
           </Button>
         </DialogActions>
       </Dialog>
