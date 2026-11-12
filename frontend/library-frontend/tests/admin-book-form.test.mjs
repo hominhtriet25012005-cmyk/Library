@@ -4,7 +4,7 @@ import {
   bookPayload,
   isIsbnLocked,
   validateBookForm,
-} from "../src/pages/AdminLayout/bookFormRules.js";
+} from "../src/pages/library/AdminLayout/bookFormRules.js";
 
 const validForm = {
   isbn: "978-0-13-475759-9",

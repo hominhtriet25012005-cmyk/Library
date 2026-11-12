@@ -3,6 +3,7 @@ package com.library.service.impl;
 import com.library.domain.ReservationStatus;
 import com.library.domain.UserRole;
 import com.library.exception.ReservationException;
+import com.library.exception.SubscriptionException;
 import com.library.mapper.ReservationMapper;
 import com.library.model.Book;
 import com.library.model.Reservation;
@@ -131,6 +132,14 @@ public class ReservationServiceImpl implements ReservationService {
         // 4. Check if book is already available
         if (book.getAvailableCopies() > 0) {
             throw new ReservationException("Sách hiện đang có sẵn, bạn không cần đặt giữ.");
+        }
+
+        // A reservation is a queued borrowing request; only eligible borrowers may join the queue.
+        try {
+            subscriptionService.getUsersActiveSubscription(userId);
+        } catch (SubscriptionException noActiveMembership) {
+            throw new ReservationException(
+                    "Bạn cần có gói thành viên đang hoạt động để đặt giữ sách.");
         }
 
         // 5. check user's active reservation limit

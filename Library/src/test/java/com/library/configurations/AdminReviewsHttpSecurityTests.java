@@ -66,4 +66,18 @@ class AdminReviewsHttpSecurityTests {
         mvc.perform(post("/api/reviews/admin/7/hide").header("Authorization", token("ROLE_ADMIN")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.isActive").value(false));
     }
+
+    @Test void publicCanReadBookReviewsButWritesRequireAuthentication() throws Exception {
+        BookReviewService reviews = context.getBean(BookReviewService.class);
+        when(reviews.getReviewsByBookId(15L, 0, 10))
+                .thenReturn(new PageResponse<>(List.of(), 0, 10, 0, 0, true, true, true));
+
+        mvc.perform(get("/api/reviews/book/15"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(post("/api/reviews").contentType("application/json").content("{\"bookId\":15,\"rating\":5}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/reviews/admin"))
+                .andExpect(status().isForbidden());
+    }
 }

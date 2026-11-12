@@ -12,15 +12,11 @@ CREATE TABLE IF NOT EXISTS users (
 
     full_name VARCHAR(255) NOT NULL,
 
-    password VARCHAR(255) NULL,
+    password VARCHAR(255) NOT NULL,
 
     email VARCHAR(255) NOT NULL UNIQUE,
 
     phone VARCHAR(30) NULL,
-
-    auth_provider VARCHAR(20) NOT NULL DEFAULT 'LOCAL',
-
-    google_id VARCHAR(255) NULL,
 
     profile_image VARCHAR(500) NULL,
 
@@ -34,14 +30,6 @@ CREATE TABLE IF NOT EXISTS users (
         ON UPDATE CURRENT_TIMESTAMP,
 
     last_login DATETIME NULL,
-
-    CONSTRAINT chk_users_auth_provider
-        CHECK (
-            auth_provider IN (
-                'LOCAL',
-                'GOOGLE'
-            )
-        ),
 
     CONSTRAINT chk_users_role
         CHECK (
@@ -310,6 +298,16 @@ CREATE TABLE IF NOT EXISTS book_loans (
 
     return_date DATE NULL,
 
+    return_requested_at DATETIME NULL,
+
+    return_request_note VARCHAR(500) NULL,
+
+    checked_in_at DATETIME NULL,
+
+    checked_in_by BIGINT NULL,
+
+    inspection_note VARCHAR(500) NULL,
+
     renewal_count INT NOT NULL DEFAULT 0,
 
     max_renewals INT NOT NULL DEFAULT 2,
@@ -334,6 +332,9 @@ CREATE TABLE IF NOT EXISTS book_loans (
     INDEX idx_book_loans_status_due_id
         (status, due_date, id),
 
+    INDEX idx_book_loans_return_queue
+        (checked_in_at, return_requested_at, id),
+
     CONSTRAINT fk_book_loans_user
         FOREIGN KEY (user_id)
         REFERENCES users(id),
@@ -341,6 +342,10 @@ CREATE TABLE IF NOT EXISTS book_loans (
     CONSTRAINT fk_book_loans_book
         FOREIGN KEY (book_id)
         REFERENCES books(id),
+
+    CONSTRAINT fk_book_loans_checked_in_by
+        FOREIGN KEY (checked_in_by)
+        REFERENCES users(id),
 
     CONSTRAINT chk_book_loans_type
         CHECK (type IN ('CHECKOUT', 'RENEWAL', 'RETURN')),
@@ -364,6 +369,25 @@ CREATE TABLE IF NOT EXISTS book_loans (
         CHECK (
             return_date IS NULL
             OR return_date >= checkout_date
+        ),
+
+    CONSTRAINT chk_book_loans_return_request_time
+        CHECK (
+            return_requested_at IS NULL
+            OR return_requested_at >= checkout_date
+        ),
+
+    CONSTRAINT chk_book_loans_checkin_time
+        CHECK (
+            checked_in_at IS NULL
+            OR (
+                status IN ('RETURNED', 'LOST', 'DAMAGED')
+                AND return_date IS NOT NULL
+                AND (
+                    return_requested_at IS NULL
+                    OR checked_in_at >= return_requested_at
+                )
+            )
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -405,6 +429,9 @@ CREATE TABLE IF NOT EXISTS fines (
 
     INDEX idx_fines_user_status_type_created
         (user_id, status, type, created_at),
+
+    UNIQUE INDEX uq_fines_book_loan_type
+        (book_loan_id, type),
 
     CONSTRAINT fk_fines_book_loan
         FOREIGN KEY (book_loan_id)

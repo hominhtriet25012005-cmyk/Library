@@ -5,7 +5,7 @@ import {
   MAX_COVER_IMAGE_SIZE,
   validateCoverImageFile,
   bookPayload,
-} from "../src/pages/AdminLayout/bookFormRules.js";
+} from "../src/pages/library/AdminLayout/bookFormRules.js";
 import { createAdminCatalogApi } from "../src/api/adminCatalog.js";
 import { ApiError } from "../src/api/client.js";
 

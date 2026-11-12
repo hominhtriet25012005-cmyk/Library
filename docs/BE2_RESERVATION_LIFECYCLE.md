@@ -11,6 +11,7 @@ Ngày nghiệm thu mã: 31/10/2026 (Asia/Saigon).
 5. Chỉ ADMIN được giao lượt; reservation phải là `AVAILABLE`, chưa hết hạn, đứng đầu hàng và sách còn bản sẵn.
 6. Checkout thông thường bị chặn nếu đầu sách đang có lượt `AVAILABLE`. Checkout từ reservation dùng nhánh riêng để tiêu thụ đúng bản được giữ nhưng vẫn tuân thủ quota mượn và quy tắc `min(14, hạn mức gói)`.
 7. Khóa bi quan trên sách được dùng khi kích hoạt, hết hạn và checkout để giảm nguy cơ hai tiến trình cùng tiêu thụ một bản.
+8. USER phải có gói thành viên đang hiệu lực khi tạo lượt đặt giữ. Backend kiểm tra lại điều kiện này khi ADMIN hoàn tất giao sách; Frontend dẫn USER chưa có gói sang trang đăng ký. Không cần thay đổi schema.
 
 ## Cấu hình runtime
 

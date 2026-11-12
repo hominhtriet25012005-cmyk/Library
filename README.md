@@ -44,3 +44,5 @@ Không commit mật khẩu, JWT secret, khóa payOS hoặc `.env.local`. Cấu h
 - [Schema MySQL chính thức](database/library_db1.sql)
 - [Quy ước database](database/README.md)
 - [Tài liệu nghiệp vụ](docs/Library_Management_System_VI.md)
+- [Theo dõi luồng yêu cầu trả sách, ADMIN kiểm tra và tiền phạt](docs/fix-returnbook.md)
+- [Tích hợp và vận hành payOS](docs/PAYOS.md)

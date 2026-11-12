@@ -1,6 +1,6 @@
 # DATABASE & BACKEND — TRẠNG THÁI CHUẨN
 
-Cập nhật lần cuối: **31/10/2026**.
+Cập nhật lần cuối: **05/11/2026**.
 
 Tài liệu này là sổ theo dõi ngắn gọn cho phần Database và các việc Backend phụ thuộc Database. Nội dung tại đây thay thế cách đánh số và nhận định đã lỗi thời trong hai bản review cũ. Trước khi sửa Database hoặc Backend, phải đọc file này và đối chiếu code hiện tại.
 
@@ -12,6 +12,7 @@ Tài liệu này là sổ theo dõi ngắn gọn cho phần Database và các vi
 - `database/backups/` chỉ dùng khôi phục, không phải schema nguồn.
 - File schema không chứa dữ liệu USER, sách, gói mẫu, email/mật khẩu ADMIN hoặc secret.
 - Chỉ có hai vai trò: `ROLE_ADMIN` và `ROLE_USER`; không tạo `ROLE_LIBRARIAN`.
+- Chỉ xác thực local bằng email/mật khẩu BCrypt và JWT; không triển khai Google OAuth.
 - Gateway thanh toán duy nhất: `PAYOS`; tiền tệ giao dịch mới: `VND`.
 - Không khôi phục Razorpay/Stripe vào enum Java, API hoặc CHECK database.
 - Không `DROP DATABASE`, `DROP TABLE` hoặc tự sửa dữ liệu runtime để đồng bộ schema.
@@ -46,6 +47,8 @@ Không nhét các ALTER lịch sử nối tiếp vào file schema chính. Biên 
 | DB-5 — Kiểm chứng schema | **Đã gộp và xong** | Schema tạm, metadata thật, Hibernate `validate`, contract test và regression tập trung đã đạt trong DB-1…DB-3. |
 | DB-6 — Giữ constraint đúng | **Xong** | Các constraint đúng đã nằm trong schema chính và tiếp tục được kiểm tra. |
 | DB-7 — Charset/collation | **Xong** | Toàn bộ bảng nguồn dùng `InnoDB`, `utf8mb4`, `utf8mb4_0900_ai_ci`. |
+
+Cập nhật xác thực ngày **05/11/2026**: `users.password` đã là `NOT NULL`; schema Google OAuth và CHECK liên quan đã được loại bỏ khỏi Database live lẫn file SQL chính.
 
 ### DB-4 không phải việc bắt buộc lúc này
 
@@ -148,9 +151,9 @@ Database không còn blocker schema cho V1. Thứ tự Backend tiếp theo:
 - ghi chú trả sách được trim và nối sau ghi chú cũ; ghi chú trống giữ nguyên dữ liệu cũ;
 - tổng ghi chú sau khi nối bị chặn nếu vượt giới hạn 500 ký tự trước khi thay đổi trạng thái lượt mượn.
 
-Kiểm chứng mới: `BookLoanCheckinHistoryTests` đạt 5/5 và `BookLoanOverdueBatchTests` đạt 1/1. BE-5 đã sửa mapping `publication_year` theo JDBC `SMALLINT`, nên `BookLoanAtomicityTests` và các test H2 liên quan đã chạy lại thành công. Ca MySQL chỉ còn được phép chạy trên database có hậu tố `_test`, không chạy trên `library_db1`.
+Kiểm chứng mới tại BE-1: `BookLoanCheckinHistoryTests` đạt 5/5 và `BookLoanOverdueBatchTests` đạt 1/1. BE-5 đã sửa mapping `publication_year` theo JDBC `SMALLINT`, nên `BookLoanAtomicityTests` và các test H2 liên quan đã chạy lại thành công. Ca MySQL chỉ được phép chạy trên database có hậu tố `_test`, không chạy trên `library_db1`.
 
-Không đổi schema ở BE-1. Tiền phạt tự động vẫn để ADMIN tạo thủ công trong V1. Việc kích hoạt người kế tiếp trong hàng đợi đặt giữ thuộc **BE-2**, không gộp vào bước này.
+**Phạm vi BE-1 là mốc lịch sử, được mở rộng bởi RB-1–RB-6:** USER gửi yêu cầu trả; ADMIN kiểm tra và hoàn tất check-in. `RETURNED` mới cộng tồn kho và có thể kích hoạt hàng chờ; `DAMAGED`/`LOST` không cộng tồn kho. Backend tự tạo phạt quá hạn/hư hỏng/mất trong transaction check-in theo chính sách đã chốt. Xem [`docs/fix-returnbook.md`](fix-returnbook.md) để biết API, schema, quy tắc và trạng thái nghiệm thu.
 
 ### BE-2 — Vòng đời đặt giữ — **đã hoàn tất 31/10/2026**
 
@@ -205,7 +208,7 @@ Lệnh và cách chuẩn bị `library_db1_test` nằm tại `docs/BE5_TEST_INFR
 
 - subscription history/renew/check/get-by-id đầy đủ;
 - API sách theo ISBN;
-- email verification, Google OAuth;
+- email verification;
 - notification đặt giữ và chuông Topbar;
 - review helpful/statistics và audit kiểm duyệt;
 - báo cáo/biểu đồ nâng cao;

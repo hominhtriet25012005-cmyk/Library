@@ -11,15 +11,16 @@
     Arial,
     sans-serif;
   color: #0f172a;
-  background-color: #f6f9fc;
+  background-color: #FAF8F3;
 
   /* Design Tokens CSS Variables */
-  --color-primary: #1769ff;
-  --color-primary-dark: #0d4ed3;
-  --color-primary-light: #e8f0ff;
-  --color-navy: #102d62;
-  --color-navy-dark: #0a1931;
-  --color-bg-app: #f6f9fc;
+  --color-primary: #315B4C;
+  --color-primary-dark: #244539;
+  --color-primary-light: #EBF1EE;
+  --color-navy: #1e3a30;
+  --color-navy-dark: #172c24;
+  --color-accent: #A98247;
+  --color-bg-app: #FAF8F3;
   --color-border: #e2e8f0;
 }
 

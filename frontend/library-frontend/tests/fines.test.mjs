@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createFinesApi } from "../src/api/fines.js";
-import { canPayFine, filterFines, fineOutstanding, fineSummary, fineStatusLabels, fineTypeLabels } from "../src/pages/Fines/fineRules.js";
+import { canPayFine, filterFines, fineOutstanding, fineSummary, fineStatusLabels, fineTypeLabels } from "../src/pages/library/Fines/fineRules.js";
 
 test("API tiền phạt chỉ đọc khoản của USER và mã lọc đúng backend", async () => {
   const calls = [];

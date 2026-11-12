@@ -635,11 +635,18 @@ Người dùng có thể mượn sách; hệ thống tự động theo dõi hạ
 - Kiểm tra sách còn sẵn trước khi cho mượn.
 - Tự động gán hạn trả theo chính sách.
 
-### 2. Trả sách (Check-In)
+### 2. Trả sách (yêu cầu trả và ADMIN check-in)
 
-- User/admin có thể trả sách.
-- Trả sách sẽ cập nhật trạng thái khoản mượn và số lượng sách còn lại.
-- Theo dõi trả trễ và tính tiền phạt.
+- USER gửi yêu cầu trả cho lượt mượn của mình. Yêu cầu chưa đóng lượt mượn, chưa ghi ngày trả và
+  không thay đổi tồn kho; USER chờ mang sách đến quầy để ADMIN tiếp nhận.
+- ADMIN là vai trò duy nhất kiểm tra sách thực tế và hoàn tất check-in. ADMIN ghi ngày nhận thực tế,
+  tình trạng sách và biên bản khi sách hư hỏng hoặc mất.
+- `RETURNED` đóng lượt mượn, cộng lại đúng một bản và có thể kích hoạt lượt đặt giữ đầu hàng.
+  `DAMAGED`/`LOST` đóng lượt mượn nhưng không đưa bản sách trở lại kho sẵn.
+- Nếu quá hạn, hệ thống tạo phạt `min(số ngày trễ × 5.000đ, giá tham chiếu của sách)`. Hư hỏng nhẹ
+  phạt 25% giá tham chiếu; hư hỏng nặng 75%; mất sách 100% giá tham chiếu + 20.000đ phí xử lý.
+  ADMIN xác nhận tình trạng; USER xem và thanh toán khoản phạt qua payOS.
+- Chi tiết trạng thái/API/schema và giới hạn nghiệm thu xem tại [`docs/fix-returnbook.md`](fix-returnbook.md).
 
 ### 3. Quản lý gia hạn
 
@@ -1116,6 +1123,12 @@ Hỗ trợ:
 - Tìm kiếm nâng cao và lọc lịch sử đầy đủ.
 - Phân tách quyền admin và user đã xác thực.
 
+### Điều kiện đặt giữ sách
+
+- USER phải có gói thành viên đang hiệu lực mới được tạo lượt đặt giữ.
+- Backend kiểm tra lại gói còn hiệu lực khi ADMIN hoàn tất giao sách, vì gói có thể hết hạn trong lúc USER chờ đến lượt.
+- Nếu USER chưa có gói hiệu lực, giao diện hướng đến trang đăng ký gói thành viên.
+
 ## 🧬 Mô hình dữ liệu — `Reservation`
 
 | Field | Type | Ràng buộc | Mô tả |
@@ -1178,7 +1191,7 @@ Dùng khi user đang đăng nhập muốn đặt giữ sách.
 
 `POST /api/reservations/user/{userId}`
 
-Cho phép thủ thư đặt giữ sách thay cho user.
+Cho phép ADMIN tạo lượt đặt giữ thay cho USER; USER vẫn phải có gói thành viên đang hiệu lực.
 
 ### 3️⃣ Hủy reservation
 
@@ -1804,7 +1817,7 @@ Trả về `PageResponse<WishlistDTO>` có phân trang.
 
 ## 📚 Tổng quan
 
-Module **User** quản lý người dùng đã đăng ký trong hệ thống, lưu thông tin xác thực, role, nhà cung cấp đăng nhập, timestamp và hồ sơ cá nhân.
+Module **User** quản lý người dùng đã đăng ký trong hệ thống, lưu thông tin xác thực local, role, timestamp và hồ sơ cá nhân.
 
 Module cung cấp endpoint để lấy chi tiết user, liệt kê tất cả user và lấy profile của user đã xác thực thông qua JWT. Ngoài ra còn có chức năng thống kê dành riêng cho Admin để lấy tổng số user đã đăng ký.
 
@@ -1812,8 +1825,8 @@ Module cung cấp endpoint để lấy chi tiết user, liệt kê tất cả us
 
 ### 1. Lưu dữ liệu xác thực
 
-- Lưu user đăng ký bằng OAuth Google hoặc đăng ký thủ công.
-- Hỗ trợ đăng nhập bằng password và bên thứ ba thông qua `AuthProvider`.
+- Đăng ký tài khoản bằng email và mật khẩu do hệ thống quản lý.
+- Mật khẩu được băm bằng BCrypt; Backend phát hành JWT sau khi đăng nhập thành công.
 - Lưu trạng thái xác minh tài khoản để quyết định quyền truy cập.
 
 ### 2. Thông tin hồ sơ và danh tính
@@ -1842,11 +1855,9 @@ Module cung cấp endpoint để lấy chi tiết user, liệt kê tất cả us
 | --- | --- | --- | --- | --- |
 | `id` | Long | Auto | PK | ID duy nhất |
 | `fullName` | String | ✅ | Not Blank | Tên hiển thị đầy đủ |
-| `password` | String | Internal | `@JsonIgnore` | Chỉ dùng cho xác thực tài khoản local |
+| `password` | String | ✅ | `@JsonIgnore`, Not Null | Mật khẩu BCrypt dùng cho xác thực tài khoản local |
 | `email` | String | ✅ | Unique, Valid Email | Định danh đăng nhập chính |
 | `phone` | String | ❌ | None | Số điện thoại tùy chọn |
-| `authProvider` | Enum | Auto | Default: LOCAL | Nguồn đăng ký LOCAL/GOOGLE |
-| `googleId` | String | ❌ | Null với local user | ID tham chiếu OAuth |
 | `profileImage` | String | ❌ | None | URL ảnh đại diện |
 | `role` | Enum(UserRole) | Required | NotNull | Quyền ADMIN/USER |
 | `verified` | Boolean | Auto | Default:false | Trạng thái xác minh tài khoản/email |
@@ -1876,7 +1887,7 @@ Header:
 {
   "id": 14,
   "fullName": "John Carter",
-  "email": "john@gmail.com",
+  "email": "reader@example.com",
   "role": "USER",
   "profileImage": null,
   "verified": true,
@@ -2145,9 +2156,9 @@ Request Body (`UserDTO`):
 ```json
 {
   "name": "John Doe",
-  "email": "john@example.com",
-  "password": "StrongPass123",
-  "phone": "9876543210"
+  "email": "reader@example.com",
+  "password": "<YOUR_PASSWORD>",
+  "phone": "<PHONE_NUMBER>"
 }
 ```
 
@@ -2155,7 +2166,7 @@ Response `200 OK`:
 
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "token": "<TOKEN_PLACEHOLDER>",
   "message": "Account created successfully",
   "userId": 15,
   "success": true
@@ -2170,8 +2181,8 @@ Xác thực credential của user.
 
 ```json
 {
-  "email": "john@example.com",
-  "password": "StrongPass123"
+  "email": "reader@example.com",
+  "password": "<YOUR_PASSWORD>"
 }
 ```
 
@@ -2179,7 +2190,7 @@ Response:
 
 ```json
 {
-  "token": "eyJhbGcixxxx",
+  "token": "<TOKEN_PLACEHOLDER>",
   "message": "Login successful",
   "userId": 15,
   "success": true
@@ -2194,7 +2205,7 @@ Tạo reset link/token và gửi qua email.
 
 ```json
 {
-  "email": "john@example.com"
+  "email": "reader@example.com"
 }
 ```
 
@@ -2215,8 +2226,8 @@ Reset password bằng token được cung cấp.
 
 ```json
 {
-  "token": "reset-token-xyz-123",
-  "password": "NewStrongPass999"
+  "token": "<TOKEN_PLACEHOLDER>",
+  "password": "<YOUR_PASSWORD>"
 }
 ```
 
@@ -2268,7 +2279,6 @@ Reset Password → Dùng Token → Cập nhật Password
 
 - Spring Boot
 - MySQL
-- OAuth2 — đăng nhập bằng Google
 - JWT
 - Spring Security
 - React + Vite

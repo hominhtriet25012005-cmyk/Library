@@ -125,4 +125,18 @@ class AdminCatalogHttpSecurityTests {
                 .andExpect(header().string("Content-Type", "image/png"))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"));
     }
+
+    @Test void publicCanReadBooksAndGenresWithoutAuthentication() throws Exception {
+        BookService books = context.getBean(BookService.class);
+        GenreService genres = context.getBean(GenreService.class);
+        when(books.getBookById(12L)).thenReturn(BookDTO.builder().id(12L).title("Kinh Pháp Cú").active(true).build());
+        when(genres.getAllGenres()).thenReturn(java.util.List.of());
+
+        mvc.perform(get("/api/books")).andExpect(status().isOk());
+        mvc.perform(get("/api/books/12")).andExpect(status().isOk()).andExpect(jsonPath("$.title").value("Kinh Pháp Cú"));
+        mvc.perform(get("/api/books/stats")).andExpect(status().isOk());
+        mvc.perform(post("/api/books/search").contentType("application/json").content("{}")).andExpect(status().isOk());
+        mvc.perform(get("/api/genres")).andExpect(status().isOk());
+        mvc.perform(get("/api/genres/3")).andExpect(status().isOk());
+    }
 }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createSubscriptionsApi } from "../src/api/subscriptions.js";
-import { availablePlans, canCancelSubscription } from "../src/pages/Subscriptions/subscriptionRules.js";
+import { availablePlans, canCancelSubscription } from "../src/pages/library/Subscriptions/subscriptionRules.js";
 
 test("API gói thành viên dùng đúng endpoint hiện có", async () => {
   const calls = [];

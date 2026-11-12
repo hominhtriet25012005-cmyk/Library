@@ -3,13 +3,13 @@ import { Box, Paper, Skeleton, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
 const colorMap = {
-  primary: "#1769ff",
+  primary: "#315B4C",
   success: "#16a34a",
   error: "#ef4444",
   warning: "#f59e0b",
   info: "#0284c7",
-  secondary: "#102d62",
-  navy: "#102d62",
+  secondary: "#A98247",
+  navy: "#244539",
   default: "#64748b",
 };
 
@@ -20,7 +20,7 @@ const resolveColor = (theme, color) => {
       : theme.palette.grey[600];
   }
   if (color === "navy" || color === "secondary") {
-    return theme.palette.mode === "dark" ? "#8bb8ff" : colorMap.navy;
+    return theme.palette.mode === "dark" ? "#d4bc8b" : colorMap.navy;
   }
   if (theme.palette[color]?.main) return theme.palette[color].main;
   if (!color) return theme.palette.primary.main;

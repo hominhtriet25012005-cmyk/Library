@@ -8,8 +8,8 @@ const statusDictionary = {
     CHECKED_OUT: {
       label: "Đang mượn",
       color: "primary",
-      bg: "#e8f0ff",
-      text: "#1769ff",
+      bg: "#EBF1EE",
+      text: "#315B4C",
     },
     OVERDUE: {
       label: "Quá hạn",
@@ -156,9 +156,9 @@ const statusDictionary = {
   role: {
     ROLE_ADMIN: {
       label: "Quản trị viên",
-      color: "primary",
-      bg: "#e8f0ff",
-      text: "#1769ff",
+      color: "secondary",
+      bg: "#F6EFE4",
+      text: "#8C6833",
     },
     ROLE_USER: {
       label: "Độc giả",

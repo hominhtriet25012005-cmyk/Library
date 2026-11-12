@@ -63,6 +63,11 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/books/bulk", "/api/genres/create").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/books/**", "/api/genres/**").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/books/**", "/api/genres/**").hasRole("ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/books", "/api/books/*", "/api/books/stats",
+                                "/api/genres", "/api/genres/*",
+                                "/api/reviews/book/*").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/books/search").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )

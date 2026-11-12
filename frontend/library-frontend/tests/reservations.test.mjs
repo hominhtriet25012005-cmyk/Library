@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createReservationsApi, loadReservationPages } from "../src/api/reservations.js";
-import { canCancelReservation, canCreateReservation, filterReservations, reservationCounts } from "../src/pages/MyReservations/reservationRules.js";
+import { canCancelReservation, canCreateReservation, filterReservations, reservationCounts } from "../src/pages/library/MyReservations/reservationRules.js";
 
 test("API đặt giữ dùng đúng đường dẫn và không gọi API admin", async () => {
   const calls = [];

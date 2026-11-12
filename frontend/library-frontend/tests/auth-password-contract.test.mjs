@@ -3,7 +3,7 @@ import test from "node:test";
 
 test("registration and password reset share the 8 to 72 character contract", async () => {
   const { validateNewPassword } = await import(
-    "../src/pages/Auth/passwordRules.js"
+    "../src/pages/library/Auth/passwordRules.js"
   );
 
   assert.match(validateNewPassword("x".repeat(7)), /ít nhất 8 ký tự/i);

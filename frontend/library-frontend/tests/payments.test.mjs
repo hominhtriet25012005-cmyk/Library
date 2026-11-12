@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createPaymentsApi } from "../src/api/payments.js";
-import { checkoutUrl, readReturnOrderCode, paymentView, validateInitiation, validateSnapshot } from "../src/pages/Payments/paymentRules.js";
-import { createPaymentSession } from "../src/pages/Payments/paymentSession.js";
+import { checkoutUrl, readReturnOrderCode, paymentView, validateInitiation, validateSnapshot } from "../src/pages/library/Payments/paymentRules.js";
+import { createPaymentSession } from "../src/pages/library/Payments/paymentSession.js";
 
 test("API tạo đơn và xác nhận dùng endpoint backend hiện có, không tin redirect", async () => {
   const calls = [];

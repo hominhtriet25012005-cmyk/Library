@@ -4,7 +4,7 @@ import {
   adminNavigationSections,
   adminPageForPath,
   isAdminNavActive,
-} from "../src/pages/AdminLayout/adminNavigation.js";
+} from "../src/pages/library/AdminLayout/adminNavigation.js";
 
 test("sitemap ADMIN V1 có đúng 10 mục và không tạo vai trò thủ thư", () => {
   const items = adminNavigationSections.flatMap((section) => section.items);

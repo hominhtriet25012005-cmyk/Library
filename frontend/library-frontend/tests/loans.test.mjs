@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLoansApi, loadLoanPages } from "../src/api/loans.js";
-import { canRenewLoan, canReturnLoan, checkoutDaysForPlan, effectiveLoanStatus, filterLoans, renewalDays } from "../src/pages/MyLoans/loanRules.js";
+import { canRenewLoan, canReturnLoan, checkoutDaysForPlan, effectiveLoanStatus, filterLoans, renewalDays } from "../src/pages/library/MyLoans/loanRules.js";
 
 test("API khoản mượn dùng đúng endpoint và payload", async () => {
   const calls = [];

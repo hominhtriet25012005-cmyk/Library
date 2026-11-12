@@ -36,8 +36,8 @@ const Page = ({ code, title, description, icon: Icon, children }) => (
             width: 64,
             height: 64,
             borderRadius: 3.5,
-            bgcolor: "rgba(23, 105, 255, 0.1)",
-            color: "#1769ff",
+            bgcolor: "#EBF1EE",
+            color: "#315B4C",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -53,7 +53,7 @@ const Page = ({ code, title, description, icon: Icon, children }) => (
           variant="h2"
           sx={{
             fontWeight: 900,
-            color: "#1769ff",
+            color: "#315B4C",
             letterSpacing: "-1px",
             mb: 1,
           }}
@@ -81,7 +81,7 @@ const Page = ({ code, title, description, icon: Icon, children }) => (
   </Box>
 );
 
-export { LandingPage } from "./Home/LandingPage";
+export { LandingPage } from "./public/Home/LandingPage";
 
 export const ComingSoonPage = () => (
   <Page

@@ -8,7 +8,7 @@ import {
   hasReturnedLoan,
   ownReview,
   validateReview,
-} from "../src/pages/Book/reviewRules.js";
+} from "../src/pages/library/Book/reviewRules.js";
 
 test("API đánh giá chỉ dùng endpoint thực có và payload đúng", async () => {
   const calls = [];

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isActive, navigationPath } from "../src/pages/UserLayout/util.js";
+import { isActive, navigationPath } from "../src/pages/library/UserLayout/util.js";
 
 test("bản xem thử dùng đường dẫn riêng mà không thay đổi đường dẫn USER thật", () => {
   assert.equal(navigationPath("/user", true), "/demo");

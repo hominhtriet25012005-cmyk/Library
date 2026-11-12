@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readAdminDensity, saveAdminDensity } from "../src/pages/AdminLayout/adminPreferences.js";
+import { readAdminDensity, saveAdminDensity } from "../src/pages/library/AdminLayout/adminPreferences.js";
 
 test("AD8 display density is local-only and falls back safely", () => {
   const values = new Map();
