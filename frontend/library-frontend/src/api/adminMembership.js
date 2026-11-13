@@ -53,7 +53,7 @@ export const buildPlanPayload = (form) => {
     maxBooksAllowed,
     maxDaysPerBook,
     displayOrder,
-    isActive: form.isActive !== false,
+    isActive: true,
     isFeatured: form.isFeatured === true,
     badgeText,
     adminNotes,
@@ -150,7 +150,7 @@ export const createAdminMembershipApi = (client) => ({
       await client.delete(
         `/api/subscription-plans/admin/${positiveInteger(id, "ID gói")}`,
       ),
-      "Không thể xóa hoặc ngừng bán gói thành viên.",
+      "Không thể xóa gói thành viên.",
     ),
   deactivateExpired: async () =>
     checkedAction(

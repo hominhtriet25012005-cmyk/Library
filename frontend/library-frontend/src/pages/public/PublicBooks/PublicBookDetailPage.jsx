@@ -963,8 +963,9 @@ export const PublicBookDetailPage = () => {
                       variant="body2"
                       sx={{ color: publicPalette.textSecondary }}
                     >
-                      Nhận xét được gửi bởi các bạn đọc đã hoàn tất mượn và trả
-                      sách tại thư viện.
+                      Nhận xét được gửi bởi độc giả từng mượn sách và đã được
+                      ADMIN kiểm tra, kết thúc lượt mượn: đã trả, hư hỏng hoặc
+                      mất.
                     </Typography>
                   </Paper>
                 ) : (

@@ -58,8 +58,6 @@ const statusNames = {
 const typeNames = {
   FINE: "Tiền phạt",
   MEMBERSHIP: "Gói thành viên",
-  LOST_BOOK_PENALTY: "Mất sách",
-  DAMAGED_BOOK_PENALTY: "Hư hỏng sách",
 };
 
 const InfoRow = ({ label, value, highlight = false }) => (

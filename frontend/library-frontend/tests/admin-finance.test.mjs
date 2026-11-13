@@ -47,7 +47,7 @@ test("AD7 thanh toán chỉ đọc trạng thái từ backend và đối soát �
   ]);
   assert.equal(canReconcilePayment({ status: "PENDING", gateway: "PAYOS", currency: "VND", paymentType: "FINE" }), true);
   assert.equal(canReconcilePayment({ status: "SUCCESS", gateway: "PAYOS", currency: "VND", paymentType: "FINE" }), false);
-  assert.equal(canReconcilePayment({ status: "PENDING", gateway: "PAYOS", currency: "VND", paymentType: "LOST_BOOK_PENALTY" }), false);
+  assert.equal(canReconcilePayment({ status: "PENDING", gateway: "PAYOS", currency: "VND", paymentType: "UNKNOWN" }), false);
   assert.throws(() => buildPaymentQuery({ sortBy: "gatewaySignature" }), /Sắp xếp/);
 });
 

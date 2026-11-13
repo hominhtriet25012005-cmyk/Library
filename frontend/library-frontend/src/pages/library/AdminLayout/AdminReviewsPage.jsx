@@ -631,7 +631,7 @@ const AdminReviewsPage = () => {
                   >
                     {String(selected.reviewText ?? "")
                       .replace(/[\u200B-\u200D\uFEFF]/g, "")
-                      .trim() || "Không có nội dung mô tả chi tiết."}
+                      .trim() || "Đánh giá chỉ có sao, không kèm nhận xét."}
                   </Typography>
                 </Paper>
               </Box>

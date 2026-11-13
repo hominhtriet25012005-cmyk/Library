@@ -4,7 +4,6 @@ import { createReviewsApi, loadReviewPages } from "../src/api/reviews.js";
 import {
   canCreateReview,
   cleanReviewText,
-  encodeReviewTextForDb,
   hasReturnedLoan,
   ownReview,
   validateReview,
@@ -95,9 +94,9 @@ test("chỉ người có lượt mượn RETURNED và chưa có đánh giá ho�
   assert.equal(canCreateReview(loans, 13, reviews, 9), true);
 });
 
-test("validation khớp giới hạn request backend (TH1 có nhận xét và TH2 chỉ đánh giá sao)", () => {
+test("validation cho phép đánh giá chỉ có sao hoặc kèm nhận xét tùy chọn", () => {
   assert.equal(
-    validateReview({ rating: 0, reviewText: "Đủ mười ký tự" }),
+    validateReview({ rating: 0, reviewText: "Nội dung đánh giá" }),
     "Điểm đánh giá phải từ 1 đến 5 sao.",
   );
   assert.equal(validateReview({ rating: 5, reviewText: "Ok" }), null);
@@ -111,20 +110,7 @@ test("validation khớp giới hạn request backend (TH1 có nhận xét và TH
     null,
   );
 
-  // TH2: Chỉ gửi đánh giá sao (không ghi nhận xét) -> mã hóa đủ 10 ký tự cho DB và giải mã về rỗng
-  const emptyEncoded = encodeReviewTextForDb("");
-  assert.equal(emptyEncoded.length, 10);
-  assert.equal(cleanReviewText(emptyEncoded), "");
-
-  // TH1: Có nhận xét (ngắn hoặc dài) -> mã hóa đủ >= 10 ký tự cho DB và giải mã giữ nguyên nội dung
-  const shortEncoded = encodeReviewTextForDb("Sách hay");
-  assert.equal(shortEncoded.length, 10);
-  assert.equal(cleanReviewText(shortEncoded), "Sách hay");
-
-  const longEncoded = encodeReviewTextForDb("Cuốn sách rất bổ ích và sâu sắc!");
-  assert.equal(longEncoded, "Cuốn sách rất bổ ích và sâu sắc!");
-  assert.equal(
-    cleanReviewText(longEncoded),
-    "Cuốn sách rất bổ ích và sâu sắc!",
-  );
+  assert.equal(cleanReviewText("  \u200B  "), "");
+  assert.equal(validateReview({ rating: 5, reviewText: "  \u200B  " }), null);
+  assert.equal(cleanReviewText("Sách hay"), "Sách hay");
 });

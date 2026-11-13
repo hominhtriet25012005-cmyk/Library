@@ -42,7 +42,7 @@ test("ADMIN cập nhật gói qua endpoint PUT", async () => {
   assert.deepEqual(calls, [["/api/subscription-plans/admin/4", buildPlanPayload(form)]]);
 });
 
-test("ADMIN xóa hoặc ngừng bán gói qua endpoint DELETE", async () => {
+test("ADMIN xóa gói qua endpoint DELETE", async () => {
   const calls = [];
   const admin = createAdminMembershipApi({
     delete: async (path) => {

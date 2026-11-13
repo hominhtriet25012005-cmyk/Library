@@ -1,28 +1,22 @@
-const MIN_DB_REVIEW_LENGTH = 10;
-const ZERO_WIDTH_PAD = "\u200B";
-
 export const cleanReviewText = (reviewText = "") =>
   String(reviewText ?? "")
     .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .trim();
 
-export const encodeReviewTextForDb = (reviewText = "") => {
-  const cleaned = cleanReviewText(reviewText);
-  if (cleaned.length >= MIN_DB_REVIEW_LENGTH) return cleaned;
-  return cleaned.padEnd(MIN_DB_REVIEW_LENGTH, ZERO_WIDTH_PAD);
-};
+const REVIEWABLE_LOAN_STATUSES = new Set(["RETURNED", "DAMAGED", "LOST"]);
 
-export const hasReturnedLoan = (loans, bookId) =>
+export const hasReviewableLoan = (loans, bookId) =>
   loans.some(
     (loan) =>
-      Number(loan.bookId) === Number(bookId) && loan.status === "RETURNED",
+      Number(loan.bookId) === Number(bookId) &&
+      REVIEWABLE_LOAN_STATUSES.has(loan.status),
   );
 
 export const ownReview = (reviews, userId) =>
   reviews.find((review) => Number(review.userId) === Number(userId));
 
 export const canCreateReview = (loans, bookId, reviews, userId) =>
-  hasReturnedLoan(loans, bookId) && !ownReview(reviews, userId);
+  hasReviewableLoan(loans, bookId) && !ownReview(reviews, userId);
 
 export const validateReview = ({ rating, reviewText = "" }) => {
   if (!Number.isInteger(rating) || rating < 1 || rating > 5)

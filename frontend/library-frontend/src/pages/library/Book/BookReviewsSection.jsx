@@ -29,7 +29,6 @@ import { formatDateVN } from "../../../utils/formatters.js";
 import {
   canCreateReview,
   cleanReviewText,
-  encodeReviewTextForDb,
   ownReview,
   validateReview,
 } from "./reviewRules.js";
@@ -155,7 +154,7 @@ const BookReviewsSection = ({ bookId }) => {
     }
     const payload = {
       rating: form.rating,
-      reviewText: encodeReviewTextForDb(cleanedText),
+      reviewText: cleanedText || null,
     };
     setBusy(true);
     setFormError("");
@@ -250,7 +249,7 @@ const BookReviewsSection = ({ bookId }) => {
               </>
             )}
             <Typography variant="body2" sx={{ color: "#64748b" }}>
-              {loading ? "Đang tải…" : `${reviews.length} nhận xét`}
+              {loading ? "Đang tải…" : `${reviews.length} đánh giá`}
             </Typography>
           </Box>
         </Box>
@@ -415,9 +414,10 @@ const BookReviewsSection = ({ bookId }) => {
                       variant="body2"
                       sx={{ color: "#315B4C", fontSize: "0.85rem" }}
                     >
-                      Để đảm bảo tính khách quan của cộng đồng độc giả, tính
-                      năng viết đánh giá sẽ mở khóa ngay sau khi bạn hoàn tất
-                      đọc và trả sách về thư viện.
+                      Bạn có thể đánh giá sau khi ADMIN kiểm tra và kết thúc
+                      lượt mượn, dù sách được ghi nhận đã trả, hư hỏng hay mất.
+                      Khoản phạt (nếu có) được xử lý riêng và không khóa quyền
+                      đánh giá.
                     </Typography>
                   </>
                 ) : user ? (
@@ -432,8 +432,10 @@ const BookReviewsSection = ({ bookId }) => {
                       variant="body2"
                       sx={{ color: "#64748b", fontSize: "0.85rem" }}
                     >
-                      Để đảm bảo tính khách quan của cộng đồng, bạn cần hoàn tất
-                      mượn và trả cuốn sách này trước khi viết đánh giá.
+                      Bạn có thể đánh giá sau khi ADMIN kiểm tra và kết thúc
+                      lượt mượn, dù sách được ghi nhận đã trả, hư hỏng hay mất.
+                      Khoản phạt (nếu có) được xử lý riêng và không khóa quyền
+                      đánh giá.
                     </Typography>
                   </>
                 ) : (
@@ -448,8 +450,8 @@ const BookReviewsSection = ({ bookId }) => {
                       variant="body2"
                       sx={{ color: "#64748b", fontSize: "0.85rem" }}
                     >
-                      Vui lòng đăng nhập tài khoản và hoàn tất mượn trả cuốn
-                      sách này để gửi đánh giá nhận xét.
+                      Vui lòng đăng nhập và chờ ADMIN kiểm tra, kết thúc lượt
+                      mượn trước khi gửi đánh giá.
                     </Typography>
                   </>
                 )}
@@ -644,7 +646,7 @@ const BookReviewsSection = ({ bookId }) => {
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 750, color: "#1b2e27" }}>
-            {editing ? "Chỉnh sửa đánh giá" : "Viết đánh giá nhận xét"}
+            {editing ? "Chỉnh sửa đánh giá" : "Viết đánh giá sách"}
           </Typography>
           <IconButton
             size="small"

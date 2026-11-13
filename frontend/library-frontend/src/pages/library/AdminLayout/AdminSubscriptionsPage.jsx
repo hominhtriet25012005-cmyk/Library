@@ -67,7 +67,6 @@ const emptyPlan = {
   maxBooksAllowed: "",
   maxDaysPerBook: "",
   displayOrder: "0",
-  isActive: true,
   isFeatured: false,
   badgeText: "",
   adminNotes: "",
@@ -84,7 +83,6 @@ const planToForm = (plan) =>
         maxBooksAllowed: String(plan.maxBooksAllowed ?? ""),
         maxDaysPerBook: String(plan.maxDaysPerBook ?? ""),
         displayOrder: String(plan.displayOrder ?? 0),
-        isActive: plan.isActive !== false,
         isFeatured: plan.isFeatured === true,
         badgeText: plan.badgeText ?? "",
         adminNotes: plan.adminNotes ?? "",
@@ -435,18 +433,6 @@ const PlanDialog = ({ open, plan = null, onClose, onSaved }) => {
               }
               label="Gói nổi bật"
             />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={form.isActive}
-                  onChange={(event) =>
-                    setForm({ ...form, isActive: event.target.checked })
-                  }
-                  color="primary"
-                />
-              }
-              label="Mở bán ngay"
-            />
           </Stack>
         </Stack>
       </DialogContent>
@@ -530,7 +516,7 @@ export const AdminSubscriptionPlansPage = () => {
 
   const visible = (plans ?? []).filter(
     (plan) =>
-      (status === "ALL" || plan.isActive === (status === "SELLING")) &&
+      (status === "ALL" || plan.isActive === (status === "ACTIVE")) &&
       (!query.trim() ||
         `${plan.planCode} ${plan.name}`
           .toLocaleLowerCase("vi-VN")
@@ -550,13 +536,13 @@ export const AdminSubscriptionPlansPage = () => {
     setActionError("");
     try {
       const response = await adminMembershipApi.deletePlan(deleting.id);
-      setNotice(response.message || "Đã cập nhật trạng thái gói thành viên.");
+      setNotice(response.message || "Đã xóa gói thành viên.");
       setDeleting(null);
       setLoading(true);
       setReload((value) => value + 1);
     } catch (cause) {
       setActionError(
-        cause.message || "Không thể xóa hoặc ngừng bán gói thành viên.",
+        cause.message || "Không thể xóa gói thành viên.",
       );
     } finally {
       setActionBusy(false);
@@ -623,13 +609,13 @@ export const AdminSubscriptionPlansPage = () => {
           color="primary"
         />
         <StatCard
-          title="Đang mở bán"
+          title="Đang hiển thị"
           value={loading ? "—" : stats.active}
           icon={CheckCircleOutlineRoundedIcon}
           color="success"
         />
         <StatCard
-          title="Tạm ngừng bán"
+          title="Không hiển thị"
           value={loading ? "—" : stats.inactive}
           icon={BlockRoundedIcon}
           color="warning"
@@ -650,18 +636,18 @@ export const AdminSubscriptionPlansPage = () => {
         filters={
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel id="plan-status-filter-label">
-              Trạng thái bán
+            Trạng thái hiển thị
             </InputLabel>
             <Select
               labelId="plan-status-filter-label"
-              label="Trạng thái bán"
+              label="Trạng thái hiển thị"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               sx={{ borderRadius: "10px" }}
             >
               <MenuItem value="ALL">Tất cả trạng thái</MenuItem>
-              <MenuItem value="SELLING">Đang mở bán</MenuItem>
-              <MenuItem value="STOPPED">Đã ngừng bán</MenuItem>
+              <MenuItem value="ACTIVE">Đang hiển thị</MenuItem>
+              <MenuItem value="INACTIVE">Đang ẩn</MenuItem>
             </Select>
           </FormControl>
         }
@@ -1001,7 +987,7 @@ export const AdminSubscriptionPlansPage = () => {
             }}
             sx={{ mr: "auto", textTransform: "none", fontWeight: 600 }}
           >
-            Xóa / Ngừng bán
+            Xóa gói
           </Button>
           <Button
             variant="outlined"
@@ -1040,13 +1026,14 @@ export const AdminSubscriptionPlansPage = () => {
         slotProps={{ paper: { sx: { borderRadius: 3 } } }}
       >
         <DialogTitle sx={{ fontWeight: 750, color: "text.primary" }}>
-          Xác nhận xử lý gói thành viên
+          Xác nhận xóa gói thành viên
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Alert severity="warning" sx={{ borderRadius: 2 }}>
-              Gói chưa có lịch sử đăng ký sẽ bị xóa vĩnh viễn. Nếu đã có lịch
-              sử, chỉ ngừng bán và vẫn giữ nguyên dữ liệu cũ.
+              Gói chưa từng có lịch sử đăng ký sẽ bị xóa vĩnh viễn. Nếu đã có
+              lịch sử, hệ thống sẽ từ chối xóa và giữ nguyên trạng thái gói cùng
+              toàn bộ dữ liệu lịch sử.
             </Alert>
             <Typography variant="body2" color="text.secondary">
               Gói #{deleting?.id} · {deleting?.name}
@@ -1068,7 +1055,7 @@ export const AdminSubscriptionPlansPage = () => {
             disabled={actionBusy}
             onClick={deletePlan}
           >
-            {actionBusy ? "Đang xử lý…" : "Xác nhận"}
+            {actionBusy ? "Đang xóa…" : "Xóa gói"}
           </Button>
         </DialogActions>
       </Dialog>
