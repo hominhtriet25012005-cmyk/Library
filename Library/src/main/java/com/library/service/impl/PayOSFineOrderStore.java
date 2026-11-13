@@ -31,7 +31,9 @@ public class PayOSFineOrderStore {
                 || fine.getAmount() == null || fine.getAmountPaid() == null || fine.getAmountPaid() < 0
                 || fine.getAmount() <= fine.getAmountPaid())
             throw new IllegalStateException("Fine is not payable");
-        var existing = payments.findFirstByFineIdAndGatewayOrderByIdDesc(fineId, PaymentGateway.PAYOS);
+        var existing = payments.findFirstByFineIdAndGatewayAndStatusInOrderByIdDesc(
+                fineId, PaymentGateway.PAYOS,
+                java.util.List.of(PaymentStatus.PENDING, PaymentStatus.PROCESSING));
 
         if (existing.isPresent())
             return new PayOSOrderStore.Prepared(existing.get(), false);

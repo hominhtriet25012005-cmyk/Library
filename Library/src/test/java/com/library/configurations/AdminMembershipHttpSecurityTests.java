@@ -1,5 +1,7 @@
 package com.library.configurations;
 
+import com.library.exception.BusinessConflictException;
+import com.library.exception.GlobalException;
 import com.library.controller.SubscriptionController;
 import com.library.controller.SubscriptionPlanController;
 import com.library.payload.dto.SubscriptionPlanDTO;
@@ -30,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class AdminMembershipHttpSecurityTests {
     @Configuration @EnableWebMvc @EnableWebSecurity
-    @Import({SecurityConfig.class, SubscriptionController.class, SubscriptionPlanController.class,
+    @Import({SecurityConfig.class, GlobalException.class, SubscriptionController.class, SubscriptionPlanController.class,
             SecurityTestSupport.Beans.class})
     static class Config {
         @Bean SubscriptionService subscriptions() { return mock(SubscriptionService.class); }
@@ -93,19 +95,23 @@ class AdminMembershipHttpSecurityTests {
                         .header("Authorization", token("ROLE_ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(true))
-                .andExpect(jsonPath("$.message").value("Đã xóa vĩnh viễn gói thành công."));
+                .andExpect(jsonPath("$.message").value("Đã xóa gói thành công."));
         verify(plans).deleteSubscriptionPlan(9L);
     }
 
-    @Test void deleteReportsStopSellingWhenPlanHasSubscriptionHistory() throws Exception {
+    @Test void deleteReturnsConflictWhenPlanHasSubscriptionHistory() throws Exception {
         var plans = context.getBean(SubscriptionPlanService.class);
-        when(plans.deleteSubscriptionPlan(9L)).thenReturn(false);
+        when(plans.deleteSubscriptionPlan(9L)).thenThrow(new BusinessConflictException(
+                "SUBSCRIPTION_PLAN_HAS_HISTORY",
+                "Không thể xóa gói vì đã có lịch sử đăng ký. Lịch sử và trạng thái gói được giữ nguyên."));
 
         mvc.perform(delete("/api/subscription-plans/admin/9")
                         .header("Authorization", token("ROLE_ADMIN")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value(true))
-                .andExpect(jsonPath("$.message").value("Gói đã có lịch sử đăng ký nên chỉ được ngừng bán."));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(false))
+                .andExpect(jsonPath("$.errorCode").value("SUBSCRIPTION_PLAN_HAS_HISTORY"))
+                .andExpect(jsonPath("$.message").value(
+                        "Không thể xóa gói vì đã có lịch sử đăng ký. Lịch sử và trạng thái gói được giữ nguyên."));
     }
 
     @Test void expiredMembershipMutationUsesPostAndLegacyListAcceptsRealPage() throws Exception {

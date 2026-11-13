@@ -2,6 +2,7 @@ package com.library.service.impl;
 
 import com.library.configurations.JwtProvider;
 import com.library.domain.UserRole;
+import com.library.exception.InvalidCredentialsException;
 import com.library.exception.UserException;
 import com.library.mapper.UserMapper;
 import com.library.model.PasswordResetToken;
@@ -17,6 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
@@ -71,16 +73,16 @@ public class AuthServiceImpl implements AuthService {
         return response;
     }
 
-    private Authentication authenticate(String username, String password) throws UserException {
-
-        // Dựa vào email để tìm user trong database
-        UserDetails userDetails = customUserServiceImplementation.loadUserByUsername(username);
-
-        if (userDetails == null) {
-            throw new UserException("Không tìm thấy tài khoản với email này.");
+    private Authentication authenticate(String username, String password) {
+        UserDetails userDetails;
+        try {
+            userDetails = customUserServiceImplementation.loadUserByUsername(username);
+        } catch (UsernameNotFoundException e) {
+            throw new InvalidCredentialsException();
         }
-        if (!passwordEncoder.matches(password, userDetails.getPassword())) {
-            throw new UserException("Mật khẩu không chính xác.");
+
+        if (userDetails == null || !passwordEncoder.matches(password, userDetails.getPassword())) {
+            throw new InvalidCredentialsException();
         }
         // password = password gốc frontend gửi
         //

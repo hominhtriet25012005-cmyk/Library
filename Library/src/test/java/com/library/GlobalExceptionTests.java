@@ -25,5 +25,21 @@ class GlobalExceptionTests {
         assertFalse(response.getBody().getStatus());
         assertEquals("Khoản phạt cùng loại đã tồn tại cho lượt mượn này.",
                 response.getBody().getMessage());
+        assertEquals("FINE_ALREADY_EXISTS", response.getBody().getErrorCode());
+    }
+
+    @Test
+    void duplicateSubscriptionPlanCodeConstraintReturnsStableConflictCode() {
+        DataIntegrityViolationException error = new DataIntegrityViolationException(
+                "could not execute statement",
+                new RuntimeException("Duplicate entry for key 'uq_subscription_plans_plan_code'"));
+
+        ResponseEntity<ApiResponse> response = new GlobalException().handleDataIntegrityViolation(error);
+
+        assertEquals(409, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().getStatus());
+        assertEquals("Mã gói đã tồn tại.", response.getBody().getMessage());
+        assertEquals("SUBSCRIPTION_PLAN_CODE_EXISTS", response.getBody().getErrorCode());
     }
 }

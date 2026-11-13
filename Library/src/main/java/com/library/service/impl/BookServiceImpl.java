@@ -2,6 +2,7 @@ package com.library.service.impl;
 
 import com.library.exception.BookException;
 import com.library.exception.BookInUseException;
+import com.library.support.PaginationRules;
 import com.library.mapper.BookMapper;
 import com.library.model.Book;
 import com.library.payload.dto.BookDTO;
@@ -20,11 +21,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class BookServiceImpl implements BookService {
+
+    private static final Set<String> BOOK_SORT_FIELDS = Set.of(
+            "createdAt", "title", "author", "publicationYear", "availableCopies", "totalCopies");
 
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
@@ -185,12 +190,10 @@ public class BookServiceImpl implements BookService {
             searchRequest = new BookSearchRequest();
         }
         Pageable pageable = createPageable(
-                searchRequest.getPage() == null ? 0 : searchRequest.getPage(),
-                searchRequest.getSize() == null ? 20 : searchRequest.getSize(),
-                searchRequest.getSortBy() == null || searchRequest.getSortBy().isBlank()
-                        ? "createdAt" : searchRequest.getSortBy(),
-                searchRequest.getSortDirection() == null || searchRequest.getSortDirection().isBlank()
-                        ? "DESC" : searchRequest.getSortDirection());
+                searchRequest.getPage(),
+                searchRequest.getSize(),
+                searchRequest.getSortBy(),
+                searchRequest.getSortDirection());
         Page<Book> bookPage = bookRepository.searchBooksWithFilters(
                 searchRequest.getSearchTerm(),
                 searchRequest.getGenreId(),
@@ -207,12 +210,10 @@ public class BookServiceImpl implements BookService {
             searchRequest = new BookSearchRequest();
         }
         Pageable pageable = createPageable(
-                searchRequest.getPage() == null ? 0 : searchRequest.getPage(),
-                searchRequest.getSize() == null ? 20 : searchRequest.getSize(),
-                searchRequest.getSortBy() == null || searchRequest.getSortBy().isBlank()
-                        ? "createdAt" : searchRequest.getSortBy(),
-                searchRequest.getSortDirection() == null || searchRequest.getSortDirection().isBlank()
-                        ? "DESC" : searchRequest.getSortDirection());
+                searchRequest.getPage(),
+                searchRequest.getSize(),
+                searchRequest.getSortBy(),
+                searchRequest.getSortDirection());
         return convertToPageResponse(bookRepository.searchBooksForAdmin(
                 searchRequest.getSearchTerm(), searchRequest.getGenreId(),
                 Boolean.TRUE.equals(searchRequest.getAvailableOnly()),
@@ -232,13 +233,11 @@ public class BookServiceImpl implements BookService {
         return bookRepository.countAvailableBooks();
     }
 
-    private Pageable createPageable(int page, int size, String sortBy, String sortDirection){
-        size = Math.min(size, 100);
-        size=Math.max(size, 1);
-
-        Sort sort = sortDirection.equalsIgnoreCase("ASC")
-                ? Sort.by(sortBy).ascending():Sort.by(sortBy).descending();
-        return PageRequest.of(page, size, sort);
+    private Pageable createPageable(Integer page, Integer size, String sortBy, String sortDirection) {
+        PaginationRules.validatePageAndSize(page, size);
+        String field = PaginationRules.validatedSortField(sortBy, "createdAt", BOOK_SORT_FIELDS);
+        Sort.Direction direction = PaginationRules.validatedSortDirection(sortDirection, "DESC");
+        return PageRequest.of(page, size, Sort.by(direction, field));
     }
 
     private PageResponse<BookDTO> convertToPageResponse(Page<Book> books){

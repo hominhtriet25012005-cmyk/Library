@@ -2,6 +2,7 @@ package com.library.service.impl;
 
 
 import com.library.mapper.UserMapper;
+import com.library.exception.ResourceNotFoundException;
 import com.library.model.User;
 import com.library.payload.dto.UserDTO;
 import com.library.repository.UserRepository;
@@ -21,17 +22,17 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
-    public User getCurrentUser() throws Exception {
+    public User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new Exception("Không tìm thấy người dùng!");
+            throw new ResourceNotFoundException("USER_NOT_FOUND", "Không tìm thấy người dùng!");
         }
         return user;
     }
 
     @Override
-    public UserDTO getCurrentUserProfile() throws Exception {
+    public UserDTO getCurrentUserProfile() {
         return UserMapper.toDTO(getCurrentUser());
     }
 
@@ -45,9 +46,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User findById(Long id) throws Exception {
+    public User findById(Long id) {
         return userRepository.findById(id).orElseThrow(
-                () -> new Exception("Không tìm thấy người dùng với ID đã cho!")
+                () -> new ResourceNotFoundException("USER_NOT_FOUND", "Không tìm thấy người dùng với ID đã cho!")
         );
     }
 }

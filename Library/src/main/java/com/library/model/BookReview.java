@@ -32,7 +32,7 @@ public class BookReview {
     @Column(nullable = false)
     private Integer rating;
 
-    @Column(name = "review_text", length = 2000)
+    @Column(name = "review_text", length = 2000, nullable = true)
     private String reviewText;
 
     @Column(length = 200)

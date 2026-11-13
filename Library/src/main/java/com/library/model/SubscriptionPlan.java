@@ -1,6 +1,8 @@
 package com.library.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -32,21 +34,28 @@ public class SubscriptionPlan {
     private String description;
 
     @Column(name = "duration_in_days", nullable = false)
+    @NotNull(message = "Thời hạn gói là bắt buộc")
+    @Positive(message = "Thời hạn gói phải lớn hơn 0")
     private Integer durationDays;
 
     @Column(nullable = false, precision = 10, scale = 2)
+    @NotNull(message = "Giá gói là bắt buộc")
     @Positive(message = "Giá gói phải lớn hơn 0")
     private java.math.BigDecimal price;
 
     @Column(nullable = false, length = 3)
     @Builder.Default
-    private String currency="VND";
+    @NotNull(message = "Tiền tệ của gói là bắt buộc")
+    @Pattern(regexp = "VND", message = "Tiền tệ của gói thành viên chỉ hỗ trợ VND")
+    private String currency = "VND";
 
     @Column(nullable = false)
+    @NotNull(message = "Số sách tối đa là bắt buộc")
     @Positive(message = "Số sách tối đa phải lớn hơn 0")
     private Integer maxBooksAllowed;
 
     @Column(nullable = false)
+    @NotNull(message = "Số ngày mượn tối đa là bắt buộc")
     @Positive(message = "Số ngày mượn tối đa phải lớn hơn 0")
     private Integer maxDaysPerBook;
 

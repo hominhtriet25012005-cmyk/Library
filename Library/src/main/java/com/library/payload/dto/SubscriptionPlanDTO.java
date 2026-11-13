@@ -2,6 +2,7 @@ package com.library.payload.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -37,7 +38,7 @@ public class SubscriptionPlanDTO {
     @jakarta.validation.constraints.Digits(integer = 8, fraction = 2)
     private java.math.BigDecimal price;
 
-    @Size(min = 3, max = 3, message = "Mã tiền tệ phải có đúng 3 ký tự")
+    @Pattern(regexp = "(?i)^\\s*(VND)?\\s*$", message = "Tiền tệ của gói thành viên chỉ hỗ trợ VND")
     private String currency;
 
     @NotNull(message = "Số sách tối đa là bắt buộc")

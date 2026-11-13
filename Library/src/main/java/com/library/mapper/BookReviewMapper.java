@@ -13,8 +13,12 @@ public class BookReviewMapper {
         }
 
         String cleanedText = bookReview.getReviewText() != null
-                ? bookReview.getReviewText().replaceAll("[\\u200B-\\u200D\\uFEFF]", "").trim()
-                : "";
+                ? bookReview.getReviewText().replaceAll("[\\u200B-\\u200D\\uFEFF]", "")
+                        .replaceAll("^[\\p{Z}\\s]+|[\\p{Z}\\s]+$", "")
+                : null;
+        if (cleanedText != null && cleanedText.isEmpty()) {
+            cleanedText = null;
+        }
 
         return BookReviewDTO.builder()
                 .id(bookReview.getId())

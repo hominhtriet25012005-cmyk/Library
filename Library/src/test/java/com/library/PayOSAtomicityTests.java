@@ -150,6 +150,22 @@ class PayOSAtomicityTests {
         assertThatThrownBy(() -> store.prepare(fineId, owner)).isInstanceOf(IllegalStateException.class);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = PaymentStatus.class, names = {"CANCELLED", "FAILED"})
+    void terminalFineOrderDoesNotBlockCreatingAReplacement(PaymentStatus terminalStatus) {
+        Long fineId = createFine();
+        Long owner = ownerId();
+        var store = fineStore();
+        var first = store.prepare(fineId, owner);
+
+        tx.executeWithoutResult(status -> em.find(Payment.class, first.payment().getId()).setStatus(terminalStatus));
+
+        var replacement = store.prepare(fineId, owner);
+        assertThat(replacement.newlyCreated()).isTrue();
+        assertThat(replacement.payment().getId()).isNotEqualTo(first.payment().getId());
+        assertThat(replacement.payment().getStatus()).isEqualTo(PaymentStatus.PENDING);
+    }
+
     @Test void simultaneousFineCreationProducesOneOrder() throws Exception {
         Long fineId = createFine(); Long owner = ownerId(); var store = fineStore();
         var executor = Executors.newFixedThreadPool(2);

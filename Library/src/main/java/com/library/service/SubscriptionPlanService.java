@@ -7,22 +7,23 @@ import java.util.List;
 
 public interface SubscriptionPlanService {
 
-    SubscriptionPlanDTO createSubscriptionPlan(SubscriptionPlanDTO planDTO) throws Exception;
+    SubscriptionPlanDTO createSubscriptionPlan(SubscriptionPlanDTO planDTO);
 
 
-    SubscriptionPlanDTO updateSubscriptionPlan(Long planId, SubscriptionPlanDTO planDTO) throws Exception;
+    SubscriptionPlanDTO updateSubscriptionPlan(Long planId, SubscriptionPlanDTO planDTO);
 
     /**
-     * Deletes a never-used plan permanently; otherwise only stops selling it.
+     * Permanently deletes a plan that has no subscription history.
+     * Throws a business conflict when history exists, without changing the plan or its history.
      *
-     * @return true when the row was permanently deleted, false when it was kept for history
+     * @return true after the plan row is deleted
      */
-    boolean deleteSubscriptionPlan(Long planId) throws Exception;
+    boolean deleteSubscriptionPlan(Long planId);
 
     List<SubscriptionPlanDTO> getAllSubscriptionPlan();
 
     List<SubscriptionPlanDTO> getAvailableSubscriptionPlans();
 
-    SubscriptionPlan getBySubscriptionPlanCode(String subscriptionPlanCode) throws Exception;
+    SubscriptionPlan getBySubscriptionPlanCode(String subscriptionPlanCode);
 
 }

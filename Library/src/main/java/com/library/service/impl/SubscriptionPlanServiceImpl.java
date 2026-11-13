@@ -1,6 +1,8 @@
 package com.library.service.impl;
 
 import com.library.mapper.SubscriptionPlanMapper;
+import com.library.exception.BusinessConflictException;
+import com.library.exception.ResourceNotFoundException;
 import com.library.model.SubscriptionPlan;
 import com.library.model.User;
 import com.library.payload.dto.SubscriptionPlanDTO;
@@ -24,12 +26,17 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
     private final SubscriptionPlanRepository subscriptionPlanRepository;
 
     @Override
-    public SubscriptionPlanDTO createSubscriptionPlan(SubscriptionPlanDTO planDTO) throws Exception {
+    public SubscriptionPlanDTO createSubscriptionPlan(SubscriptionPlanDTO planDTO) {
 
         if (planRepository.existsByPlanCode(planDTO.getPlanCode())) {
-            throw new Exception("Mã gói đã tồn tại.");
+            throw new BusinessConflictException(
+                    "SUBSCRIPTION_PLAN_CODE_EXISTS",
+                    "Mã gói đã tồn tại."
+            );
         }
         SubscriptionPlan plan = planMapper.toEntity(planDTO);
+        // V1 does not expose a stop-selling control; new plans are always listed.
+        plan.setIsActive(true);
 
         User currentUser = userService.getCurrentUser();
         plan.setCreatedBy(currentUser.getFullName());
@@ -40,9 +47,9 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
     }
 
     @Override
-    public SubscriptionPlanDTO updateSubscriptionPlan(Long planId, SubscriptionPlanDTO planDTO) throws Exception {
+    public SubscriptionPlanDTO updateSubscriptionPlan(Long planId, SubscriptionPlanDTO planDTO) {
         SubscriptionPlan existingPlan = planRepository.findById(planId).orElseThrow(
-                () -> new Exception("Không tìm thấy gói dịch vụ!")
+                () -> new ResourceNotFoundException("SUBSCRIPTION_PLAN_NOT_FOUND", "Không tìm thấy gói dịch vụ!")
         );
 
         planMapper.updateEntity(existingPlan, planDTO);
@@ -54,9 +61,9 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
 
     @Override
     @Transactional
-    public boolean deleteSubscriptionPlan(Long planId) throws Exception {
+    public boolean deleteSubscriptionPlan(Long planId) {
         SubscriptionPlan existingPlan = planRepository.findById(planId).orElseThrow(
-                () -> new Exception("Không tìm thấy gói dịch vụ!")
+                () -> new ResourceNotFoundException("SUBSCRIPTION_PLAN_NOT_FOUND", "Không tìm thấy gói dịch vụ!")
         );
 
         if (!planRepository.hasSubscriptionHistory(planId)) {
@@ -64,14 +71,10 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
             return true;
         }
 
-        if (Boolean.FALSE.equals(existingPlan.getIsActive())) {
-            return false;
-        }
-        User currentUser = userService.getCurrentUser();
-        existingPlan.setIsActive(false);
-        existingPlan.setUpdatedBy(currentUser.getFullName());
-        planRepository.save(existingPlan);
-        return false;
+        throw new BusinessConflictException(
+                "SUBSCRIPTION_PLAN_HAS_HISTORY",
+                "Không thể xóa gói vì đã có lịch sử đăng ký. Lịch sử và trạng thái gói được giữ nguyên."
+        );
     }
 
     @Override
@@ -95,10 +98,10 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
 
 
     @Override
-    public SubscriptionPlan getBySubscriptionPlanCode(String subscriptionPlanCode) throws Exception {
+    public SubscriptionPlan getBySubscriptionPlanCode(String subscriptionPlanCode) {
         SubscriptionPlan plan = subscriptionPlanRepository.findByPlanCode(subscriptionPlanCode);
         if (plan == null) {
-            throw new Exception("Không tìm thấy gói dịch vụ!");
+            throw new ResourceNotFoundException("SUBSCRIPTION_PLAN_NOT_FOUND", "Không tìm thấy gói dịch vụ!");
         }
         return plan;
     }

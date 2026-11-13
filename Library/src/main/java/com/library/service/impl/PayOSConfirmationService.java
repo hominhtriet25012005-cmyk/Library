@@ -25,6 +25,7 @@ public class PayOSConfirmationService {
     private final PayOSSettlementService settlement;
     private final UserService users;
     private final PayOSFineSettlementService fineSettlement;
+    private final PayOSPaymentStateStore paymentStates;
 
     public record Status(Long paymentId, Long subscriptionId, Long fineId, Long amount, String currency,
                          PaymentStatus status, java.time.LocalDateTime completedAt) {}
@@ -72,9 +73,13 @@ public class PayOSConfirmationService {
             throw new IllegalArgumentException("Gateway order mismatch");
         }
         if (link.getStatus() != PaymentLinkStatus.PAID) {
-            if (webhook != null) throw new IllegalStateException("Payment not confirmed by gateway yet");
-            return; // Đừng bao giờ suy diễn về sự thành công hay thất bại dựa trên việc trình duyệt chuyển hướng
-                    // hoặc xảy ra tình trạng hết thời gian chờ (timeout).
+            paymentStates.synchronizeNonPaidStatus(payment.getId(), link.getStatus());
+            if (webhook != null && (link.getStatus() == PaymentLinkStatus.PENDING
+                    || link.getStatus() == PaymentLinkStatus.PROCESSING
+                    || link.getStatus() == PaymentLinkStatus.UNDERPAID)) {
+                throw new IllegalStateException("Payment not confirmed by gateway yet");
+            }
+            return;
         }
         if (!Objects.equals(link.getAmountPaid(), payment.getAmount()) || !Long.valueOf(0).equals(link.getAmountRemaining())
                 || link.getTransactions() == null || link.getTransactions().size() != 1) {

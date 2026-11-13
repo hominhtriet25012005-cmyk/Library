@@ -97,7 +97,7 @@ public class BookReviewServiceImpl implements BookReviewService {
         boolean hasReadBook = hasUserReadBook(user.getId(), book.getId());
 
         if (!hasReadBook) {
-            throw new BookReviewException("Bạn cần mượn và trả cuốn sách này trước khi đánh giá.");
+            throw new BookReviewException("Bạn chỉ có thể đánh giá sau khi ADMIN đã kiểm tra và kết thúc lượt mượn.");
         }
 
         // 5. Viết đánh giá
@@ -105,7 +105,7 @@ public class BookReviewServiceImpl implements BookReviewService {
         bookReview.setUser(user);
         bookReview.setBook(book);
         bookReview.setRating(request.getRating());
-        bookReview.setReviewText(encodeReviewTextForDb(request.getReviewText()));
+        bookReview.setReviewText(normalizeOptionalReviewText(request.getReviewText()));
         bookReview.setTitle(normalizeOptionalTitle(request.getTitle()));
         bookReview.setIsActive(true);
 
@@ -130,7 +130,7 @@ public class BookReviewServiceImpl implements BookReviewService {
         }
 
         // 3. Cập nhật đánh giá
-        bookReview.setReviewText(encodeReviewTextForDb(request.getReviewText()));
+        bookReview.setReviewText(normalizeOptionalReviewText(request.getReviewText()));
         bookReview.setTitle(normalizeOptionalTitle(request.getTitle()));
         bookReview.setRating(request.getRating());
 
@@ -139,17 +139,13 @@ public class BookReviewServiceImpl implements BookReviewService {
         return bookReviewMapper.toDTO(savedBookReview);
     }
 
-    private static final int MIN_DB_REVIEW_LENGTH = 10;
-    private static final String ZERO_WIDTH_PAD = "\u200B";
-
-    private String encodeReviewTextForDb(String reviewText) {
-        String cleaned = reviewText != null
-                ? reviewText.replaceAll("[\\u200B-\\u200D\\uFEFF]", "").trim()
-                : "";
-        if (cleaned.length() >= MIN_DB_REVIEW_LENGTH) {
-            return cleaned;
+    private String normalizeOptionalReviewText(String reviewText) {
+        if (reviewText == null) {
+            return null;
         }
-        return cleaned + ZERO_WIDTH_PAD.repeat(MIN_DB_REVIEW_LENGTH - cleaned.length());
+        String cleaned = reviewText.replaceAll("[\\u200B-\\u200D\\uFEFF]", "")
+                .replaceAll("^[\\p{Z}\\s]+|[\\p{Z}\\s]+$", "");
+        return cleaned.isEmpty() ? null : cleaned;
     }
 
     private String normalizeOptionalTitle(String title) {
@@ -222,7 +218,9 @@ public class BookReviewServiceImpl implements BookReviewService {
     }
 
     private boolean hasUserReadBook(Long userId, Long bookId) {
-        return bookLoanRepository.existsByUserIdAndBookIdAndStatus(
-                userId, bookId, BookLoanStatus.RETURNED);
+        return bookLoanRepository.existsByUserIdAndBookIdAndStatusIn(
+                userId,
+                bookId,
+                List.of(BookLoanStatus.RETURNED, BookLoanStatus.DAMAGED, BookLoanStatus.LOST));
     }
 }

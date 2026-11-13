@@ -1,6 +1,7 @@
 package com.library;
 
 import com.library.configurations.JwtProvider;
+import com.library.exception.InvalidCredentialsException;
 import com.library.domain.UserRole;
 import com.library.exception.UserException;
 import com.library.mapper.UserMapper;
@@ -115,6 +116,29 @@ class LocalAuthenticationFlowTests {
         assertThat(response.getUser().getEmail()).isEqualTo(user.getEmail());
         assertThat(user.getLastLogin()).isNotNull();
         verify(users).save(user);
+    }
+
+    @Test
+    void unknownEmailAndWrongPasswordShareTheSameAuthenticationFailure() {
+        when(userDetailsService.loadUserByUsername("missing@example.test"))
+                .thenThrow(new org.springframework.security.core.userdetails.UsernameNotFoundException(
+                        "missing@example.test"));
+        UserDetails details = new org.springframework.security.core.userdetails.User(
+                "reader@example.test", "bcrypt-hash",
+                List.of(new SimpleGrantedAuthority(UserRole.ROLE_USER.name())));
+        when(userDetailsService.loadUserByUsername("reader@example.test")).thenReturn(details);
+        when(passwords.matches("WrongPassword123!", "bcrypt-hash")).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.login("missing@example.test", "WrongPassword123!"))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage(InvalidCredentialsException.MESSAGE)
+                .hasMessageNotContaining("missing@example.test");
+        assertThatThrownBy(() -> authService.login("reader@example.test", "WrongPassword123!"))
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage(InvalidCredentialsException.MESSAGE)
+                .hasMessageNotContaining("reader@example.test");
+
+        verify(users, never()).save(any());
     }
 
     @Test

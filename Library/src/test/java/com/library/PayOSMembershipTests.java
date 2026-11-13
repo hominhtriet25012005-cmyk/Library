@@ -15,12 +15,15 @@ import static org.mockito.Mockito.*;
 
 class PayOSMembershipTests {
     private final PayOSOrderStore store = mock(PayOSOrderStore.class);
+    private final PayOSPaymentStateStore paymentStates = mock(PayOSPaymentStateStore.class);
     private final UserService users = mock(UserService.class);
     private final PayOSService gateway = mock(PayOSService.class);
+    private final PayOSConfirmationService confirmation = mock(PayOSConfirmationService.class);
     @SuppressWarnings("unchecked")
     private final ObjectProvider<PayOSService> provider = mock(ObjectProvider.class);
     private final PayOSMembershipPaymentService service = new PayOSMembershipPaymentService(
-            store, users, provider, true, "http://localhost:5173/success", "http://localhost:5173/cancel");
+            store, paymentStates, confirmation, users, provider, true,
+            "http://localhost:5173/success", "http://localhost:5173/cancel");
 
     private Payment setup(boolean fresh) throws Exception {
         when(provider.getIfAvailable()).thenReturn(gateway);
@@ -42,7 +45,8 @@ class PayOSMembershipTests {
     }
 
     @Test void disabledBeforePersistence() {
-        var disabled = new PayOSMembershipPaymentService(store, users, provider, false, "", "");
+        var disabled = new PayOSMembershipPaymentService(
+                store, paymentStates, confirmation, users, provider, false, "", "");
         assertThatThrownBy(() -> disabled.initiate(8L)).isInstanceOf(IllegalStateException.class);
         verifyNoInteractions(store, users, gateway);
     }
@@ -86,14 +90,58 @@ class PayOSMembershipTests {
     }
 
     @Test void repeatedInitiationOnlyLooksUpSameOrder() throws Exception {
-        setup(false);
+        Payment payment = setup(false);
         PaymentLink link = new PaymentLink();
         link.setId("test-link"); link.setOrderCode(42L); link.setAmount(100000L);
+        link.setStatus(PaymentLinkStatus.PENDING);
         when(gateway.getPaymentLink(42L)).thenReturn(link);
+        when(paymentStates.synchronizeNonPaidStatus(42L, PaymentLinkStatus.PENDING))
+                .thenReturn(payment);
         var response = service.initiate(8L);
         assertThat(response.getPaymentId()).isEqualTo(42L);
         assertThat(response.getSuccess()).isFalse();
         verify(gateway).getPaymentLink(42L);
+        verify(gateway, never()).createPaymentLink(anyLong(), anyLong(), anyString(), anyString(), anyString());
+    }
+
+    @Test void terminalGatewayOrderIsClosedBeforeUserCreatesAReplacement() throws Exception {
+        Payment payment = setup(false);
+        PaymentLink link = new PaymentLink();
+        link.setId("test-link"); link.setOrderCode(42L); link.setAmount(100000L);
+        link.setStatus(PaymentLinkStatus.CANCELLED);
+        when(gateway.getPaymentLink(42L)).thenReturn(link);
+        when(paymentStates.synchronizeNonPaidStatus(42L, PaymentLinkStatus.CANCELLED))
+                .thenAnswer(call -> {
+                    payment.setStatus(PaymentStatus.CANCELLED);
+                    return payment;
+                });
+
+        var response = service.initiate(8L);
+
+        assertThat(response.getStatus()).isEqualTo(PaymentStatus.CANCELLED);
+        assertThat(response.getSuccess()).isFalse();
+        assertThat(response.getMessage()).contains("tạo một đơn thanh toán mới");
+        verify(gateway, never()).createPaymentLink(anyLong(), anyLong(), anyString(), anyString(), anyString());
+    }
+
+    @Test void paidGatewayOrderIsSettledWhenUserRetriesInitiation() throws Exception {
+        setup(false);
+        PaymentLink link = new PaymentLink();
+        link.setId("test-link");
+        link.setOrderCode(42L);
+        link.setAmount(100000L);
+        link.setStatus(PaymentLinkStatus.PAID);
+        when(gateway.getPaymentLink(42L)).thenReturn(link);
+        when(confirmation.reconcile(42L)).thenReturn(new PayOSConfirmationService.Status(
+                42L, 8L, null, 100000L, "VND", PaymentStatus.SUCCESS,
+                java.time.LocalDateTime.now()));
+
+        var response = service.initiate(8L);
+
+        assertThat(response.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
+        assertThat(response.getSuccess()).isTrue();
+        verify(confirmation).reconcile(42L);
+        verify(paymentStates, never()).synchronizeNonPaidStatus(anyLong(), any());
         verify(gateway, never()).createPaymentLink(anyLong(), anyLong(), anyString(), anyString(), anyString());
     }
 
@@ -115,7 +163,9 @@ class PayOSMembershipTests {
         assertThat(created.newlyCreated()).isTrue();
         assertThat(created.payment().getAmount()).isEqualTo(sub.getPrice());
         assertThat(created.payment().getCurrency()).isEqualTo("VND");
-        when(payments.findFirstBySubscriptionIdAndGatewayOrderByIdDesc(8L, PaymentGateway.PAYOS))
+        when(payments.findFirstBySubscriptionIdAndGatewayAndStatusInOrderByIdDesc(
+                eq(8L), eq(PaymentGateway.PAYOS), eq(java.util.List.of(
+                        PaymentStatus.PENDING, PaymentStatus.PROCESSING))))
                 .thenReturn(Optional.of(created.payment()));
         assertThat(realStore.prepare(8L, 7L).newlyCreated()).isFalse();
         verify(payments, times(1)).saveAndFlush(any());

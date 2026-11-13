@@ -6,6 +6,7 @@ import com.library.domain.BookDamageLevel;
 import com.library.domain.FineStatus;
 import com.library.domain.FineType;
 import com.library.exception.BookException;
+import com.library.support.PaginationRules;
 import com.library.mapper.BookLoanMapper;
 import com.library.model.Book;
 import com.library.model.BookLoan;
@@ -36,6 +37,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,6 +45,9 @@ import java.util.stream.Collectors;
 @org.springframework.transaction.annotation.Transactional(
         rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
 public class BookLoanServiceImpl implements BookLoanService {
+
+    private static final Set<String> BOOK_LOAN_SORT_FIELDS = Set.of(
+            "id", "createdAt", "checkoutDate", "dueDate", "returnDate", "status");
 
     private final BookLoanRepository bookLoanRepository;
     private final UserService userService;
@@ -533,7 +538,7 @@ public class BookLoanServiceImpl implements BookLoanService {
 
     @Override
     public PageResponse<BookLoanDTO> getMyBookLoans(BookLoanStatus status, int page, int size) throws Exception {
-        if (page < 0 || size < 1) throw new BookException("Thông tin phân trang không hợp lệ.");
+        PaginationRules.validatePageAndSize(page, size);
         User currentUser = userService.getCurrentUser();
         Page<BookLoan> bookLoanPage;
 
@@ -559,9 +564,8 @@ public class BookLoanServiceImpl implements BookLoanService {
         catch (Exception ex) { throw new org.springframework.security.access.AccessDeniedException("Authentication required"); }
 
         // 1 Xây dựng đối tượng phân trang (pageable) với các tùy chọn như sắp xếp, kích thước, v.v.
-        if (searchRequest.getPage() == null || searchRequest.getSize() == null
-                || searchRequest.getSortBy() == null || searchRequest.getSortDirection() == null) {
-            throw new IllegalArgumentException("Pagination fields must not be null");
+        if (searchRequest == null) {
+            throw new com.library.exception.InvalidPaginationException("Thông tin tìm kiếm lượt mượn không hợp lệ.");
         }
         Pageable pageable = createPageable(
                 searchRequest.getPage(),
@@ -605,10 +609,8 @@ public class BookLoanServiceImpl implements BookLoanService {
     @Override
     public PageResponse<BookLoanDTO> getPendingReturnRequests(int page, int size) throws Exception {
         requireAdmin();
-        if (page < 0 || size < 1) {
-            throw new BookException("Thông tin phân trang không hợp lệ.");
-        }
-        Pageable pageable = PageRequest.of(page, Math.min(size, 100));
+        PaginationRules.validatePageAndSize(page, size);
+        Pageable pageable = PageRequest.of(page, size);
         return convertToPageResponse(bookLoanRepository.findPendingReturnRequests(pageable));
     }
 
@@ -652,18 +654,14 @@ public class BookLoanServiceImpl implements BookLoanService {
         return updateCount;
     }
 
-    private Pageable createPageable(int page,
-                                    int size,
+    private Pageable createPageable(Integer page,
+                                    Integer size,
                                     String sortBy,
                                     String sortDirection) {
-        size = Math.min(size, 100);
-        size = Math.max(size, 1);
-
-        Sort sort = sortDirection.equalsIgnoreCase("ASC")
-                ? Sort.by(sortBy).ascending()
-                : Sort.by(sortBy).descending();
-
-        return PageRequest.of(page, size, sort);
+        PaginationRules.validatePageAndSize(page, size);
+        String field = PaginationRules.validatedSortField(sortBy, "createdAt", BOOK_LOAN_SORT_FIELDS);
+        Sort.Direction direction = PaginationRules.validatedSortDirection(sortDirection, "DESC");
+        return PageRequest.of(page, size, Sort.by(direction, field));
     }
 
     private PageResponse<BookLoanDTO> convertToPageResponse(Page<BookLoan> bookLoanPage) {

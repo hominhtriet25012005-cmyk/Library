@@ -19,7 +19,7 @@ public class WishlistController {
     public ResponseEntity<?> addToWishlist(
             @PathVariable Long bookId,
             @RequestParam(required = false) String notes
-    ) throws Exception {
+    ) {
 
         WishlistDTO wishlistDTO = wishlistService.addToWishlist(bookId, notes);
 
@@ -29,7 +29,7 @@ public class WishlistController {
     @DeleteMapping("/remove/{bookId}")
     public ResponseEntity<ApiResponse> removeFromWishlist(
             @PathVariable Long bookId
-    ) throws Exception {
+    ) {
 
         wishlistService.removeFromWishlist(bookId);
 
@@ -45,7 +45,7 @@ public class WishlistController {
     public ResponseEntity<?> getMyWishlist(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
-    ) throws Exception {
+    ) {
 
         PageResponse<WishlistDTO> wishlist = wishlistService
                 .getMyWishlist(page, size);

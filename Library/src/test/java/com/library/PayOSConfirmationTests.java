@@ -21,7 +21,9 @@ class PayOSConfirmationTests {
     private final PayOSSettlementService settlement = mock(PayOSSettlementService.class);
     private final UserService users = mock(UserService.class);
     private final PayOSFineSettlementService fineSettlement = mock(PayOSFineSettlementService.class);
-    private final PayOSConfirmationService service = new PayOSConfirmationService(provider, payments, settlement, users, fineSettlement);
+    private final PayOSPaymentStateStore paymentStates = mock(PayOSPaymentStateStore.class);
+    private final PayOSConfirmationService service = new PayOSConfirmationService(
+            provider, payments, settlement, users, fineSettlement, paymentStates);
     private final Map<String, Object> body = Map.of("test", "payload");
 
     private Payment setup() {
@@ -95,6 +97,21 @@ class PayOSConfirmationTests {
         doThrow(new IllegalStateException("db temporarily unavailable")).when(settlement)
                 .complete(anyLong(), anyString(), anyLong(), anyString(), anyString());
         assertThatThrownBy(() -> service.webhook(body)).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void manualReconciliationPersistsCancelledGatewayState() {
+        Payment payment = setup();
+        payment.setStatus(PaymentStatus.PROCESSING);
+        var link = paidLink();
+        link.setStatus(PaymentLinkStatus.CANCELLED);
+        when(users.getCurrentUser()).thenReturn(User.builder().id(7L).role(UserRole.ROLE_USER).build());
+        when(paymentStates.synchronizeNonPaidStatus(42L, PaymentLinkStatus.CANCELLED)).thenAnswer(call -> {
+            payment.setStatus(PaymentStatus.CANCELLED);
+            return payment;
+        });
+
+        assertThat(service.reconcile(42L).status()).isEqualTo(PaymentStatus.CANCELLED);
+        verify(paymentStates).synchronizeNonPaidStatus(42L, PaymentLinkStatus.CANCELLED);
+        verifyNoInteractions(settlement, fineSettlement);
     }
     @Test void onlyOwnerOrAdminCanReadOrReconcile() throws Exception {
         setup(); paidLink();

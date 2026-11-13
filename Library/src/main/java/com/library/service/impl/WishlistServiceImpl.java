@@ -1,6 +1,8 @@
 package com.library.service.impl;
 
 import com.library.mapper.WishlistMapper;
+import com.library.exception.BusinessConflictException;
+import com.library.exception.ResourceNotFoundException;
 import com.library.model.Book;
 import com.library.model.User;
 import com.library.model.Wishlist;
@@ -10,6 +12,7 @@ import com.library.repository.BookRepository;
 import com.library.repository.WishlistRepository;
 import com.library.service.UserService;
 import com.library.service.WishlistService;
+import com.library.support.PaginationRules;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,17 +33,20 @@ public class WishlistServiceImpl implements WishlistService {
     private final WishlistMapper wishlistMapper;
 
     @Override
-    public WishlistDTO addToWishlist(Long bookId, String notes) throws Exception {
+    public WishlistDTO addToWishlist(Long bookId, String notes) {
 
         User user = userService.getCurrentUser();
 
         // 1. validate book exist
         Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new Exception("Không tìm thấy sách."));
+                .orElseThrow(() -> new ResourceNotFoundException("BOOK_NOT_FOUND", "Không tìm thấy sách."));
 
         // 2. check if book is already in wishlist
         if (wishlistRepository.existsByUserIdAndBookId(user.getId(), bookId)) {
-            throw new Exception("Sách đã có trong danh sách yêu thích của bạn.");
+            throw new BusinessConflictException(
+                    "WISHLIST_ITEM_EXISTS",
+                    "Sách đã có trong danh sách yêu thích của bạn."
+            );
         }
 
         // create wishlist
@@ -55,20 +61,24 @@ public class WishlistServiceImpl implements WishlistService {
     }
 
     @Override
-    public void removeFromWishlist(Long bookId) throws Exception {
+    public void removeFromWishlist(Long bookId) {
         User user = userService.getCurrentUser();
 
         Wishlist wishlist = wishlistRepository.findByUserIdAndBookId(user.getId(), bookId);
 
         if (wishlist == null) {
-            throw new Exception("Sách không có trong danh sách yêu thích của bạn.");
+            throw new ResourceNotFoundException(
+                    "WISHLIST_ITEM_NOT_FOUND",
+                    "Sách không có trong danh sách yêu thích của bạn."
+            );
         }
 
         wishlistRepository.delete(wishlist);
     }
 
     @Override
-    public PageResponse<WishlistDTO> getMyWishlist(int page, int size) throws Exception {
+    public PageResponse<WishlistDTO> getMyWishlist(int page, int size) {
+        PaginationRules.validatePageAndSize(page, size);
         Long userId = userService.getCurrentUser().getId();
 
         Pageable pageable = PageRequest.of(

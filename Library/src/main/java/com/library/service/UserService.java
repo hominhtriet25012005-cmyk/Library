@@ -7,11 +7,11 @@ import java.util.List;
 
 public interface UserService {
 
-    public User getCurrentUser() throws Exception;
+    public User getCurrentUser();
 
-    UserDTO getCurrentUserProfile() throws Exception;
+    UserDTO getCurrentUserProfile();
 
     public List<UserDTO> getAllUsers();
 
-    User findById(Long id) throws Exception;
+    User findById(Long id);
 }

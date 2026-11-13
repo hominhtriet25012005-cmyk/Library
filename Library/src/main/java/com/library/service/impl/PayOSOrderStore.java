@@ -80,7 +80,9 @@ public class PayOSOrderStore {
             throw new IllegalArgumentException("Subscription requires a positive VND price");
         }
 
-        var existing = payments.findFirstBySubscriptionIdAndGatewayOrderByIdDesc(subscriptionId, PaymentGateway.PAYOS);
+        var existing = payments.findFirstBySubscriptionIdAndGatewayAndStatusInOrderByIdDesc(
+                subscriptionId, PaymentGateway.PAYOS,
+                java.util.List.of(PaymentStatus.PENDING, PaymentStatus.PROCESSING));
 
         if (existing.isPresent()) return new Prepared(existing.get(), false);
 

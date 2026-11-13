@@ -34,7 +34,7 @@ public class SubscriptionPlanController {
     @PostMapping("/admin/create")
     public ResponseEntity<?> createSubscriptionPlan(
             @Valid @RequestBody SubscriptionPlanDTO subscriptionPlanDTO
-    ) throws Exception {
+    ) {
         SubscriptionPlanDTO plans = subscriptionPlanService.createSubscriptionPlan(
                 subscriptionPlanDTO
         );
@@ -46,7 +46,7 @@ public class SubscriptionPlanController {
     public ResponseEntity<?> updateSubscriptionPlan(
              @Valid @RequestBody SubscriptionPlanDTO subscriptionPlanDTO,
             @PathVariable Long id
-    ) throws Exception {
+    ) {
         SubscriptionPlanDTO plans = subscriptionPlanService.updateSubscriptionPlan(
                 id, subscriptionPlanDTO
         );
@@ -57,12 +57,9 @@ public class SubscriptionPlanController {
     @DeleteMapping("/admin/{id}")
     public ResponseEntity<?> deleteSubscriptionPlan(
             @PathVariable Long id
-    ) throws Exception {
-        boolean permanentlyDeleted = subscriptionPlanService.deleteSubscriptionPlan(id);
-        String message = permanentlyDeleted
-                ? "Đã xóa vĩnh viễn gói thành công."
-                : "Gói đã có lịch sử đăng ký nên chỉ được ngừng bán.";
-        ApiResponse res = new ApiResponse(message, true);
+    ) {
+        subscriptionPlanService.deleteSubscriptionPlan(id);
+        ApiResponse res = new ApiResponse("Đã xóa gói thành công.", true);
 
         return ResponseEntity.ok(res);
     }

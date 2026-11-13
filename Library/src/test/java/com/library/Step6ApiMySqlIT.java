@@ -97,6 +97,23 @@ class Step6ApiMySqlIT extends MySqlSpringIntegrationTest {
         em.flush();
         assertEquals(2L, jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE last_login IS NOT NULL", Long.class));
     }
+    @Test void unknownLoginAndWrongPasswordShareOneUnauthorizedResponse() throws Exception {
+        String invalidPassword = "NotTheCorrectPassword123!";
+        var unknown = mvc.perform(post("/auth/login").contentType("application/json")
+                        .content("{\"email\":\"missing@example.invalid\",\"password\":\"" + invalidPassword + "\"}"))
+                .andReturn().getResponse();
+        var wrongPassword = mvc.perform(post("/auth/login").contentType("application/json")
+                        .content("{\"email\":\"step6-member@example.invalid\",\"password\":\"" + invalidPassword + "\"}"))
+                .andReturn().getResponse();
+
+        assertEquals(401, unknown.getStatus());
+        assertEquals(unknown.getStatus(), wrongPassword.getStatus());
+        JsonNode unknownBody = json.readTree(unknown.getContentAsString());
+        JsonNode wrongPasswordBody = json.readTree(wrongPassword.getContentAsString());
+        assertEquals(unknownBody, wrongPasswordBody);
+        assertEquals("AUTH_INVALID_CREDENTIALS", unknownBody.path("errorCode").asText());
+        assertEquals("Email hoặc mật khẩu không chính xác.", unknownBody.path("message").asText());
+    }
     @Test void signupNewEmailShouldSucceed() throws Exception {
         JsonNode response = call(post("/auth/signup").content("{\"email\":\"step6-new@example.invalid\",\"fullName\":\"Step6 new user\",\"password\":\"Step6LocalTest123!\",\"role\":\"ROLE_ADMIN\"}"), null, 200);
         em.flush(); em.clear();
@@ -492,6 +509,14 @@ class Step6ApiMySqlIT extends MySqlSpringIntegrationTest {
         clientError(get("/api/book-loans/my").param("page","-1"),member);
         call(post("/api/book-loans/search").content("{\"page\":null}"),admin,400);
     }
+    @Test void invalidCatalogAndLoanSortFieldsReturnBadRequest() throws Exception {
+        call(post("/api/books/search").content(
+                "{\"page\":0,\"size\":10,\"sortBy\":\"user.password\",\"sortDirection\":\"DESC\"}"),
+                member,400);
+        call(post("/api/book-loans/search").content(
+                "{\"page\":0,\"size\":10,\"sortBy\":\"user.password\",\"sortDirection\":\"DESC\"}"),
+                admin,400);
+    }
     @Test void loanExtremeRenewalReturns400BeforeWriting() throws Exception {
         BookLoan l=loanFixture(book(genre()),BookLoanStatus.CHECKED_OUT);
         LocalDate oldDue=l.getDueDate();
@@ -666,6 +691,15 @@ class Step6ApiMySqlIT extends MySqlSpringIntegrationTest {
         clientError(post("/api/reviews").content(reviewBody(b)),member);
     }
     @Test void reviewRequiresCompletedLoanControlledError() throws Exception { clientError(post("/api/reviews").content(reviewBody(book(genre()))),member); }
+    @Test void reviewedBookEligibilityIncludesDamagedAndLostCheckins() throws Exception {
+        for (BookLoanStatus terminalStatus : new BookLoanStatus[]{BookLoanStatus.DAMAGED, BookLoanStatus.LOST}) {
+            long bookId = book(genre());
+            loanFixture(bookId, terminalStatus);
+            JsonNode created = call(post("/api/reviews").content(reviewBody(bookId)), member,201);
+            assertTrue(created.path("id").asLong() > 0,
+                    "A completed check-in marked " + terminalStatus + " should still permit a review");
+        }
+    }
     @Test void duplicateReviewControlledError() throws Exception { long b=book(genre()); review(b); clientError(post("/api/reviews").content(reviewBody(b)),member); }
     @Test void crossUserReviewUpdateForbidden() throws Exception {
         long b=book(genre()), r=review(b); String other=fixtureLogin("other@example.invalid",UserRole.ROLE_USER);

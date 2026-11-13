@@ -92,9 +92,7 @@ public class SubscriptionPlanMapper {
         if (dto.getDisplayOrder() != null) {
             plan.setDisplayOrder(dto.getDisplayOrder());
         }
-        if (dto.getIsActive() != null) {
-            plan.setIsActive(dto.getIsActive());
-        }
+        // Plan visibility is not editable in V1; preserve its current state.
         if (dto.getIsFeatured() != null) {
             plan.setIsFeatured(dto.getIsFeatured());
         }
@@ -107,7 +105,7 @@ public class SubscriptionPlanMapper {
                 ? "VND"
                 : currency.trim().toUpperCase(Locale.ROOT);
         if (!"VND".equals(normalized)) {
-            throw new IllegalArgumentException("New plan prices must use VND");
+            throw new IllegalArgumentException("Tiền tệ của gói thành viên chỉ hỗ trợ VND.");
         }
 
         return normalized;
@@ -116,7 +114,8 @@ public class SubscriptionPlanMapper {
     private java.math.BigDecimal validatePrice(java.math.BigDecimal price) {
         if (price == null || price.signum() <= 0 || price.compareTo(new java.math.BigDecimal("99999999")) > 0
                 || price.stripTrailingZeros().scale() > 0) {
-            throw new IllegalArgumentException("Plan price must be positive whole VND within DECIMAL(10,2)");
+            throw new IllegalArgumentException(
+                    "Giá gói phải là số nguyên VND lớn hơn 0 và không vượt quá giới hạn cho phép.");
         }
 
         return price;

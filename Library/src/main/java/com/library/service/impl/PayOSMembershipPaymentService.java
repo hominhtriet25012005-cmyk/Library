@@ -11,18 +11,23 @@ import java.util.Objects;
 @Service
 public class PayOSMembershipPaymentService {
     private final PayOSOrderStore store;
+    private final PayOSPaymentStateStore paymentStates;
+    private final PayOSConfirmationService confirmation;
     private final UserService users;
     private final ObjectProvider<PayOSService> gateways;
     private final boolean creationEnabled;
     private final String returnUrl;
     private final String cancelUrl;
 
-    public PayOSMembershipPaymentService(PayOSOrderStore store, UserService users,
+    public PayOSMembershipPaymentService(PayOSOrderStore store, PayOSPaymentStateStore paymentStates,
+            PayOSConfirmationService confirmation, UserService users,
             ObjectProvider<PayOSService> gateways,
             @Value("${payos.creation-enabled:false}") boolean creationEnabled,
             @Value("${payos.return-url:}") String returnUrl,
             @Value("${payos.cancel-url:}") String cancelUrl) {
         this.store = store;
+        this.paymentStates = paymentStates;
+        this.confirmation = confirmation;
         this.users = users;
         this.gateways = gateways;
         this.creationEnabled = creationEnabled;
@@ -66,12 +71,32 @@ public class PayOSMembershipPaymentService {
 
             if (!Objects.equals(link.getOrderCode(), payment.getId())
                     || !Objects.equals(link.getAmount(), payment.getAmount())
+                    || link.getId() == null || link.getId().isBlank()
                     || (payment.getGatewayOrderId() != null && !payment.getGatewayOrderId().equals(link.getId()))) {
                 throw new IllegalStateException("payOS order mismatch; reconciliation required");
             }
 
+            if (link.getStatus() == vn.payos.model.v2.paymentRequests.PaymentLinkStatus.PAID) {
+                var settled = confirmation.reconcile(payment.getId());
+                return response.paymentLinkId(link.getId()).status(settled.status()).success(true)
+                        .message("Thanh toán đã được xác nhận và cập nhật thành công.")
+                        .build();
+            }
+
+            payment = paymentStates.synchronizeNonPaidStatus(payment.getId(), link.getStatus());
+            if (payment.getStatus() == com.library.domain.PaymentStatus.CANCELLED
+                    || payment.getStatus() == com.library.domain.PaymentStatus.FAILED) {
+                return response.paymentLinkId(link.getId()).status(payment.getStatus()).success(false)
+                        .message("Đơn payOS cũ đã kết thúc. Vui lòng quay lại và tạo một đơn thanh toán mới.")
+                        .build();
+            }
+
             return response.paymentLinkId(link.getId()).success(false)
-                    .message("Existing order; awaiting verified settlement. Do not create another order.").build();
+                    .status(payment.getStatus())
+                    .message(link.getStatus() == vn.payos.model.v2.paymentRequests.PaymentLinkStatus.UNDERPAID
+                            ? "Đơn thanh toán chưa đủ tiền và cần được đối soát thủ công; không tạo đơn khác."
+                            : "Đơn thanh toán hiện tại vẫn đang chờ xác nhận; không tạo đơn khác.")
+                    .build();
         }
         try {
             var link = gateways.getObject().createPaymentLink(payment.getId(), payment.getAmount(),

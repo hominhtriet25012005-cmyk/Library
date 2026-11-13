@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 public interface BookLoanRepository extends JpaRepository<BookLoan, Long> {
@@ -71,5 +72,8 @@ public interface BookLoanRepository extends JpaRepository<BookLoan, Long> {
     );
 
     boolean existsByUserIdAndBookIdAndStatus(Long userId, Long bookId, BookLoanStatus status);
+
+    boolean existsByUserIdAndBookIdAndStatusIn(Long userId, Long bookId,
+                                                Collection<BookLoanStatus> statuses);
 
 }
