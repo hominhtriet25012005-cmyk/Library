@@ -401,7 +401,9 @@ Module **Book** là thành phần cốt lõi của Hệ thống Quản lý Thư 
 ### 8. Danh sách/Tìm kiếm sách cơ bản
 
 **Endpoint:** `GET /api/books`  
-**Mô tả:** Liệt kê toàn bộ sách, có thể dùng các query parameter để lọc.
+**Mô tả:** Liệt kê các sách đang hoạt động trong danh mục công khai; có thể lọc theo thể loại/tình trạng còn bản và phân trang.
+
+Catalog công khai luôn chỉ trả sách đang hoạt động. Query parameter `activeOnly` không được hỗ trợ; nếu gửi tham số này (dù là `true` hay `false`), API trả `400 Bad Request` với thông báo `Danh mục công khai chỉ hỗ trợ sách đang hoạt động.`. ADMIN dùng endpoint quản trị riêng để tra cứu sách đã ẩn.
 
 ### 9. Tìm kiếm nâng cao
 
@@ -855,7 +857,7 @@ Module cho phép người dùng đăng đánh giá sách kèm số sao, xác min
 | `user` | User | `@NotNull`, FK | User đăng review |
 | `book` | Book | `@NotNull`, FK | Sách được review |
 | `rating` | Integer | `1–5`, Required | Số sao |
-| `reviewText` | String | `10–2000 chars`, Required | Nội dung review |
+| `reviewText` | String | Tùy chọn, tối đa 2.000 ký tự | Nội dung nhận xét; có thể chỉ chấm sao. Bỏ trống được lưu thành `NULL`. |
 | `title` | String | `≤200 chars`, Optional | Tiêu đề review |
 | `isVerifiedReader` | Boolean | Default=`false` | True nếu user đã hoàn tất khoản mượn |
 | `isActive` | Boolean | Default=`true` | Cờ xóa mềm |
@@ -1420,7 +1422,7 @@ Tự động đặt các subscription đã hết hạn thành inactive. Có th�
 
 - `POST /api/subscriptions/admin/deactivate-expired` là method duy nhất làm thay đổi trạng thái; gọi bằng GET trả 405.
 - `GET /api/subscriptions/admin?page=0&size=10` dùng phân trang database thật; size hợp lệ từ 1 đến 100. Khi cần tổng trang và bộ lọc, dùng `/api/subscriptions/admin/search`.
-- `DELETE /api/subscription-plans/admin/{id}` xóa cứng khi plan chưa từng có đăng ký; nếu đã có lịch sử thì chỉ **ngừng bán** (`active=false`).
+- `DELETE /api/subscription-plans/admin/{id}` xóa cứng khi plan chưa từng có đăng ký; nếu đã có lịch sử thì từ chối với HTTP 409, giữ nguyên gói, trạng thái và lịch sử (`AUD2-BE-04`).
 - Update plan được validate đầy đủ trước khi ghi.
 - Người có gói active không được tạo đơn payOS mới; sau khi hủy có thể mua ngay.
 - V1 không dùng endpoint kích hoạt thủ công; chỉ settlement từ webhook payOS đã xác minh mới kích hoạt gói.
@@ -1455,7 +1457,7 @@ Module **Subscription Plan** quản lý toàn bộ các gói thành viên dành 
 
 - Tạo một hoặc nhiều subscription plan.
 - Cập nhật thông tin plan, giá, thời hạn và giới hạn sử dụng.
-- V1 cho xóa vĩnh viễn plan chưa từng được đăng ký. Plan đã có lịch sử chỉ được ngừng bán bằng `active=false`.
+- V1 cho xóa cứng plan chưa từng được đăng ký. Nếu plan đã có lịch sử, API từ chối xóa bằng HTTP 409 và giữ nguyên trạng thái gói cùng lịch sử; không tự đặt `active=false`.
 - Gắn quyền lợi và kiểm soát truy cập theo role.
 
 ### 2. Giá và billing
@@ -1573,7 +1575,7 @@ Ví dụ: `GET /api/subscription-plans/1`
 }
 ```
 
-### 5. Xóa hoặc ngừng bán plan
+### 5. Xóa plan
 
 `DELETE /api/subscription-plans/admin/{id}`
 
@@ -1581,7 +1583,17 @@ Ví dụ: `GET /api/subscription-plans/1`
 { "message": "Đã xóa vĩnh viễn gói thành công.", "status": true }
 ```
 
-Nếu plan chưa từng có bản ghi trong `subscriptions`, hệ thống xóa vĩnh viễn. Nếu đã có lịch sử đăng ký, hệ thống giữ bản ghi, đặt `active=false` và trả thông báo rằng gói chỉ được ngừng bán.
+Nếu plan chưa từng có bản ghi trong `subscriptions`, hệ thống xóa vĩnh viễn. Nếu đã có ít nhất một đăng ký (kể cả đã hủy hoặc hết hạn), hệ thống trả HTTP 409 với mã `SUBSCRIPTION_PLAN_HAS_HISTORY`; không xóa, không đổi trạng thái và không sửa lịch sử. Khóa ngoại tiếp tục bảo vệ dữ liệu liên quan. V1 không cung cấp thao tác ngừng bán gói.
+
+Response khi plan đã có lịch sử:
+
+```json
+{
+  "message": "Không thể xóa gói vì đã có lịch sử đăng ký. Lịch sử và trạng thái gói được giữ nguyên.",
+  "status": false,
+  "errorCode": "SUBSCRIPTION_PLAN_HAS_HISTORY"
+}
+```
 
 ### 6. Điều kiện bảo toàn lịch sử
 

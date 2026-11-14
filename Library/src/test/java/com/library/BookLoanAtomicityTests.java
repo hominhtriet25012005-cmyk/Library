@@ -76,7 +76,8 @@ class BookLoanAtomicityTests {
     @SuppressWarnings("deprecation")
     BookLoanServiceImpl service(BookLoanRepository repository, FineRepository fineStore) {
         var target=new BookLoanServiceImpl(repository,userService,subscriptions,books,new BookLoanMapper(),users,
-                mock(com.library.service.impl.ReservationLifecycleService.class), fineStore);
+                mock(com.library.service.impl.ReservationLifecycleService.class), fineStore,
+                mock(com.library.service.NotificationPublisher.class));
         org.springframework.test.util.ReflectionTestUtils.setField(target,"entityManager",em);
         var proxy=new ProxyFactory(target); proxy.setProxyTargetClass(true);
         proxy.addAdvice(new TransactionInterceptor(manager,new AnnotationTransactionAttributeSource()));

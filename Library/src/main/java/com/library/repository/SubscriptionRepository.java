@@ -57,4 +57,16 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     List<Subscription> findExpiredActiveSubscriptions(
             @Param("today") LocalDate today
     );
+
+    @Query("select case when count(s) > 0 then true else false end from Subscription s "
+            + "where s.user.id = :userId and s.id < :subscriptionId "
+            + "and exists (select p.id from Payment p where p.subscription = s "
+            + "and p.status = :successfulStatus)")
+    boolean existsPreviouslyActivatedSubscription(
+            @Param("userId") Long userId,
+            @Param("subscriptionId") Long subscriptionId,
+            @Param("successfulStatus") com.library.domain.PaymentStatus successfulStatus);
+
+    @Query("select s from Subscription s where s.isActive = true and s.endDate = :endDate")
+    List<Subscription> findActiveSubscriptionsEndingOn(@Param("endDate") LocalDate endDate);
 }

@@ -24,9 +24,20 @@ import ConfirmDialog from "../../../components/common/ConfirmDialog";
 import { useUserSettings } from "../../../settings/useUserSettings";
 
 export const UserSettingsPage = () => {
-  const { settings, updateSettings, resetSettings, clearHistory } =
-    useUserSettings();
-
+  const {
+    settings,
+    updateSettings,
+    resetSettings,
+    clearHistory,
+    preferences,
+    preferencesLoading,
+    preferencesSaving,
+    preferencesError,
+    isAdmin,
+    updateNotificationPreference,
+    resetNotificationPreferences,
+    reloadNotificationPreferences,
+  } = useUserSettings();
   const [activeTab, setActiveTab] = useState("notifications");
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
@@ -36,29 +47,67 @@ export const UserSettingsPage = () => {
     severity: "success",
   });
 
-  const handleToggle = (group, key) => {
-    updateSettings((prev) => ({
-      ...prev,
-      [group]: {
-        ...prev[group],
-        [key]: !prev[group][key],
-      },
-    }));
+  const emailPreferenceKeys = {
+    dueReminder: "emailDueReminder",
+    reservationAlert: "emailReservationUpdates",
+    overdueAlert: "emailOverdueAlert",
+    membershipUpdates: "emailMembershipUpdates",
+    generalAnnouncements: "emailGeneralAnnouncements",
+    adminReturnRequests: "emailAdminReturnRequests",
+  };
+
+  const handleToggle = async (group, key) => {
+    if (group === "notifications") {
+      const preferenceKey = emailPreferenceKeys[key];
+      try {
+        await updateNotificationPreference(
+          preferenceKey,
+          !preferences?.[preferenceKey],
+        );
+      } catch (error) {
+        setToast({
+          open: true,
+          message: error?.message || "Không lưu được cài đặt email.",
+          severity: "error",
+        });
+        return;
+      }
+    } else {
+      updateSettings((prev) => ({
+        ...prev,
+        [group]: {
+          ...prev[group],
+          [key]: !prev[group][key],
+        },
+      }));
+    }
     setToast({
       open: true,
-      message: "Đã lưu cài đặt tự động!",
+      message:
+        group === "notifications"
+          ? "Đã lưu tùy chọn email trên tài khoản của bạn."
+          : "Đã lưu cài đặt trên trình duyệt này.",
       severity: "success",
     });
   };
 
-  const handleConfirmReset = () => {
-    resetSettings();
-    setResetDialogOpen(false);
-    setToast({
-      open: true,
-      message: "Đã khôi phục cài đặt về mặc định ban đầu!",
-      severity: "info",
-    });
+  const handleConfirmReset = async () => {
+    try {
+      await resetNotificationPreferences();
+      resetSettings();
+      setResetDialogOpen(false);
+      setToast({
+        open: true,
+        message: "Đã khôi phục cài đặt về mặc định ban đầu!",
+        severity: "info",
+      });
+    } catch (error) {
+      setToast({
+        open: true,
+        message: error?.message || "Không khôi phục được cài đặt.",
+        severity: "error",
+      });
+    }
   };
 
   const handleConfirmClearHistory = () => {
@@ -159,6 +208,36 @@ export const UserSettingsPage = () => {
         {/* TAB 1: THÔNG BÁO MƯỢN TRẢ */}
         {activeTab === "notifications" && (
           <Stack spacing={2.5}>
+            <Alert severity="info" sx={{ borderRadius: 2.5 }}>
+              Tùy chọn email được lưu theo tài khoản. Thông báo trong website
+              vẫn hoạt động khi tắt email. Email giao dịch bắt buộc như xác nhận
+              thanh toán và khoản phạt không bị tắt bởi các công tắc này; thư
+              thông báo chỉ gửi đến địa chỉ email đã xác minh.
+            </Alert>
+            {preferencesLoading && (
+              <Typography variant="body2" color="text.secondary">
+                Đang tải tùy chọn email…
+              </Typography>
+            )}
+            {preferencesError && (
+              <Alert
+                severity="error"
+                sx={{ borderRadius: 2.5 }}
+                action={
+                  <Button
+                    color="inherit"
+                    size="small"
+                    disabled={preferencesLoading}
+                    onClick={() => void reloadNotificationPreferences()}
+                  >
+                    Thử lại
+                  </Button>
+                }
+              >
+                {preferencesError} Các công tắc email đang bị khóa cho đến khi
+                tải được cài đặt từ máy chủ.
+              </Alert>
+            )}
             {/* 1. Nhắc hẹn trả sách */}
             <Stack
               direction="row"
@@ -181,12 +260,13 @@ export const UserSettingsPage = () => {
                   color="text.secondary"
                   sx={{ fontSize: "0.825rem", mt: 0.25 }}
                 >
-                  Tự động nhận email nhắc nhở trước ngày đến hạn trả sách mượn
+                Nhận email trước hạn 3 ngày và vào ngày phải trả sách
                 </Typography>
               </Box>
               <Switch
-                checked={Boolean(settings.notifications?.dueReminder)}
-                onChange={() => handleToggle("notifications", "dueReminder")}
+                checked={Boolean(preferences?.emailDueReminder)}
+                disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
+                onChange={() => void handleToggle("notifications", "dueReminder")}
                 color="primary"
               />
             </Stack>
@@ -215,12 +295,12 @@ export const UserSettingsPage = () => {
                   color="text.secondary"
                   sx={{ fontSize: "0.825rem", mt: 0.25 }}
                 >
-                  Thông báo ngay khi đầu sách bạn giữ chỗ đã được trả về thư
-                  viện
+                  Nhận cập nhật khi lượt đặt giữ sẵn sàng, sắp hết hạn hoặc kết thúc
                 </Typography>
               </Box>
               <Switch
-                checked={Boolean(settings.notifications?.reservationAlert)}
+                checked={Boolean(preferences?.emailReservationUpdates)}
+                disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
                 onChange={() =>
                   handleToggle("notifications", "reservationAlert")
                 }
@@ -252,12 +332,13 @@ export const UserSettingsPage = () => {
                   color="text.secondary"
                   sx={{ fontSize: "0.825rem", mt: 0.25 }}
                 >
-                  Nhận cảnh báo khẩn khi có sách mượn quá hạn hoặc phát sinh phí
-                  phạt
+                  Nhận một email khi lượt mượn chuyển sang quá hạn. Thông báo
+                  trong website sẽ tiếp tục hoạt động dù tắt email này.
                 </Typography>
               </Box>
               <Switch
-                checked={Boolean(settings.notifications?.overdueAlert)}
+                checked={Boolean(preferences?.emailOverdueAlert)}
+                disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
                 onChange={() => handleToggle("notifications", "overdueAlert")}
                 color="primary"
               />
@@ -265,7 +346,7 @@ export const UserSettingsPage = () => {
 
             <Divider />
 
-            {/* 4. Bản tin sách mới */}
+            {/* 4. Cập nhật gói thành viên */}
             <Stack
               direction="row"
               justifyContent="space-between"
@@ -280,23 +361,78 @@ export const UserSettingsPage = () => {
                     fontSize: "0.925rem",
                   }}
                 >
-                  Bản tin sách mới cập nhật
+                  Cập nhật gói thành viên
                 </Typography>
                 <Typography
                   variant="body2"
                   color="text.secondary"
                   sx={{ fontSize: "0.825rem", mt: 0.25 }}
                 >
-                  Nhận email giới thiệu các tựa sách mới nhập và sự kiện thư
-                  viện
+                  Nhận kết quả đăng ký, gia hạn và nhắc khi gói sắp hết hạn
                 </Typography>
               </Box>
               <Switch
-                checked={Boolean(settings.notifications?.newsletter)}
-                onChange={() => handleToggle("notifications", "newsletter")}
+                checked={Boolean(preferences?.emailMembershipUpdates)}
+                disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
+                onChange={() => void handleToggle("notifications", "membershipUpdates")}
                 color="primary"
               />
             </Stack>
+
+            <Divider />
+
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Box sx={{ pr: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  Thông báo chung từ thư viện
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.825rem", mt: 0.25 }}>
+                  Nhận email khi ADMIN đăng thông báo chung và chọn gửi email
+                </Typography>
+              </Box>
+              <Switch
+                checked={Boolean(preferences?.emailGeneralAnnouncements)}
+                disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
+                onChange={() => void handleToggle("notifications", "generalAnnouncements")}
+                color="primary"
+              />
+            </Stack>
+
+            {isAdmin && (
+              <>
+                <Divider />
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Box sx={{ pr: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                      Yêu cầu trả sách cần xử lý
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.825rem", mt: 0.25 }}>
+                      Nhận email công việc khi bạn đọc gửi yêu cầu trả sách
+                    </Typography>
+                  </Box>
+                  <Switch
+                    checked={Boolean(preferences?.emailAdminReturnRequests)}
+                    disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
+                    onChange={() => void handleToggle("notifications", "adminReturnRequests")}
+                    color="primary"
+                  />
+                </Stack>
+              </>
+            )}
+
+            {preferencesSaving && (
+              <Typography variant="caption" color="text.secondary">
+                Đang lưu cài đặt email…
+              </Typography>
+            )}
           </Stack>
         )}
 
@@ -503,7 +639,7 @@ export const UserSettingsPage = () => {
       <ConfirmDialog
         open={resetDialogOpen}
         title="Khôi phục cài đặt mặc định?"
-        message="Toàn bộ tùy chọn thông báo và quyền riêng tư sẽ được đưa về giá trị mặc định ban đầu. Bạn có muốn tiếp tục?"
+        message="Các tùy chọn email trên tài khoản và cài đặt quyền riêng tư trên trình duyệt sẽ được đưa về mặc định. Bạn có muốn tiếp tục?"
         confirmLabel="Khôi phục"
         cancelLabel="Hủy"
         variant="warning"

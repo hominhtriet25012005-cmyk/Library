@@ -40,6 +40,282 @@ CREATE TABLE IF NOT EXISTS users (
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    user_id BIGINT NOT NULL,
+
+    token_hash CHAR(64)
+        CHARACTER SET ascii
+        COLLATE ascii_bin
+        NOT NULL,
+
+    expires_at DATETIME NOT NULL,
+
+    consumed_at DATETIME NULL,
+
+    revoked_at DATETIME NULL,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_email_verification_tokens_hash
+        UNIQUE (token_hash),
+
+    INDEX idx_email_verification_tokens_user_expiry
+        (user_id, expires_at, id),
+
+    CONSTRAINT fk_email_verification_tokens_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id),
+
+    CONSTRAINT chk_email_verification_tokens_expiry
+        CHECK (expires_at > created_at),
+
+    CONSTRAINT chk_email_verification_tokens_consumed_at
+        CHECK (consumed_at IS NULL OR consumed_at >= created_at),
+
+    CONSTRAINT chk_email_verification_tokens_revoked_at
+        CHECK (revoked_at IS NULL OR revoked_at >= created_at),
+
+    CONSTRAINT chk_email_verification_tokens_terminal_state
+        CHECK (consumed_at IS NULL OR revoked_at IS NULL)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS user_notification_preferences (
+    user_id BIGINT PRIMARY KEY,
+
+    email_due_reminder BOOLEAN NOT NULL DEFAULT TRUE,
+
+    email_overdue_alert BOOLEAN NOT NULL DEFAULT TRUE,
+
+    email_reservation_updates BOOLEAN NOT NULL DEFAULT TRUE,
+
+    email_membership_updates BOOLEAN NOT NULL DEFAULT TRUE,
+
+    email_general_announcements BOOLEAN NOT NULL DEFAULT TRUE,
+
+    email_admin_return_requests BOOLEAN NOT NULL DEFAULT TRUE,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_user_notification_preferences_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    recipient_user_id BIGINT NOT NULL,
+
+    created_by_user_id BIGINT NULL,
+
+    event_type VARCHAR(50) NOT NULL,
+
+    title VARCHAR(200) NOT NULL,
+
+    message VARCHAR(2000) NOT NULL,
+
+    action_url VARCHAR(500) NULL,
+
+    source_type VARCHAR(50) NULL,
+
+    source_id BIGINT NULL,
+
+    batch_key VARCHAR(191) NULL,
+
+    deduplication_key VARCHAR(191) NOT NULL,
+
+    read_at DATETIME NULL,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_notifications_deduplication_key
+        UNIQUE (deduplication_key),
+
+    INDEX idx_notifications_recipient_read_created
+        (recipient_user_id, read_at, created_at, id),
+
+    INDEX idx_notifications_batch_recipient
+        (batch_key, recipient_user_id),
+
+    INDEX idx_notifications_source
+        (source_type, source_id),
+
+    CONSTRAINT fk_notifications_recipient
+        FOREIGN KEY (recipient_user_id)
+        REFERENCES users(id),
+
+    CONSTRAINT fk_notifications_created_by
+        FOREIGN KEY (created_by_user_id)
+        REFERENCES users(id),
+
+    CONSTRAINT chk_notifications_event_type
+        CHECK (
+            event_type IN (
+                'EMAIL_VERIFICATION',
+                'LOAN_DUE_SOON',
+                'LOAN_DUE_TODAY',
+                'LOAN_OVERDUE',
+                'RETURN_REQUESTED',
+                'RETURN_CHECKED_IN',
+                'FINE_CREATED',
+                'FINE_PARTIALLY_PAID',
+                'FINE_PAID',
+                'RESERVATION_CREATED',
+                'RESERVATION_AVAILABLE',
+                'RESERVATION_PICKUP_EXPIRING',
+                'RESERVATION_FULFILLED',
+                'RESERVATION_CANCELLED',
+                'RESERVATION_EXPIRED',
+                'MEMBERSHIP_ACTIVATED',
+                'MEMBERSHIP_RENEWED',
+                'MEMBERSHIP_EXPIRING',
+                'MEMBERSHIP_EXPIRED',
+                'PAYMENT_SUCCEEDED',
+                'PAYMENT_FAILED',
+                'GENERAL_ANNOUNCEMENT'
+            )
+        ),
+
+    CONSTRAINT chk_notifications_title
+        CHECK (CHAR_LENGTH(TRIM(title)) BETWEEN 1 AND 200),
+
+    CONSTRAINT chk_notifications_message
+        CHECK (CHAR_LENGTH(TRIM(message)) BETWEEN 1 AND 2000),
+
+    CONSTRAINT chk_notifications_source
+        CHECK (
+            (source_type IS NULL AND source_id IS NULL)
+            OR (source_type IS NOT NULL AND source_id IS NOT NULL)
+        ),
+
+    CONSTRAINT chk_notifications_read_at
+        CHECK (read_at IS NULL OR read_at >= created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS email_outbox (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    recipient_user_id BIGINT NOT NULL,
+
+    notification_id BIGINT NULL,
+
+    event_type VARCHAR(50) NOT NULL,
+
+    recipient_email VARCHAR(255) NOT NULL,
+
+    subject VARCHAR(255) NOT NULL,
+
+    body_html LONGTEXT NOT NULL,
+
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+
+    attempt_count INT NOT NULL DEFAULT 0,
+
+    max_attempts INT NOT NULL DEFAULT 4,
+
+    next_attempt_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    locked_at DATETIME NULL,
+
+    locked_by VARCHAR(100) NULL,
+
+    last_attempt_at DATETIME NULL,
+
+    sent_at DATETIME NULL,
+
+    last_error VARCHAR(1000) NULL,
+
+    deduplication_key VARCHAR(191) NOT NULL,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_email_outbox_deduplication_key
+        UNIQUE (deduplication_key),
+
+    INDEX idx_email_outbox_dispatch
+        (status, next_attempt_at, id),
+
+    INDEX idx_email_outbox_recipient_created
+        (recipient_user_id, created_at, id),
+
+    INDEX idx_email_outbox_notification
+        (notification_id, id),
+
+    CONSTRAINT fk_email_outbox_recipient
+        FOREIGN KEY (recipient_user_id)
+        REFERENCES users(id),
+
+    CONSTRAINT fk_email_outbox_notification
+        FOREIGN KEY (notification_id)
+        REFERENCES notifications(id),
+
+    CONSTRAINT chk_email_outbox_event_type
+        CHECK (
+            event_type IN (
+                'EMAIL_VERIFICATION',
+                'LOAN_DUE_SOON',
+                'LOAN_DUE_TODAY',
+                'LOAN_OVERDUE',
+                'RETURN_REQUESTED',
+                'RETURN_CHECKED_IN',
+                'FINE_CREATED',
+                'FINE_PARTIALLY_PAID',
+                'FINE_PAID',
+                'RESERVATION_CREATED',
+                'RESERVATION_AVAILABLE',
+                'RESERVATION_PICKUP_EXPIRING',
+                'RESERVATION_FULFILLED',
+                'RESERVATION_CANCELLED',
+                'RESERVATION_EXPIRED',
+                'MEMBERSHIP_ACTIVATED',
+                'MEMBERSHIP_RENEWED',
+                'MEMBERSHIP_EXPIRING',
+                'MEMBERSHIP_EXPIRED',
+                'PAYMENT_SUCCEEDED',
+                'PAYMENT_FAILED',
+                'GENERAL_ANNOUNCEMENT'
+            )
+        ),
+
+    CONSTRAINT chk_email_outbox_status
+        CHECK (status IN ('PENDING', 'PROCESSING', 'SENT', 'FAILED', 'CANCELLED')),
+
+    CONSTRAINT chk_email_outbox_attempts
+        CHECK (
+            max_attempts BETWEEN 1 AND 10
+            AND attempt_count BETWEEN 0 AND max_attempts
+        ),
+
+    CONSTRAINT chk_email_outbox_recipient
+        CHECK (CHAR_LENGTH(TRIM(recipient_email)) BETWEEN 3 AND 255),
+
+    CONSTRAINT chk_email_outbox_subject
+        CHECK (CHAR_LENGTH(TRIM(subject)) BETWEEN 1 AND 255),
+
+    CONSTRAINT chk_email_outbox_lock
+        CHECK (
+            (locked_at IS NULL AND locked_by IS NULL)
+            OR (locked_at IS NOT NULL AND locked_by IS NOT NULL)
+        ),
+
+    CONSTRAINT chk_email_outbox_last_attempt
+        CHECK (last_attempt_at IS NULL OR last_attempt_at >= created_at),
+
+    CONSTRAINT chk_email_outbox_sent
+        CHECK (
+            (status = 'SENT' AND sent_at IS NOT NULL)
+            OR (status <> 'SENT' AND sent_at IS NULL)
+        )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE IF NOT EXISTS genres (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -195,7 +471,16 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
     CONSTRAINT uq_subscription_plans_plan_code UNIQUE (plan_code),
 
     CONSTRAINT chk_subscription_plans_price
-        CHECK (price >= 0),
+        CHECK (price > 0 AND price = FLOOR(price)),
+
+    CONSTRAINT chk_subscription_plans_currency
+        CHECK (BINARY currency = BINARY 'VND'),
+
+    CONSTRAINT chk_subscription_plans_max_books
+        CHECK (max_books_allowed > 0),
+
+    CONSTRAINT chk_subscription_plans_max_days_per_book
+        CHECK (max_days_per_book > 0),
 
     CONSTRAINT chk_subscription_plans_duration
         CHECK (duration_in_days >= 1),
@@ -566,7 +851,7 @@ CREATE TABLE IF NOT EXISTS book_reviews (
     user_id BIGINT NOT NULL,
     book_id BIGINT NOT NULL,
     rating INT NOT NULL,
-    review_text VARCHAR(2000) NOT NULL,
+    review_text VARCHAR(2000) NULL,
     title VARCHAR(200) NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -577,7 +862,9 @@ CREATE TABLE IF NOT EXISTS book_reviews (
     CONSTRAINT fk_book_reviews_user FOREIGN KEY (user_id) REFERENCES users(id),
     CONSTRAINT fk_book_reviews_book FOREIGN KEY (book_id) REFERENCES books(id),
     CONSTRAINT chk_book_reviews_rating CHECK (rating BETWEEN 1 AND 5),
-    CONSTRAINT chk_book_reviews_text CHECK (CHAR_LENGTH(review_text) BETWEEN 10 AND 2000)
+    CONSTRAINT chk_book_reviews_text CHECK (
+        review_text IS NULL OR CHAR_LENGTH(TRIM(review_text)) BETWEEN 1 AND 2000
+    )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -678,12 +965,7 @@ CREATE TABLE IF NOT EXISTS payments (
 
     CONSTRAINT chk_payments_payment_type
         CHECK (
-            payment_type IN (
-                'FINE',
-                'MEMBERSHIP',
-                'LOST_BOOK_PENALTY',
-                'DAMAGED_BOOK_PENALTY'
-            )
+            payment_type IN ('FINE', 'MEMBERSHIP')
         ),
 
     CONSTRAINT chk_payments_status

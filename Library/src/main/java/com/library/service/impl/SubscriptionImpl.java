@@ -2,6 +2,7 @@ package com.library.service.impl;
 
 import com.library.domain.PaymentGateway;
 import com.library.domain.PaymentType;
+import com.library.domain.NotificationEventType;
 import com.library.exception.SubscriptionException;
 import com.library.mapper.SubscriptionMapper;
 import com.library.model.Subscription;
@@ -14,6 +15,7 @@ import com.library.payload.response.PageResponse;
 import com.library.repository.SubscriptionPlanRepository;
 import com.library.repository.SubscriptionRepository;
 import com.library.service.PaymentService;
+import com.library.service.NotificationPublisher;
 import com.library.service.SubscriptionService;
 import com.library.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class SubscriptionImpl implements SubscriptionService {
     private final PayOSMembershipPaymentService payOSMembership;
     private final PayOSOrderStore payOSOrderStore;
     private final com.library.repository.PaymentRepository payments;
+    private final NotificationPublisher notificationPublisher;
 
     @Override
     public PaymentInitiateResponse subscribe(SubscriptionDTO subscriptionDTO) throws Exception {
@@ -138,6 +141,17 @@ public class SubscriptionImpl implements SubscriptionService {
         for (Subscription subscription : expiredSubscriptions) {
             subscription.setIsActive(false);
             subscriptionRepository.save(subscription);
+            notificationPublisher.publish(
+                    subscription.getUser().getId(),
+                    null,
+                    NotificationEventType.MEMBERSHIP_EXPIRED,
+                    "Gói thành viên đã hết hạn",
+                    "Gói “" + subscription.getPlanName() + "” đã hết hạn. "
+                            + "Bạn có thể đăng ký gói mới để tiếp tục sử dụng quyền lợi mượn sách.",
+                    "/user/subscriptions",
+                    "SUBSCRIPTION",
+                    subscription.getId(),
+                    null);
         }
     }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   AppBar,
@@ -24,7 +24,6 @@ import { useLocation, useNavigate, Link as RouterLink } from "react-router-dom";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
-import AssignmentReturnRoundedIcon from "@mui/icons-material/AssignmentReturnRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 import AccountCircleRoundedIcon from "@mui/icons-material/AccountCircleRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
@@ -33,12 +32,9 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { useAuth } from "../../../auth/useAuth";
 import { adminPageForPath } from "./adminNavigation";
 import { adminDrawerWidth } from "./AdminSidebar";
-import { adminLoansApi } from "../../../api/adminLoans";
-import {
-  readNotificationIds as loadReadNotificationIds,
-  writeNotificationIds,
-} from "../../../components/common/notificationReads";
 import { formatDateTimeVN } from "../../../utils/formatters";
+import { useNotifications } from "../../../notifications/useNotifications.js";
+import { notificationPath } from "../../../api/notifications.js";
 
 const AdminTopbar = ({ onMenuClick, density, onDensityChange }) => {
   const { user, signOut } = useAuth();
@@ -47,75 +43,19 @@ const AdminTopbar = ({ onMenuClick, density, onDensityChange }) => {
   const [accountAnchor, setAccountAnchor] = useState(null);
   const [settingsAnchor, setSettingsAnchor] = useState(null);
   const [notificationAnchor, setNotificationAnchor] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-  const [readIds, setReadIds] = useState(new Set());
-  const [notificationError, setNotificationError] = useState("");
+  const {
+    notifications,
+    unreadCount: unreadNotificationCount,
+    error: notificationError,
+    loading: notificationsLoading,
+    refresh: refreshNotifications,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications({
+    enabled: Boolean(user?.id),
+    scope: `${user?.id || "guest"}:${user?.role || "ADMIN"}`,
+  });
   const page = adminPageForPath(location.pathname);
-  const notificationStorageKey = user?.id
-    ? `library.admin.notifications.read.${user.id}`
-    : null;
-  const unreadNotificationCount = useMemo(
-    () => notifications.filter((item) => !readIds.has(item.id)).length,
-    [notifications, readIds],
-  );
-
-  useEffect(() => {
-    if (!notificationStorageKey) {
-      setNotifications([]);
-      setReadIds(new Set());
-      return undefined;
-    }
-
-    setReadIds(loadReadNotificationIds(notificationStorageKey));
-    let active = true;
-    let requestController;
-    const loadNotifications = async () => {
-      requestController?.abort();
-      requestController = new AbortController();
-      try {
-        const result = await adminLoansApi.returnRequests(
-          { page: 0, size: 20 },
-          { signal: requestController.signal },
-        );
-        if (!active) return;
-        setNotifications(
-          result.content.map((loan) => ({
-            id: `return-${loan.id}-${loan.returnRequestedAt || "pending"}`,
-            title: "Yêu cầu trả sách cần xác nhận",
-            description: `${loan.userName || "Độc giả"} yêu cầu trả “${loan.bookTitle || "Sách"}”.`,
-            time: formatDateTimeVN(loan.returnRequestedAt),
-            link: "/admin/loans?tab=returnRequests",
-          })),
-        );
-        setNotificationError("");
-      } catch (error) {
-        if (!active || error.name === "AbortError") return;
-        setNotificationError(
-          error.message || "Không tải được thông báo quản trị.",
-        );
-      }
-    };
-
-    loadNotifications();
-    const interval = window.setInterval(loadNotifications, 30_000);
-    window.addEventListener("focus", loadNotifications);
-    return () => {
-      active = false;
-      window.clearInterval(interval);
-      window.removeEventListener("focus", loadNotifications);
-      requestController?.abort();
-    };
-  }, [notificationStorageKey]);
-
-  const markNotificationsRead = (ids) => {
-    const next = new Set(readIds);
-    ids.forEach((id) => next.add(id));
-    setReadIds(next);
-    writeNotificationIds(notificationStorageKey, next);
-  };
-
-  const markAllNotificationsRead = () =>
-    markNotificationsRead(notifications.map((item) => item.id));
 
   const go = (path) => {
     setAccountAnchor(null);
@@ -230,7 +170,7 @@ const AdminTopbar = ({ onMenuClick, density, onDensityChange }) => {
               <Button
                 size="small"
                 startIcon={<DoneAllRoundedIcon />}
-                onClick={markAllNotificationsRead}
+                onClick={() => void markAllAsRead()}
               >
                 Đã đọc
               </Button>
@@ -241,25 +181,34 @@ const AdminTopbar = ({ onMenuClick, density, onDensityChange }) => {
             <Alert severity="error" sx={{ m: 1.5 }}>
               {notificationError}
             </Alert>
+          ) : notificationsLoading && notifications.length === 0 ? (
+            <Typography
+              color="text.secondary"
+              variant="body2"
+              sx={{ p: 2.5, textAlign: "center" }}
+            >
+              Đang tải thông báo…
+            </Typography>
           ) : notifications.length === 0 ? (
             <Typography
               color="text.secondary"
               variant="body2"
               sx={{ p: 2.5, textAlign: "center" }}
             >
-              Hiện không có yêu cầu trả sách chờ xác nhận.
+              Hiện chưa có thông báo mới.
             </Typography>
           ) : (
             <List disablePadding sx={{ maxHeight: 360, overflowY: "auto" }}>
               {notifications.map((item) => {
-                const unread = !readIds.has(item.id);
+                const unread = !item.readAt;
                 return (
                   <ListItemButton
                     key={item.id}
-                    onClick={() => {
-                      markNotificationsRead([item.id]);
+                    onClick={async () => {
+                      const marked = await markAsRead(item.id);
+                      if (!marked) return;
                       setNotificationAnchor(null);
-                      navigate(item.link);
+                      navigate(notificationPath(item.actionUrl, user?.role));
                     }}
                     sx={{
                       alignItems: "flex-start",
@@ -269,7 +218,7 @@ const AdminTopbar = ({ onMenuClick, density, onDensityChange }) => {
                       bgcolor: unread ? "action.hover" : "transparent",
                     }}
                   >
-                    <AssignmentReturnRoundedIcon
+                    <NotificationsNoneRoundedIcon
                       color="primary"
                       sx={{ mt: 0.25 }}
                     />
@@ -281,10 +230,10 @@ const AdminTopbar = ({ onMenuClick, density, onDensityChange }) => {
                         {item.title}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {item.description}
+                        {item.message}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {item.time}
+                        {formatDateTimeVN(item.createdAt)}
                       </Typography>
                     </Box>
                   </ListItemButton>
@@ -292,22 +241,12 @@ const AdminTopbar = ({ onMenuClick, density, onDensityChange }) => {
               })}
             </List>
           )}
-          {notifications.length > 0 && (
-            <>
-              <Divider />
-              <Box sx={{ p: 1, textAlign: "center" }}>
-                <Button
-                  size="small"
-                  onClick={() => {
-                    setNotificationAnchor(null);
-                    navigate("/admin/loans?tab=returnRequests");
-                  }}
-                >
-                  Mở mục Mượn – trả
-                </Button>
-              </Box>
-            </>
-          )}
+          <Divider />
+          <Box sx={{ p: 1, textAlign: "center" }}>
+            <Button size="small" onClick={() => void refreshNotifications()}>
+              Làm mới thông báo
+            </Button>
+          </Box>
         </Popover>
         <Tooltip title="Cài đặt">
           <IconButton

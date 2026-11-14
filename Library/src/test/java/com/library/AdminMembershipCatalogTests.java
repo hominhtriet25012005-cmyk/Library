@@ -50,7 +50,8 @@ class AdminMembershipCatalogTests {
         var service = new SubscriptionImpl(repository, mapper, mock(UserService.class),
                 mock(SubscriptionPlanRepository.class), mock(com.library.service.PaymentService.class),
                 mock(com.library.service.impl.PayOSMembershipPaymentService.class),
-                mock(com.library.service.impl.PayOSOrderStore.class), mock(com.library.repository.PaymentRepository.class));
+                mock(com.library.service.impl.PayOSOrderStore.class), mock(com.library.repository.PaymentRepository.class),
+                mock(com.library.service.NotificationPublisher.class));
 
         var result = service.searchAdminSubscriptions(7L, null, true, page);
         assertEquals(3L, result.getTotalElements());
@@ -73,7 +74,8 @@ class AdminMembershipCatalogTests {
         var service = new SubscriptionImpl(repository, mapper, mock(UserService.class),
                 mock(SubscriptionPlanRepository.class), mock(com.library.service.PaymentService.class),
                 mock(com.library.service.impl.PayOSMembershipPaymentService.class),
-                mock(com.library.service.impl.PayOSOrderStore.class), mock(com.library.repository.PaymentRepository.class));
+                mock(com.library.service.impl.PayOSOrderStore.class), mock(com.library.repository.PaymentRepository.class),
+                mock(com.library.service.NotificationPublisher.class));
 
         var result = service.getAllSubscriptions(requestedPage);
 

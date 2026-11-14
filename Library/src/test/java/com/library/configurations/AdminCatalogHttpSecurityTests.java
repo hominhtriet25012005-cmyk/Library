@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.util.TestPropertyValues;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.core.io.ByteArrayResource;
@@ -48,6 +49,8 @@ class AdminCatalogHttpSecurityTests {
     @BeforeEach void setup() {
         context = new AnnotationConfigWebApplicationContext();
         SecurityTestSupport.configure(context);
+        TestPropertyValues.of("app.cors.allowed-origins=http://localhost:5173,https://reader.example.test")
+                .applyTo(context);
         context.setServletContext(new MockServletContext());
         context.register(Config.class);
         context.refresh();
@@ -138,5 +141,19 @@ class AdminCatalogHttpSecurityTests {
         mvc.perform(post("/api/books/search").contentType("application/json").content("{}")).andExpect(status().isOk());
         mvc.perform(get("/api/genres")).andExpect(status().isOk());
         mvc.perform(get("/api/genres/3")).andExpect(status().isOk());
+    }
+
+    @Test void publicCatalogRejectsRequestForInactiveBooksInsteadOfIgnoringTheFilter() throws Exception {
+        mvc.perform(get("/api/books").param("activeOnly", "false"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Danh mục công khai chỉ hỗ trợ sách đang hoạt động."));
+    }
+
+    @Test void corsOriginsCanBeChangedThroughApplicationConfiguration() throws Exception {
+        mvc.perform(options("/api/books")
+                        .header("Origin", "https://reader.example.test")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://reader.example.test"));
     }
 }

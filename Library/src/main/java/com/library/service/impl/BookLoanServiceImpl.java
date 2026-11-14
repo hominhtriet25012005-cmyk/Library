@@ -5,6 +5,8 @@ import com.library.domain.BookLoanType;
 import com.library.domain.BookDamageLevel;
 import com.library.domain.FineStatus;
 import com.library.domain.FineType;
+import com.library.domain.NotificationEventType;
+import com.library.domain.UserRole;
 import com.library.exception.BookException;
 import com.library.support.PaginationRules;
 import com.library.mapper.BookLoanMapper;
@@ -21,6 +23,7 @@ import com.library.repository.BookLoanRepository;
 import com.library.repository.BookRepository;
 import com.library.repository.FineRepository;
 import com.library.service.BookLoanService;
+import com.library.service.NotificationPublisher;
 import com.library.service.SubscriptionService;
 import com.library.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -57,6 +60,7 @@ public class BookLoanServiceImpl implements BookLoanService {
     private final com.library.repository.UserRepository userRepository;
     private final ReservationLifecycleService reservationLifecycleService;
     private final FineRepository fineRepository;
+    private final NotificationPublisher notificationPublisher;
     @org.springframework.beans.factory.annotation.Value("${app.fines.overdue-daily-rate:5000}")
     private long overdueDailyRate = 5_000L;
     @org.springframework.beans.factory.annotation.Value("${app.fines.light-damage-rate:0.25}")
@@ -229,6 +233,7 @@ public class BookLoanServiceImpl implements BookLoanService {
 
         // Retry sau khi giao dịch đầu đã hoàn tất chỉ đọc lại kết quả, không tăng kho lần hai.
         if (bookLoan.getCheckedInAt() != null && !bookLoan.isActive()) {
+            publishCheckinNotification(bookLoan);
             return bookLoanMapper.toDTO(bookLoan);
         }
         if (!bookLoan.isActive()) {
@@ -287,6 +292,7 @@ public class BookLoanServiceImpl implements BookLoanService {
 
         BookLoan savedBookLoan = bookLoanRepository.save(bookLoan);
         createReturnFinesIfRequired(savedBookLoan, admin, finePreview, inspectionNote);
+        publishCheckinNotification(savedBookLoan);
         return bookLoanMapper.toDTO(savedBookLoan);
     }
 
@@ -419,7 +425,7 @@ public class BookLoanServiceImpl implements BookLoanService {
     private void createFineOnce(BookLoan loan, User admin, FineType type, long amount,
                                 String reason, String notes) {
         if (amount <= 0 || fineRepository.existsByBookLoanIdAndType(loan.getId(), type)) return;
-        fineRepository.save(Fine.builder()
+        Fine fine = fineRepository.save(Fine.builder()
                 .bookLoan(loan)
                 .user(loan.getUser())
                 .type(type)
@@ -430,6 +436,47 @@ public class BookLoanServiceImpl implements BookLoanService {
                 .notes(notes)
                 .processedBy(admin)
                 .build());
+        notificationPublisher.publish(
+                loan.getUser().getId(),
+                admin.getId(),
+                NotificationEventType.FINE_CREATED,
+                "Bạn có khoản phạt mới",
+                "Khoản phạt " + typeDisplayName(type) + " trị giá " + amount
+                        + " đ đã được tạo cho sách “" + loan.getBook().getTitle() + "”.",
+                "/user/my-fines",
+                "FINE",
+                fine.getId(),
+                null);
+    }
+
+    private void publishCheckinNotification(BookLoan loan) {
+        String condition = switch (loan.getStatus()) {
+            case RETURNED -> "đã được nhận lại";
+            case DAMAGED -> "được ghi nhận hư hỏng";
+            case LOST -> "được ghi nhận bị mất";
+            default -> "đã được kiểm tra";
+        };
+        Long adminId = loan.getCheckedInBy() == null ? null : loan.getCheckedInBy().getId();
+        notificationPublisher.publish(
+                loan.getUser().getId(),
+                adminId,
+                NotificationEventType.RETURN_CHECKED_IN,
+                "ADMIN đã kiểm tra sách trả",
+                "Sách “" + loan.getBook().getTitle() + "” " + condition
+                        + ". Vui lòng xem chi tiết lượt mượn và khoản phạt nếu có.",
+                "/user/my-loans",
+                "BOOK_LOAN",
+                loan.getId(),
+                null);
+    }
+
+    private String typeDisplayName(FineType type) {
+        return switch (type) {
+            case OVERDUE -> "quá hạn";
+            case DAMAGE -> "hư hỏng sách";
+            case LOSS -> "mất sách";
+            case PROCESSING -> "xử lý";
+        };
     }
 
     private void validateReceivedDate(BookLoan bookLoan, LocalDate receivedDate, LocalDate today)
@@ -472,13 +519,30 @@ public class BookLoanServiceImpl implements BookLoanService {
 
         // Bấm lặp trả về chính yêu cầu đầu tiên, không đổi thời điểm hoặc ghi chú.
         if (bookLoan.isReturnPending()) {
+            publishReturnRequestNotification(bookLoan);
             return bookLoanMapper.toDTO(bookLoan);
         }
 
         String note = request == null ? null : normalizeReturnRequestNote(request.getNote());
         bookLoan.setReturnRequestedAt(LocalDateTime.now());
         bookLoan.setReturnRequestNote(note);
-        return bookLoanMapper.toDTO(bookLoanRepository.save(bookLoan));
+        BookLoan savedBookLoan = bookLoanRepository.save(bookLoan);
+        publishReturnRequestNotification(savedBookLoan);
+        return bookLoanMapper.toDTO(savedBookLoan);
+    }
+
+    private void publishReturnRequestNotification(BookLoan loan) {
+        notificationPublisher.publishToRole(
+                UserRole.ROLE_ADMIN,
+                loan.getUser().getId(),
+                NotificationEventType.RETURN_REQUESTED,
+                "Có yêu cầu trả sách mới",
+                loan.getUser().getFullName() + " đã gửi yêu cầu trả sách “"
+                        + loan.getBook().getTitle() + "”.",
+                "/admin/loans",
+                "BOOK_LOAN",
+                loan.getId(),
+                null);
     }
 
     private String normalizeReturnRequestNote(String note) throws BookException {
@@ -646,6 +710,17 @@ public class BookLoanServiceImpl implements BookLoanService {
                     bookLoan.setIsOverdue(true);
                     bookLoan.setOverdueDays(overdueDays);
                     bookLoanRepository.save(bookLoan);
+                    notificationPublisher.publish(
+                            bookLoan.getUser().getId(),
+                            null,
+                            NotificationEventType.LOAN_OVERDUE,
+                            "Sách đã quá hạn trả",
+                            "Sách “" + bookLoan.getBook().getTitle() + "” đã quá hạn "
+                                    + overdueDays + " ngày. Vui lòng trả sách sớm.",
+                            "/user/my-loans",
+                            "BOOK_LOAN",
+                            bookLoan.getId(),
+                            null);
                     updateCount++;
                 }
             }

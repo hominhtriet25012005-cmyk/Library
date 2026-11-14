@@ -42,7 +42,7 @@ Kết quả cuối cần đạt:
 ### Quan trọng
 
 1. **ISBN vẫn bị bắt buộc ở Frontend** trong khi Backend cho phép để trống.
-2. **ADMIN gói thành viên mới chỉ xem và tạo**, chưa sửa, xóa/ngừng bán và chạy xử lý gói hết hạn.
+2. **Baseline khi bắt đầu FE-SYNC:** ADMIN gói thành viên mới chỉ xem và tạo, chưa sửa/xóa hoặc chạy xử lý gói hết hạn. Quy tắc xóa hiện hành được cập nhật tại AUD2-BE-04.
 3. **Frontend cho phép giao đặt giữ `PENDING`**, trong khi Backend chỉ chấp nhận `AVAILABLE`.
 
 ### Cần hoàn thiện
@@ -215,23 +215,23 @@ Công việc:
   - `DELETE /api/subscription-plans/admin/{id}`;
   - `POST /api/subscriptions/admin/deactivate-expired`.
 - Dùng chung form tạo và sửa gói.
-- Thêm xác nhận xóa/ngừng bán và hiển thị đúng kết quả Backend:
+- Thêm xác nhận xóa và hiển thị đúng kết quả Backend:
   - chưa có lịch sử: xóa cứng;
-  - đã có lịch sử: ngừng bán.
+  - đã có lịch sử: API từ chối xóa bằng HTTP 409, giữ nguyên trạng thái và lịch sử.
 - Thêm thao tác xử lý các đăng ký hết hạn và tải lại bảng sau khi hoàn tất.
 - Không mở endpoint `/api/subscriptions/activate`; kích hoạt vẫn chỉ qua settlement payOS.
 
 Tiêu chí hoàn thành:
 
-- ADMIN tạo, sửa, xóa/ngừng bán gói được từ giao diện.
+- ADMIN tạo, sửa và xóa gói được từ giao diện; không có thao tác ngừng bán.
 - Không làm mất lịch sử đăng ký cũ.
-- Gói ngừng bán biến mất khỏi danh sách USER nhưng vẫn có trong khu ADMIN.
+- Gói không hiển thị với USER vẫn có thể được xem trong khu ADMIN.
 
 Kết quả xác nhận:
 
 - API adapter đã nối đúng `PUT /api/subscription-plans/admin/{id}`, `DELETE /api/subscription-plans/admin/{id}` và `POST /api/subscriptions/admin/deactivate-expired`.
 - Form tạo gói được dùng lại cho thao tác sửa; mã gói bị khóa khi sửa đúng với quy tắc Backend giữ mã ổn định sau khi tạo.
-- Hộp thoại xác nhận xóa giải thích rõ: gói chưa có lịch sử bị xóa cứng, gói đã có lịch sử chỉ ngừng bán; thông báo kết quả lấy trực tiếp từ Backend.
+- Hộp thoại xác nhận giải thích rõ: gói chưa có lịch sử bị xóa cứng; gói có lịch sử sẽ bị từ chối xóa và giữ nguyên trạng thái/lịch sử; thông báo lấy từ Backend.
 - Trang thành viên đăng ký có thao tác xử lý các lượt đã hết hạn và tải lại dữ liệu sau khi hoàn tất.
 - Không gọi endpoint kích hoạt thủ công `/api/subscriptions/activate`; kích hoạt gói vẫn chỉ diễn ra qua settlement payOS.
 - Test gói thành viên: **6/6 đạt**.
@@ -297,7 +297,7 @@ Kiểm tra tích hợp thủ công:
 1. Thêm sách không ISBN, sau đó bổ sung ISBN khi sửa.
 2. Trả sách bình thường, mất và hỏng kèm ghi chú.
 3. Xác nhận chỉ đặt giữ `AVAILABLE` mới giao được.
-4. Tạo, sửa, xóa/ngừng bán gói chưa dùng và đã có lịch sử.
+4. Tạo, sửa, xóa gói chưa dùng; xác nhận xóa gói có lịch sử bị từ chối và không đổi trạng thái.
 5. Chạy xử lý gói hết hạn và kiểm tra danh sách ADMIN/USER.
 6. Đăng ký và reset với mật khẩu 7, 8, 72 và 73 ký tự.
 7. Kiểm tra phiên ADMIN khi vai trò trong MySQL thay đổi.
@@ -351,6 +351,6 @@ Thực hiện tuần tự theo thứ tự **1 → 5** sẽ dễ theo dõi nhất
 | FE-SYNC-1 | Hoàn tất | ISBN không bắt buộc; cho bổ sung một lần nếu ban đầu chưa có; 9/9 test sách đạt |
 | FE-SYNC-2 | Hoàn tất | Chỉ giao `AVAILABLE`; adapter chặn request sai; giữ nguyên thông báo Backend; 12/12 test liên quan đạt |
 | FE-SYNC-3 | Hoàn tất | Gửi ghi chú check-in tối đa 500 ký tự; nhắc mô tả sách mất/hỏng; 5/5 test mượn–trả đạt |
-| FE-SYNC-4 | Hoàn tất | Tạo/sửa/xóa hoặc ngừng bán gói; xử lý đăng ký hết hạn; 6/6 test gói thành viên đạt |
+| FE-SYNC-4 | Hoàn tất tại thời điểm FE-SYNC; quy tắc xóa cập nhật theo AUD2-BE-04 | Tạo/sửa/xóa gói; xử lý đăng ký hết hạn; 6/6 test gói thành viên đạt ở baseline trước quyết định mới |
 | FE-SYNC-5 | Hoàn tất | Mật khẩu 8–72 ký tự; giữ thông báo Backend; 401 kết thúc phiên, 403 đồng bộ lại profile; 104/104 test đạt |
 | FE-SYNC-6 | Hoàn tất mã nguồn | 104/104 test, lint, build và diff check đạt; checklist tích hợp live chờ runtime 3306/8000/5173 |

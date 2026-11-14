@@ -1,10 +1,12 @@
 package com.library.service.impl;
 
 import com.library.domain.ReservationStatus;
+import com.library.domain.NotificationEventType;
 import com.library.model.Book;
 import com.library.model.Reservation;
 import com.library.repository.BookRepository;
 import com.library.repository.ReservationRepository;
+import com.library.service.NotificationPublisher;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class ReservationLifecycleService {
 
     private final ReservationRepository reservationRepository;
     private final BookRepository bookRepository;
+    private final NotificationPublisher notificationPublisher;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -63,6 +66,17 @@ public class ReservationLifecycleService {
         reservation.setAvailableUntil(now.plusHours(PICKUP_WINDOW_HOURS));
         reservation.setNotificationSent(false);
         reservationRepository.save(reservation);
+        notificationPublisher.publish(
+                reservation.getUser().getId(),
+                null,
+                NotificationEventType.RESERVATION_AVAILABLE,
+                "Sách đặt giữ đã sẵn sàng",
+                "Đã đến lượt bạn nhận sách “" + reservation.getBook().getTitle()
+                        + "”. Vui lòng nhận sách trong 72 giờ.",
+                "/user/my-reservations",
+                "RESERVATION",
+                reservation.getId(),
+                null);
         reorderQueue(activeQueue);
 
         return Optional.of(reservation);
@@ -104,6 +118,17 @@ public class ReservationLifecycleService {
                 reservation.setCancelledAt(now);
                 reservation.setQueuePosition(null);
                 reservationRepository.save(reservation);
+                notificationPublisher.publish(
+                        reservation.getUser().getId(),
+                        null,
+                        NotificationEventType.RESERVATION_EXPIRED,
+                        "Lượt đặt giữ đã hết hạn",
+                        "Thời hạn nhận sách “" + reservation.getBook().getTitle()
+                                + "” đã kết thúc.",
+                        "/user/my-reservations",
+                        "RESERVATION",
+                        reservation.getId(),
+                        null);
                 expiredCount++;
 
                 activateNextPendingForLockedBook(book, now);

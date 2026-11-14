@@ -20,7 +20,7 @@ class SubscriptionPayOSRoutingTests {
     private final PayOSOrderStore store = mock(PayOSOrderStore.class);
     private final SubscriptionImpl service = new SubscriptionImpl(subscriptions,
             mock(SubscriptionMapper.class), users, mock(SubscriptionPlanRepository.class), payments, membership, store,
-            mock(PaymentRepository.class));
+            mock(PaymentRepository.class), mock(com.library.service.NotificationPublisher.class));
 
     @Test void routeIgnoresClientUserPriceAndCurrency() throws Exception {
         when(users.getCurrentUser()).thenReturn(User.builder().id(7L).build());

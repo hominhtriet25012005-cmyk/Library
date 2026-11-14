@@ -171,7 +171,7 @@ Kiểm thử mới bao phủ kích hoạt, hết hạn, chuyển lượt, hủy,
 
 ### BE-3 — Gói thành viên/API — **đã hoàn tất 01/11/2026**
 
-- `DELETE /api/subscription-plans/admin/{id}` xóa cứng plan nếu chưa từng có bản ghi trong `subscriptions`; nếu đã có lịch sử thì chỉ đặt `active=false`, giữ plan làm mốc lịch sử cho subscription/payment và cập nhật `updatedBy`;
+- `DELETE /api/subscription-plans/admin/{id}` xóa cứng plan nếu chưa từng có bản ghi trong `subscriptions`; nếu đã có lịch sử thì từ chối bằng HTTP 409, giữ nguyên plan, trạng thái, `updatedBy` và lịch sử (`AUD2-BE-04`);
 - `PUT /api/subscription-plans/admin/{id}` đã có `@Valid`, dữ liệu thiếu/sai bị trả 400 trước khi vào service;
 - tác vụ thay đổi dữ liệu đã chuyển từ `GET` sang `POST /api/subscriptions/admin/deactivate-expired`; `GET` trả 405;
 - API danh sách cũ `GET /api/subscriptions/admin?page=&size=` nhận trang thật, giới hạn size 1–100 và dùng `findAll(Pageable)` thay vì tải toàn bộ bảng;
@@ -179,7 +179,7 @@ Kiểm thử mới bao phủ kích hoạt, hết hạn, chuyển lượt, hủy,
 - quy tắc payOS được giữ nguyên và có hồi quy: user có gói active không tạo draft mới; hủy gói thu hồi quyền ngay và được tạo draft mới;
 - không đổi schema `library_db1.sql`, không kích hoạt gói thủ công thay webhook payOS.
 
-Kiểm thử BE-3 và hồi quy payOS/phân quyền đạt **29/29**. Ca MySQL opt-in đã được cập nhật theo quy tắc xóa cứng plan chưa dùng/ngừng bán plan có lịch sử và chuyển tác vụ hết hạn từ GET sang POST, nhưng chưa chạy trên database chính có dữ liệu. Chi tiết tại `docs/BE3_MEMBERSHIP_API.md`.
+Kiểm thử BE-3 và hồi quy payOS/phân quyền đạt **29/29** trước thay đổi AUD2-BE-04. Quy tắc hiện hành: xóa cứng plan chưa từng đăng ký; nếu có lịch sử thì từ chối xóa bằng HTTP 409, giữ nguyên trạng thái và history; không có thao tác ngừng bán. Không đổi schema; FK tiếp tục bảo vệ tham chiếu. Bộ test MySQL opt-in chưa chạy trên database chính có dữ liệu. Chi tiết tại `docs/BE3_MEMBERSHIP_API.md`.
 
 ### BE-4 — Tài khoản và sách — **đã triển khai code và qua unit baseline 02/11/2026**
 

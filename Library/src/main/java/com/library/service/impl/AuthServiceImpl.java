@@ -13,7 +13,7 @@ import com.library.repository.PasswordResetTokenRepository;
 import com.library.repository.UserRepository;
 import com.library.service.AuthService;
 import com.library.service.EmailService;
-import lombok.RequiredArgsConstructor;
+import com.library.service.EmailVerificationService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,9 +24,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
-@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -36,9 +36,43 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final CustomUserServiceImplementation customUserServiceImplementation;
     private final EmailService emailService;
+    private final EmailVerificationService emailVerificationService;
 
     @Value("${app.frontend-url:http://localhost:5173}")
     private String frontendUrl;
+
+    @Autowired
+    public AuthServiceImpl(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            JwtProvider jwtProvider,
+            UserMapper userMapper,
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            CustomUserServiceImplementation customUserServiceImplementation,
+            EmailService emailService,
+            EmailVerificationService emailVerificationService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtProvider = jwtProvider;
+        this.userMapper = userMapper;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.customUserServiceImplementation = customUserServiceImplementation;
+        this.emailService = emailService;
+        this.emailVerificationService = emailVerificationService;
+    }
+
+    /** Compatibility constructor retained for callers that only exercise local authentication. */
+    public AuthServiceImpl(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            JwtProvider jwtProvider,
+            UserMapper userMapper,
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            CustomUserServiceImplementation customUserServiceImplementation,
+            EmailService emailService) {
+        this(userRepository, passwordEncoder, jwtProvider, userMapper, passwordResetTokenRepository,
+                customUserServiceImplementation, emailService, null);
+    }
 
 
     @Override
@@ -99,6 +133,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public AuthResponse signup(UserDTO req) throws UserException {
         User user = userRepository.findByEmail(req.getEmail()); // Kiểm tra xem email đã tồn tại trong database chưa
 
@@ -126,6 +161,9 @@ public class AuthServiceImpl implements AuthService {
         createdUser.setRole(UserRole.ROLE_USER);
 
         User savedUser = userRepository.save(createdUser);  // INSERT user vào MySQL
+        if (emailVerificationService != null) {
+            emailVerificationService.issueForNewAccount(savedUser);
+        }
 
         // Sau signup, tạo Authentication
         // Để xem user như đã đăng nhập

@@ -15,6 +15,10 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -93,6 +97,29 @@ class BookCoverStorageServiceTests {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertFalse(response.getBody().getStatus());
+    }
+
+    @Test void cleanupDeletesOnlyOldUnreferencedManagedCoverFiles() throws Exception {
+        String orphan = "11111111-1111-4111-8111-111111111111.png";
+        String referenced = "22222222-2222-4222-8222-222222222222.jpg";
+        String recent = "33333333-3333-4333-8333-333333333333.png";
+        Path orphanPath = Files.write(storageDirectory.resolve(orphan), new byte[]{1});
+        Path referencedPath = Files.write(storageDirectory.resolve(referenced), new byte[]{1});
+        Path recentPath = Files.write(storageDirectory.resolve(recent), new byte[]{1});
+        Path unmanagedPath = Files.write(storageDirectory.resolve("cover.png"), new byte[]{1});
+        Instant cutoff = Instant.now().minus(7, ChronoUnit.DAYS);
+        FileTime oldTime = FileTime.from(cutoff.minus(1, ChronoUnit.DAYS));
+        Files.setLastModifiedTime(orphanPath, oldTime);
+        Files.setLastModifiedTime(referencedPath, oldTime);
+        Files.setLastModifiedTime(unmanagedPath, oldTime);
+
+        int deleted = service().deleteUnreferenced(Set.of(referenced), cutoff);
+
+        assertEquals(1, deleted);
+        assertFalse(Files.exists(orphanPath));
+        assertTrue(Files.exists(referencedPath));
+        assertTrue(Files.exists(recentPath));
+        assertTrue(Files.exists(unmanagedPath));
     }
 
     private long fileCount() {

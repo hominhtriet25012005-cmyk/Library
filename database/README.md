@@ -20,5 +20,8 @@ ADMIN được tạo bởi Backend khi người vận hành chủ động bật 
 - DB-1 — chuẩn hóa schema và khởi tạo ADMIN: `../docs/DB1_DATABASE_CANONICALIZATION.md`.
 - DB-2 — ISBN tùy chọn và CHECK constraint nghiệp vụ: `../docs/DB2_SCHEMA_CONSTRAINTS.md`.
 - DB-3 — unique key thanh toán và composite index: `../docs/DB3_INDEXES_AND_PAYMENT_KEYS.md`.
+- NT-1 — schema thông báo và email: `../docs/email.md`.
 
 DB-3 đã được áp dụng vào `library_db1` thật ngày 31/10/2026. Gateway thanh toán hiện chỉ còn `PAYOS`; unique key giao dịch và các composite index chính đã đồng bộ với file schema nguồn.
+
+NT-1 đã được thêm vào file schema nguồn ngày 14/11/2026 nhưng chưa áp dụng vào `library_db1` live. Bốn bảng NT-1 là `email_verification_tokens`, `user_notification_preferences`, `notifications` và `email_outbox`.

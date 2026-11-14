@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   AppBar,
   Avatar,
@@ -28,18 +28,13 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
-import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
 
 import { useAuth } from "../../../auth/useAuth";
 import { drawerWidth } from "./layout";
-import { finesApi } from "../../../api/fines";
-import { fineOutstanding, fineTypeLabels } from "../Fines/fineRules";
-import { formatCurrencyVND, formatDateTimeVN } from "../../../utils/formatters";
-import {
-  readNotificationIds as loadReadNotificationIds,
-  writeNotificationIds,
-} from "../../../components/common/notificationReads";
+import { formatDateTimeVN } from "../../../utils/formatters";
+import { useNotifications } from "../../../notifications/useNotifications.js";
+import { notificationPath } from "../../../api/notifications.js";
 
 const Navbar = ({ handleDrawerToggle, preview = false }) => {
   const location = useLocation();
@@ -51,18 +46,18 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const searchInputRef = useRef(null);
   const [notificationAnchor, setNotificationAnchor] = useState(null);
-  const [fineNotifications, setFineNotifications] = useState([]);
-  const [readNotificationIds, setReadNotificationIds] = useState(new Set());
-  const [notificationError, setNotificationError] = useState("");
-  const notificationStorageKey = user?.id
-    ? `library.user.notifications.read.${user.id}`
-    : null;
-  const unreadCount = useMemo(
-    () =>
-      fineNotifications.filter((item) => !readNotificationIds.has(item.id))
-        .length,
-    [fineNotifications, readNotificationIds],
-  );
+  const {
+    notifications,
+    unreadCount,
+    error: notificationError,
+    loading: notificationsLoading,
+    refresh: refreshNotifications,
+    markAsRead,
+    markAllAsRead,
+  } = useNotifications({
+    enabled: Boolean(user?.id) && !preview,
+    scope: `${user?.id || "guest"}:${user?.role || "USER"}`,
+  });
 
   const currentItem = [...navigationItems, ...secondaryItems].find((item) =>
     isActive(navigationPath(item.path, preview), location),
@@ -95,89 +90,6 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
   const handleCloseNotifications = () => {
     setNotificationAnchor(null);
   };
-
-  useEffect(() => {
-    if (!notificationStorageKey) {
-      setFineNotifications([]);
-      setReadNotificationIds(new Set());
-      return undefined;
-    }
-
-    setReadNotificationIds(loadReadNotificationIds(notificationStorageKey));
-    let active = true;
-    let requestController;
-    const loadNotifications = async () => {
-      requestController?.abort();
-      requestController = new AbortController();
-      try {
-        const fines = await finesApi.mine(
-          {},
-          { signal: requestController.signal },
-        );
-        if (!active) return;
-        if (!Array.isArray(fines))
-          throw new Error("Dữ liệu tiền phạt không hợp lệ.");
-        setFineNotifications(
-          fines
-            .filter(
-              (fine) =>
-                ["PENDING", "PARTIALLY_PAID"].includes(fine.status) &&
-                fineOutstanding(fine) > 0,
-            )
-            .sort(
-              (first, second) =>
-                new Date(second.createdAt || 0) -
-                new Date(first.createdAt || 0),
-            )
-            .map((fine) => {
-              const outstanding = fineOutstanding(fine);
-              const typeLabel = fineTypeLabels[fine.type] || "Khoản phạt";
-              return {
-                id: `fine-${fine.id}`,
-                title:
-                  fine.status === "PARTIALLY_PAID"
-                    ? "Khoản phạt còn dư nợ"
-                    : "Khoản phạt cần thanh toán",
-                desc: `${fine.bookTitle || "Sách thư viện"} · ${typeLabel}: còn nợ ${formatCurrencyVND(outstanding)}.${fine.reason ? ` ${fine.reason}` : ""}`,
-                time: formatDateTimeVN(fine.createdAt),
-                link: "/user/my-fines",
-              };
-            }),
-        );
-        setNotificationError("");
-      } catch (error) {
-        if (!active || error.name === "AbortError") return;
-        setNotificationError(
-          error.message || "Không tải được thông báo tiền phạt.",
-        );
-      }
-    };
-
-    loadNotifications();
-    const interval = window.setInterval(loadNotifications, 30_000);
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") loadNotifications();
-    };
-    window.addEventListener("focus", loadNotifications);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      active = false;
-      window.clearInterval(interval);
-      window.removeEventListener("focus", loadNotifications);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      requestController?.abort();
-    };
-  }, [notificationStorageKey]);
-
-  const markNotificationsRead = (ids) => {
-    const next = new Set(readNotificationIds);
-    ids.forEach((id) => next.add(id));
-    setReadNotificationIds(next);
-    writeNotificationIds(notificationStorageKey, next);
-  };
-
-  const handleMarkAllRead = () =>
-    markNotificationsRead(fineNotifications.map((item) => item.id));
 
   return (
     <AppBar
@@ -484,7 +396,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
             <Button
               size="small"
               startIcon={<DoneAllRoundedIcon sx={{ fontSize: 16 }} />}
-              onClick={handleMarkAllRead}
+              onClick={() => void markAllAsRead()}
               sx={{
                 textTransform: "none",
                 fontSize: "0.75rem",
@@ -509,22 +421,31 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
             >
               {notificationError}
             </Typography>
-          ) : fineNotifications.length === 0 ? (
+          ) : notificationsLoading && notifications.length === 0 ? (
             <Typography
               color="text.secondary"
               variant="body2"
               sx={{ p: 2.5, textAlign: "center" }}
             >
-              Bạn chưa có khoản phạt cần thanh toán.
+              Đang tải thông báo…
+            </Typography>
+          ) : notifications.length === 0 ? (
+            <Typography
+              color="text.secondary"
+              variant="body2"
+              sx={{ p: 2.5, textAlign: "center" }}
+            >
+              Bạn chưa có thông báo nào.
             </Typography>
           ) : (
-            fineNotifications.map((item) => (
+            notifications.map((item) => (
               <ListItemButton
                 key={item.id}
-                onClick={() => {
-                  markNotificationsRead([item.id]);
+                onClick={async () => {
+                  const marked = await markAsRead(item.id);
+                  if (!marked) return;
                   handleCloseNotifications();
-                  navigate(item.link);
+                  navigate(notificationPath(item.actionUrl, user?.role));
                 }}
                 sx={{
                   p: 2,
@@ -532,6 +453,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                   borderColor: "divider",
                   alignItems: "flex-start",
                   gap: 1.5,
+                  bgcolor: item.readAt ? "transparent" : "action.hover",
                   "&:hover": { bgcolor: "action.hover" },
                 }}
               >
@@ -550,7 +472,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                     mt: 0.25,
                   }}
                 >
-                  <ReceiptLongRoundedIcon
+                  <NotificationsNoneRoundedIcon
                     sx={{ fontSize: 20, color: "primary.main" }}
                   />
                 </Box>
@@ -578,13 +500,13 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                       overflow: "hidden",
                     }}
                   >
-                    {item.desc}
+                    {item.message}
                   </Typography>
                   <Typography
                     variant="caption"
                     sx={{ color: "text.secondary", display: "block", mt: 0.5 }}
                   >
-                    {item.time}
+                    {formatDateTimeVN(item.createdAt)}
                   </Typography>
                 </Box>
               </ListItemButton>
@@ -596,8 +518,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
           <Button
             size="small"
             onClick={() => {
-              handleCloseNotifications();
-              navigate("/user/my-fines");
+              void refreshNotifications();
             }}
             sx={{
               textTransform: "none",
@@ -606,7 +527,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
               color: "primary.main",
             }}
           >
-            Xem các khoản phạt →
+            Làm mới thông báo
           </Button>
         </Box>
       </Popover>

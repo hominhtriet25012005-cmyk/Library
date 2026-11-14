@@ -24,6 +24,14 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
             "ORDER BY r.availableUntil, r.id")
     List<Long> findExpiredAvailableIds(@Param("now") LocalDateTime now, Pageable pageable);
 
+    @Query("SELECT r FROM Reservation r WHERE r.status = 'AVAILABLE' "
+            + "AND r.availableUntil IS NOT NULL "
+            + "AND r.availableUntil > :now AND r.availableUntil <= :reminderThreshold "
+            + "ORDER BY r.availableUntil, r.id")
+    List<Reservation> findPickupExpiringReservations(
+            @Param("now") LocalDateTime now,
+            @Param("reminderThreshold") LocalDateTime reminderThreshold);
+
     @Query("SELECT r FROM Reservation r WHERE r.book.id = :bookId " +
             "AND (r.status = 'PENDING' OR r.status = 'AVAILABLE') ORDER BY r.reservedAt, r.id")
     List<Reservation> findActiveQueue(@Param("bookId") Long bookId);

@@ -66,7 +66,8 @@ class BookLoanReturnRequestTests {
         subject = new BookLoanServiceImpl(loans, users, subscriptions,
                 books, new BookLoanMapper(), mock(UserRepository.class),
                 mock(ReservationLifecycleService.class),
-                mock(com.library.repository.FineRepository.class));
+                mock(com.library.repository.FineRepository.class),
+                mock(com.library.service.NotificationPublisher.class));
         org.springframework.test.util.ReflectionTestUtils.setField(subject, "entityManager", entityManager);
 
         when(users.getCurrentUser()).thenReturn(borrower);

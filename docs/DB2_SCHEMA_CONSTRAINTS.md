@@ -26,11 +26,33 @@ Frontend chưa được sửa trong DB-2. Nếu form vẫn đánh dấu ISBN b�
 | `fines` | `chk_fines_type` | `OVERDUE`, `DAMAGE`, `LOSS`, `PROCESSING` |
 | `fines` | `chk_fines_status` | `PENDING`, `PARTIALLY_PAID`, `PAID`, `WAIVED` |
 | `reservations` | `chk_reservations_status` | `PENDING`, `AVAILABLE`, `FULFILLED`, `CANCELLED`, `EXPIRED` |
-| `payments` | `chk_payments_payment_type` | `FINE`, `MEMBERSHIP`, `LOST_BOOK_PENALTY`, `DAMAGED_BOOK_PENALTY` |
+| `payments` | `chk_payments_payment_type` | `FINE`, `MEMBERSHIP` |
 | `payments` | `chk_payments_status` | `PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`, `CANCELLED`, `REFUNDED` |
 | `payments` | `chk_payments_gateway` | `PAYOS` (được thu hẹp ở DB-3 sau khi xác nhận không có dữ liệu gateway cũ) |
 
 `REFUNDED` đã được thêm vào `chk_payments_status` để khớp đầy đủ với enum Backend.
+Sau đợt đồng bộ AUD1-DB-06 ngày 13/11/2026, `PaymentType` chỉ còn `FINE` và `MEMBERSHIP`; các khoản mất/hư
+sách được ghi nhận thống nhất dưới loại thanh toán `FINE`, còn chi tiết vi phạm nằm ở `fines.type`.
+
+### Đồng bộ MySQL live — AUD1-DB-06 (13/11/2026)
+
+- Trước khi thay đổi, truy vấn `library_db1.payments` xác nhận có `0` dòng dùng
+  `LOST_BOOK_PENALTY` hoặc `DAMAGED_BOOK_PENALTY`.
+- Bản dump trước thay đổi: `database/backups/library_db1_pre_payment_type_cleanup_20261113.sql`;
+  Workbench báo đã xuất đủ `12/12` bảng, kích thước `62.654` byte, SHA-256
+  `8A5BA7B8834547BB2B3DB7ED4A7763937B69C6565258A5EBE2EF17C4700536F9`.
+- Workbench cảnh báo mysqldump `8.0.41` thấp hơn server `9.2.0`; dump đã hoàn tất, nhưng chưa kiểm tra
+  khôi phục trên server tương ứng. Không coi đây là kiểm chứng restore.
+- Đã chạy trên schema `library_db1`:
+  ```sql
+  ALTER TABLE library_db1.payments
+      DROP CHECK chk_payments_payment_type,
+      ADD CONSTRAINT chk_payments_payment_type
+          CHECK (payment_type IN ('FINE', 'MEMBERSHIP'));
+  ```
+- Sau ALTER, truy vấn `information_schema.check_constraints` xác nhận CHECK chỉ còn `FINE`, `MEMBERSHIP`;
+  đếm lại hai giá trị cũ vẫn là `0`.
+- Java enum, giao diện ADMIN, file schema chuẩn và tài liệu đã được đồng bộ cùng hợp đồng này.
 
 ## 2. An toàn dữ liệu
 

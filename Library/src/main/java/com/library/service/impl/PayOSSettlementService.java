@@ -5,6 +5,7 @@ import com.library.model.Payment;
 import com.library.repository.PaymentRepository;
 import com.library.repository.SubscriptionRepository;
 import com.library.repository.UserRepository;
+import com.library.service.NotificationPublisher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,7 @@ public class PayOSSettlementService {
     private final PaymentRepository payments;
     private final SubscriptionRepository subscriptions;
     private final UserRepository users;
+    private final NotificationPublisher notificationPublisher;
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
 
@@ -56,6 +58,7 @@ public class PayOSSettlementService {
 
             if (!reference.equals(payment.getGatewayPaymentId()))
                 throw new IllegalArgumentException("Receipt mismatch");
+            publishSuccessfulMembershipPayment(payment, subscription);
             return; // Không thiết lập lại ngày hoặc kích hoạt lại tư cách thành viên đã bị hủy/hết hạn sau đó.
         }
 
@@ -93,5 +96,38 @@ public class PayOSSettlementService {
         // Không có sự kiện kích hoạt bất đồng bộ nào cho PAYOS.
         subscriptions.saveAndFlush(subscription);
         payments.saveAndFlush(payment);
+        publishSuccessfulMembershipPayment(payment, subscription);
+    }
+
+    private void publishSuccessfulMembershipPayment(
+            Payment payment,
+            com.library.model.Subscription subscription) {
+        boolean isRenewal = subscriptions.existsPreviouslyActivatedSubscription(
+                subscription.getUser().getId(), subscription.getId(), PaymentStatus.SUCCESS);
+        NotificationEventType membershipEvent = isRenewal
+                ? NotificationEventType.MEMBERSHIP_RENEWED
+                : NotificationEventType.MEMBERSHIP_ACTIVATED;
+        notificationPublisher.publish(
+                payment.getUser().getId(),
+                null,
+                membershipEvent,
+                isRenewal ? "Gói thành viên đã được gia hạn" : "Gói thành viên đã được kích hoạt",
+                "Gói “" + subscription.getPlanName() + "” có hiệu lực đến ngày "
+                        + subscription.getEndDate() + ".",
+                "/user/subscriptions",
+                "SUBSCRIPTION",
+                subscription.getId(),
+                null);
+        notificationPublisher.publish(
+                payment.getUser().getId(),
+                null,
+                NotificationEventType.PAYMENT_SUCCEEDED,
+                "Thanh toán payOS thành công",
+                "Giao dịch " + payment.getAmount() + " đ cho gói “"
+                        + subscription.getPlanName() + "” đã thành công.",
+                "/user/subscriptions",
+                "PAYMENT",
+                payment.getId(),
+                null);
     }
 }

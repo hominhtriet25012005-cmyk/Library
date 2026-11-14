@@ -28,7 +28,8 @@ class PayOSSettlementTests {
         when(userRepository.findLockedById(7L)).thenReturn(Optional.of(user));
         when(subscriptions.findOtherCurrentActiveLockedByUserId(eq(7L), eq(8L), any()))
                 .thenReturn(java.util.List.of());
-        var service = new PayOSSettlementService(payments, subscriptions, userRepository);
+        var service = new PayOSSettlementService(payments, subscriptions, userRepository,
+                mock(com.library.service.NotificationPublisher.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "entityManager", mock(jakarta.persistence.EntityManager.class));
         service.complete(42L, "link", 100000L, "VND", "bank-ref");
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
@@ -57,7 +58,8 @@ class PayOSSettlementTests {
         when(subscriptions.findLockedById(9L)).thenReturn(Optional.of(sub));
         when(subscriptions.findOtherCurrentActiveLockedByUserId(eq(7L), eq(9L), any()))
                 .thenReturn(java.util.List.of(Subscription.builder().id(8L).user(user).isActive(true).build()));
-        var service = new PayOSSettlementService(payments, subscriptions, userRepository);
+        var service = new PayOSSettlementService(payments, subscriptions, userRepository,
+                mock(com.library.service.NotificationPublisher.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "entityManager", mock(jakarta.persistence.EntityManager.class));
 
         assertThatThrownBy(() -> service.complete(43L, "second-link", 100000L, "VND", "bank-ref"))

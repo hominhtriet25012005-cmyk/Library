@@ -1,8 +1,11 @@
 package com.library.service.impl;
 
 import com.library.domain.PaymentStatus;
+import com.library.domain.NotificationEventType;
+import com.library.domain.PaymentType;
 import com.library.model.Payment;
 import com.library.repository.PaymentRepository;
+import com.library.service.NotificationPublisher;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
@@ -22,6 +25,7 @@ public class PayOSPaymentStateStore {
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final PaymentRepository payments;
+    private final NotificationPublisher notificationPublisher;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -38,9 +42,12 @@ public class PayOSPaymentStateStore {
 
         if (payment.getStatus() == PaymentStatus.SUCCESS
                 || payment.getStatus() == PaymentStatus.REFUNDED
-                || payment.getStatus() == PaymentStatus.CANCELLED
-                || payment.getStatus() == PaymentStatus.FAILED
                 || gatewayStatus == PaymentLinkStatus.PAID) {
+            return payment;
+        }
+        if (payment.getStatus() == PaymentStatus.CANCELLED
+                || payment.getStatus() == PaymentStatus.FAILED) {
+            publishFailedPayment(payment);
             return payment;
         }
 
@@ -55,7 +62,12 @@ public class PayOSPaymentStateStore {
             case PAID -> false;
         };
 
-        return changed ? payments.saveAndFlush(payment) : payment;
+        Payment result = changed ? payments.saveAndFlush(payment) : payment;
+        if (result.getStatus() == PaymentStatus.CANCELLED
+                || result.getStatus() == PaymentStatus.FAILED) {
+            publishFailedPayment(result);
+        }
+        return result;
     }
 
     private boolean markTerminal(Payment payment, PaymentStatus status, String reason) {
@@ -72,5 +84,22 @@ public class PayOSPaymentStateStore {
         payment.setFailureReason(reason);
         payment.setCompletedAt(null);
         return changed;
+    }
+
+    private void publishFailedPayment(Payment payment) {
+        boolean membership = payment.getPaymentType() == PaymentType.MEMBERSHIP;
+        String statusText = payment.getStatus() == PaymentStatus.CANCELLED
+                ? "đã bị hủy" : "không thành công";
+        notificationPublisher.publish(
+                payment.getUser().getId(),
+                null,
+                NotificationEventType.PAYMENT_FAILED,
+                "Thanh toán payOS không hoàn tất",
+                "Giao dịch " + payment.getAmount() + " đ " + statusText
+                        + ". Bạn có thể tạo yêu cầu thanh toán mới.",
+                membership ? "/user/subscriptions" : "/user/my-fines",
+                "PAYMENT",
+                payment.getId(),
+                null);
     }
 }

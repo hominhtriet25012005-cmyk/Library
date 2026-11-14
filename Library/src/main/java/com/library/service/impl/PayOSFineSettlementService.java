@@ -2,6 +2,7 @@ package com.library.service.impl;
 
 import com.library.domain.*;
 import com.library.repository.*;
+import com.library.service.NotificationPublisher;
 import jakarta.persistence.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.util.Objects;
 public class PayOSFineSettlementService {
     private final PaymentRepository payments;
     private final FineRepository fines;
+    private final NotificationPublisher notificationPublisher;
     @PersistenceContext private EntityManager entityManager;
 
     @Transactional
@@ -43,6 +45,7 @@ public class PayOSFineSettlementService {
         if (payment.getStatus() == PaymentStatus.SUCCESS) {
             if (!reference.equals(payment.getGatewayPaymentId()))
                 throw new IllegalArgumentException("Receipt mismatch");
+            publishSuccessfulFinePayment(payment, fine);
             return;
         }
         if ((payment.getStatus() != PaymentStatus.PENDING && payment.getStatus() != PaymentStatus.PROCESSING)
@@ -58,5 +61,37 @@ public class PayOSFineSettlementService {
         payment.setCompletedAt(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")));
         fines.saveAndFlush(fine);
         payments.saveAndFlush(payment);
+        publishSuccessfulFinePayment(payment, fine);
+    }
+
+    private void publishSuccessfulFinePayment(com.library.model.Payment payment, com.library.model.Fine fine) {
+        NotificationEventType fineEvent = fine.getStatus() == FineStatus.PAID
+                ? NotificationEventType.FINE_PAID
+                : NotificationEventType.FINE_PARTIALLY_PAID;
+        String fineTitle = fine.getStatus() == FineStatus.PAID
+                ? "Khoản phạt đã được thanh toán"
+                : "Khoản phạt đã được thanh toán một phần";
+        notificationPublisher.publish(
+                payment.getUser().getId(),
+                null,
+                fineEvent,
+                fineTitle,
+                "Hệ thống đã ghi nhận thanh toán " + payment.getAmount()
+                        + " đ cho khoản phạt #" + fine.getId() + ".",
+                "/user/my-fines",
+                "FINE",
+                fine.getId(),
+                fine.getAmountPaid() == null ? null : "PAID:" + fine.getAmountPaid());
+        notificationPublisher.publish(
+                payment.getUser().getId(),
+                null,
+                NotificationEventType.PAYMENT_SUCCEEDED,
+                "Thanh toán payOS thành công",
+                "Giao dịch " + payment.getAmount() + " đ cho khoản phạt #"
+                        + fine.getId() + " đã thành công.",
+                "/user/my-fines",
+                "PAYMENT",
+                payment.getId(),
+                null);
     }
 }

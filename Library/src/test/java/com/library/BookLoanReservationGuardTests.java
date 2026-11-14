@@ -51,7 +51,8 @@ class BookLoanReservationGuardTests {
 
         BookLoanServiceImpl subject = new BookLoanServiceImpl(loans, currentUsers, subscriptions,
                 books, new BookLoanMapper(), users, lifecycle,
-                mock(com.library.repository.FineRepository.class));
+                mock(com.library.repository.FineRepository.class),
+                mock(com.library.service.NotificationPublisher.class));
         ReflectionTestUtils.setField(subject, "entityManager", mock(EntityManager.class));
         CheckoutRequest request = new CheckoutRequest();
         request.setBookId(book.getId());

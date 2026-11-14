@@ -1,11 +1,4 @@
 export const DEFAULT_USER_SETTINGS = Object.freeze({
-  notifications: Object.freeze({
-    dueReminder: true,
-    reminderDaysBefore: 2,
-    reservationAlert: true,
-    overdueAlert: true,
-    newsletter: false,
-  }),
   appearance: Object.freeze({
     theme: "light",
     defaultBookView: "grid",
@@ -30,7 +23,6 @@ export const getSearchHistoryKey = (userId) =>
 export const normalizeUserSettings = (raw) => {
   if (!raw || typeof raw !== "object") {
     return {
-      notifications: { ...DEFAULT_USER_SETTINGS.notifications },
       appearance: { ...DEFAULT_USER_SETTINGS.appearance },
       privacy: { ...DEFAULT_USER_SETTINGS.privacy },
       localization: { ...DEFAULT_USER_SETTINGS.localization },
@@ -38,12 +30,6 @@ export const normalizeUserSettings = (raw) => {
   }
 
   return {
-    notifications: {
-      ...DEFAULT_USER_SETTINGS.notifications,
-      ...(raw.notifications && typeof raw.notifications === "object"
-        ? raw.notifications
-        : {}),
-    },
     appearance: {
       ...DEFAULT_USER_SETTINGS.appearance,
       ...(raw.appearance && typeof raw.appearance === "object"

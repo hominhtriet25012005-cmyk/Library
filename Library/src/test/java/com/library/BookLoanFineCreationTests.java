@@ -66,7 +66,8 @@ class BookLoanFineCreationTests {
 
         subject = new BookLoanServiceImpl(loans, users, mock(SubscriptionService.class),
                 books, new BookLoanMapper(), mock(UserRepository.class),
-                mock(ReservationLifecycleService.class), fines);
+                mock(ReservationLifecycleService.class), fines,
+                mock(com.library.service.NotificationPublisher.class));
         ReflectionTestUtils.setField(subject, "entityManager", mock(EntityManager.class));
         when(users.getCurrentUser()).thenReturn(admin);
         when(loans.findLockedById(loan.getId())).thenReturn(Optional.of(loan));

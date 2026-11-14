@@ -70,7 +70,8 @@ class ReservationServiceLifecycleTests {
         when(subscriptions.getUsersActiveSubscription(borrower.getId())).thenReturn(membership);
 
         subject = new ReservationServiceImpl(loanRepository, userService, books,
-                reservations, new ReservationMapper(), bookLoans, users, subscriptions, lifecycle);
+                reservations, new ReservationMapper(), bookLoans, users, subscriptions, lifecycle,
+                mock(com.library.service.NotificationPublisher.class));
         ReflectionTestUtils.setField(subject, "entityManager", mock(EntityManager.class));
     }
 

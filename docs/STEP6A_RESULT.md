@@ -27,6 +27,6 @@ Cập nhật 05/10/2026, 21:12 (Asia/Saigon). Chỉ sửa Backend trong phạm v
 ## Chưa tự ý đổi — chưa thể tuyên bố toàn bộ tài liệu 6A đã khớp
 
 - A-11: code xóa cứng Plan, tài liệu mô tả xóa mềm. Đây là khác biệt business/data-retention; không đổi khi chưa có lựa chọn rõ ràng.
-- GET `/api/books` có tham số `activeOnly` nhưng chưa chuyển vào request; repository hiện luôn lọc active. Định nghĩa dữ liệu trả về khi `activeOnly=false` chưa được tài liệu quy định rõ.
+- **Ghi nhận tại thời điểm 6A:** GET `/api/books` nhận `activeOnly` nhưng chưa chuyển vào request; repository luôn lọc sách active. Được xử lý sau audit tại `AUD2-BE-07`: catalog public giữ lọc active và trả HTTP 400 nếu client gửi tham số `activeOnly`.
 - Một số API tài liệu Wishlist/User/Genre/Plan chưa được controller expose; không tạo endpoint mới trong nhóm này.
 - Coverage của các tổ hợp query/filter, unique race và toàn bộ nhánh API vẫn chưa đầy đủ; 6A không đồng nghĩa nghiệm thu toàn bộ module.

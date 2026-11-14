@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -69,15 +70,22 @@ public class BookController {
     }
 
     @GetMapping
-    public ResponseEntity<PageResponse<BookDTO>> searchBooks(
+    public ResponseEntity<?> searchBooks(
+            @RequestParam Map<String, String> queryParameters,
             @RequestParam(required = false) Long genreId,
             @RequestParam(required = false, defaultValue = "false") Boolean availableOnly,
             @RequestParam(required = false, defaultValue = "false") Boolean unavailableOnly,
-            @RequestParam(defaultValue = "true") boolean activeOnly,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "DESC") String sortDirection) {
+
+        if (queryParameters.containsKey("activeOnly")) {
+            return ResponseEntity.badRequest().body(new ApiResponse(
+                    "Danh mục công khai chỉ hỗ trợ sách đang hoạt động.",
+                    false,
+                    "UNSUPPORTED_QUERY_PARAMETER"));
+        }
 
         // Tạo yêu cầu tìm kiếm từ các tham số truy vấn
         BookSearchRequest searchRequest = new BookSearchRequest();

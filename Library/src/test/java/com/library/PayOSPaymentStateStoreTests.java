@@ -21,7 +21,8 @@ class PayOSPaymentStateStoreTests {
     private final PayOSPaymentStateStore store = createStore();
 
     private PayOSPaymentStateStore createStore() {
-        var result = new PayOSPaymentStateStore(payments);
+        var result = new PayOSPaymentStateStore(
+                payments, mock(com.library.service.NotificationPublisher.class));
         ReflectionTestUtils.setField(result, "entityManager", entityManager);
         return result;
     }

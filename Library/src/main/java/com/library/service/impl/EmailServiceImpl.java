@@ -9,12 +9,16 @@ import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender javaMailSender;
+
+    @Value("${spring.mail.username:}")
+    private String fromAddress;
 
     @Override
     public void sendEmail(String to, String subject, String body) {
@@ -26,6 +30,9 @@ public class EmailServiceImpl implements EmailService {
             helper.setSubject(subject);
             helper.setText(body, true);
             helper.setTo(to);
+            if (fromAddress != null && !fromAddress.isBlank()) {
+                helper.setFrom(fromAddress);
+            }
             javaMailSender.send(mimeMessage);
 
         } catch (

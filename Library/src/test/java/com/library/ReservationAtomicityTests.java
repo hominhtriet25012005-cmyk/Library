@@ -35,7 +35,8 @@ class ReservationAtomicityTests {
     ReservationServiceImpl service(ReservationRepository repository) throws Exception {
         var target = new ReservationServiceImpl(fixture.loans, fixture.userService, fixture.books,
                 repository, new ReservationMapper(), fixture.service(fixture.loans), fixture.users, fixture.subscriptions,
-                mock(com.library.service.impl.ReservationLifecycleService.class));
+                mock(com.library.service.impl.ReservationLifecycleService.class),
+                mock(com.library.service.NotificationPublisher.class));
         org.springframework.test.util.ReflectionTestUtils.setField(target, "entityManager", fixture.em);
         ProxyFactory proxy = new ProxyFactory(target); proxy.setProxyTargetClass(true);
         proxy.addAdvice(new TransactionInterceptor(fixture.manager, new AnnotationTransactionAttributeSource()));

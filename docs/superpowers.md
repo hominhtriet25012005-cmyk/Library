@@ -100,8 +100,8 @@ Tài liệu audit không thay thế đặc tả nghiệp vụ gốc và không t
 | `AUD-3` | Frontend audit | Route, guard, API client, state, form, error handling | `ĐÃ AUDIT` | Xem Mục 14 |
 | `AUD-4` | Business Logic audit | Ma trận truy vết các nghiệp vụ chính xuyên tầng | `ĐÃ AUDIT` | Xem Mục 15 |
 | `AUD-5` | UI/UX audit | Public, USER, ADMIN, responsive, accessibility, copy | `ĐÃ AUDIT` | Xem Mục 16; kiểm chứng runtime chuyển sang AUD-6 |
-| `AUD-6` | Kiểm chứng kỹ thuật | Lint, test, build, startup, contract, E2E có kiểm soát | `CHƯA BẮT ĐẦU` | Cần duyệt trước khi chạy |
-| `AUD-7` | Tổng hợp và lộ trình sửa | P0–P3, nguyên nhân, ảnh hưởng, thứ tự sửa | `CHƯA BẮT ĐẦU` | Chưa có |
+| `AUD-6` | Kiểm chứng kỹ thuật | Lint, test, build, startup, contract, E2E có kiểm soát | `ĐANG KIỂM CHỨNG — FRONTEND TEST/BUILD ĐẠT, LINT CÒN LỖI; BACKEND UNIT TEST/API ĐỌC ĐẠT; CHỜ MYSQL TEST VÀ BROWSER` | Kết quả và chặn môi trường tại Mục 17 |
+| `AUD-7` | Tổng hợp và lộ trình sửa | P0–P3, nguyên nhân, ảnh hưởng, thứ tự sửa | `ĐÃ AUDIT — TỔNG HỢP THEO BẰNG CHỨNG HIỆN CÓ; AUD-6 CÒN MỤC CHỜ` | Mục 18 |
 
 ### Trạng thái hiện tại
 
@@ -113,6 +113,8 @@ Tài liệu audit không thay thế đặc tả nghiệp vụ gốc và không t
 - Frontend audit `AUD-3`: **ĐÃ AUDIT TĨNH**.
 - Business Logic audit `AUD-4`: **ĐÃ AUDIT TĨNH**.
 - UI/UX audit `AUD-5`: **ĐÃ AUDIT TĨNH**.
+- Tổng hợp phát hiện và lộ trình sửa `AUD-7`: **ĐÃ TỔNG HỢP CÓ GIỚI HẠN**; xem Mục 18.
+- Kiểm chứng `AUD-6`: **CHƯA HOÀN TẤT**; chưa xác nhận schema MySQL trực tiếp, contract test và browser/E2E.
 - Sửa code/schema/cấu hình: **CHƯA ĐƯỢC PHÉP**.
 
 ## 5. Phạm vi kiểm tra theo tầng
@@ -270,17 +272,32 @@ Không sửa ngay sau khi phát hiện. Trình tự bắt buộc:
 | 2026-11-12 | AUD-3 | Rà route/guard, auth state, API client, form/state bất đồng bộ, USER/ADMIN, settings và test map Frontend | Hoàn tất audit tĩnh; không chạy npm lint/test/build, không mở trình duyệt và không sửa source/cấu hình |
 | 2026-11-12 | AUD-4 | Truy vết 24 nghiệp vụ qua tài liệu, UI, API, service, repository/DB, test và phản hồi | Hoàn tất audit tĩnh; ghi nhận một lệch tài liệu mới, gom phát hiện xuyên tầng và ba quyết định cần chốt; không chạy test/runtime hoặc sửa source/schema |
 | 2026-11-12 | AUD-5 | Rà Public, Auth, USER, ADMIN, responsive, accessibility, keyboard/focus, copy và trạng thái giao diện dùng chung | Hoàn tất audit tĩnh; ghi nhận 2 phát hiện P2 và 2 phát hiện P3; không mở trình duyệt, không chạy Lighthouse/axe, không build/test và không sửa source/cấu hình |
+| 2026-11-13 | AUD-6 | Chạy lint/test/build Frontend; Backend unit test và API GET chỉ đọc | Frontend: 111/111 test đạt, build thành công có cảnh báo; lint còn 23 lỗi. Backend: 214/214 unit test đạt trên H2 in-memory; TCP 3306/8000 mở và GET `/api/books?page=0&size=1` trả HTTP 200. Cổng 5173 chưa mở; chưa chạy MySQL contract/E2E hoặc kiểm tra trình duyệt. Không sửa source/schema/dữ liệu |
+| 2026-11-13 | AUD-7 | Tổng hợp phát hiện, mức độ, trạng thái và thứ tự sửa | Tổng hợp 32 mã phát hiện (18 P2, 14 P3; không có P0/P1 được xác nhận từ audit), chỉ rõ các mục đã đồng bộ source nhưng chưa kiểm chứng live và các quyết định còn mở. Không sửa source/schema/dữ liệu; AUD-6 vẫn đang chờ |
+| 2026-11-13 | AUD2-BE-01 | Thay lỗi `Exception` chung ở gói thành viên, wishlist và người dùng bằng lỗi nghiệp vụ có mã; ánh xạ 404/409 và thêm test API | Đã cập nhật source. 12 test tập trung đạt; chưa chạy toàn bộ backend suite hoặc kiểm chứng MySQL/browser. Lỗi không dự kiến vẫn trả 500 mặc định |
+| 2026-11-13 | AUD2-BE-03 | Cho phép đánh giá sau khi ADMIN kết thúc lượt mượn ở `RETURNED`, `DAMAGED` hoặc `LOST` | Đã đồng bộ điều kiện Backend và Frontend; không yêu cầu thanh toán khoản phạt; không đổi schema. Chưa chạy build/test hoặc kiểm thử runtime |
+| 2026-11-13 | AUD2-BE-04 | Xóa gói chưa có lịch sử thì xóa cứng; nếu đã có lịch sử thì từ chối HTTP 409, không đổi trạng thái hoặc lịch sử | Đã đồng bộ Backend, Frontend, test assertion và tài liệu; không đổi schema. `git diff --check` là kiểm tra tĩnh; build/test/runtime chưa chạy |
 
 ## 10. Điểm bắt đầu tiếp theo
 
-Giai đoạn kế tiếp sau khi chủ dự án duyệt tài liệu này:
+`AUD-7` đã tổng hợp lộ trình theo bằng chứng hiện có tại Mục 18. Toàn bộ audit kỹ thuật chưa thể đóng vì `AUD-6` còn thiếu kiểm chứng MySQL contract/schema và browser/E2E.
 
-### `AUD-6 — Kiểm chứng kỹ thuật`
+### `AUD-6 — Kiểm chứng kỹ thuật` (đang thực hiện)
 
-- chạy lint, test và build theo từng tầng sau khi chủ dự án duyệt quyền kiểm chứng;
-- kiểm tra responsive, keyboard/focus, accessible name, contrast và zoom bằng trình duyệt;
-- kiểm tra startup/contract/E2E trên môi trường kiểm thử, không ghi vào Database vận hành;
-- thu thập bằng chứng pass/fail mới, không suy ra kết quả runtime từ audit tĩnh.
+- Đã chạy Frontend lint/test/build; kết quả chi tiết ở Mục 17.
+- Backend unit suite đã chạy: 214 test đạt trên H2 in-memory; Surefire không chạy các lớp `*IT`. Chạy lại chỉ khi source thay đổi.
+- Backend đang phản hồi trên cổng 8000; GET danh mục sách trả HTTP 200. Cổng 3306 mở theo kiểm tra TCP, nhưng chưa xác minh trực tiếp schema/DB identity bằng metadata query.
+- MySQL contract/integration còn chờ Database `_test` riêng; shell hiện tại không có `TEST_DB_URL`/credentials test. Không dùng `library_db1` live làm nơi chạy test ghi dữ liệu.
+- Frontend service tại cổng 5173 chưa mở theo kiểm tra host hiện tại.
+- Còn cần kiểm tra responsive, keyboard/focus, accessible name, contrast và zoom bằng trình duyệt.
+- Startup hiện tại đã được xác nhận qua API đang hoạt động, nhưng startup/schema validation của bản code hiện tại và danh tính schema MySQL chưa được kiểm chứng độc lập. Contract và E2E còn chờ môi trường kiểm thử.
+- Chỉ hoàn tất AUD-6 sau khi có bằng chứng cho các tầng có thể chạy; các mục bị chặn phải được ghi là chưa xác nhận.
+
+### Sau AUD-6
+
+- Trước khi sửa, rà soát các quyết định chưa chốt được liệt kê tại Mục 18.4; không tự suy diễn hành vi có ảnh hưởng dữ liệu, thanh toán hoặc quyền USER.
+- Bắt đầu theo nhóm `R1` đến `R6` trong Mục 18.5; mỗi nhóm cần được chủ dự án duyệt phạm vi riêng trước khi thay đổi source/schema.
+- Thứ tự nhóm là gợi ý phụ thuộc và rủi ro, không phải quyền triển khai code.
 
 ## 11. Kết quả AUD-0 — Baseline và kiểm kê
 
@@ -461,7 +478,7 @@ Các mục dưới đây là **điểm định tuyến cho audit sau**, chưa ph
 | ID | Quan sát baseline | Giai đoạn xử lý |
 |---|---|---|
 | `CTX-01` | Đặc tả chính vẫn mô tả `POST /api/fines` để ADMIN tạo phạt thủ công, trong khi `fix-new.md` chốt V1 chỉ phát sinh phạt qua ADMIN check-in và ghi endpoint này đã bị chặn. | `AUD-2`, `AUD-4` |
-| `CTX-02` | Đặc tả/README Backend vẫn mô tả plan có lịch sử sẽ `active=false` để ngừng bán; quyết định mới nhất của chủ dự án là giao diện chỉ Sửa/Xóa và không có “ngừng bán”. Cần phân biệt hành vi UI với bảo toàn FK/lịch sử ở Backend. | `AUD-1`, `AUD-4`, `AUD-5` |
+| `CTX-02` | Đặc tả/README cũ mô tả plan có lịch sử sẽ `active=false`; quyết định và contract đã được đồng bộ tại `AUD2-BE-04`: từ chối xóa, giữ trạng thái/lịch sử và không có thao tác ngừng bán. | `AUD2-BE-04` |
 | `CTX-03` | Đặc tả vẫn có ADMIN checkout/cấp sách trực tiếp. Chủ dự án đã nêu lo ngại thao tác này trùng với Đặt giữ nhưng chưa có bản quyết định đồng bộ trong tài liệu canonical. | `AUD-4` |
 | `CTX-04` | `Library/README.md` tổng hợp nhiều mốc cũ với trạng thái cổng/MySQL/test khác nhau; không thể dùng như bằng chứng runtime hiện tại. | `AUD-6`, `AUD-7` |
 | `CTX-05` | `PaymentController` và `PayOSController` cùng dùng base `/api/payments`; cần kiểm tra method path, quyền và contract có xung đột hay không. | `AUD-2` |
@@ -529,7 +546,7 @@ Kiểm tra tự động chỉ đọc xác nhận:
 | `fines` | `Fine` | Khớp | Có unique `(book_loan_id, type)` để chặn phạt trùng cùng loại. |
 | `reservations` | `Reservation` | Khớp | Đủ trạng thái, queue và mốc available/fulfilled/cancelled. |
 | `wishlists` | `Wishlist` | Khớp | Unique người dùng–sách. |
-| `book_reviews` | `BookReview` | Có lệch contract nội dung | Database bắt buộc 10–2000 ký tự nhưng request/entity cho phép rỗng; xem `AUD1-DB-01`. |
+| `book_reviews` | `BookReview` | Contract đã đồng bộ trong source | Bắt buộc 1–5 sao; `review_text` tùy chọn, tối đa 2.000 ký tự; chuỗi rỗng được chuẩn hóa thành `NULL`. Chủ dự án xác nhận cột live nullable; xem lại CHECK live nếu lỗi chỉ có sao còn tái hiện. |
 | `password_reset_tokens` | `PasswordResetToken` | Khớp | Token unique và có ngày hết hạn. |
 | `payments` | `Payment` | Khớp phần đang dùng | Database còn `payment_method`, `metadata`; thiếu CHECK quan hệ mục tiêu; xem `AUD1-DB-02`, `AUD1-DB-06`. |
 
@@ -550,7 +567,7 @@ subscription, loan, fine, reservation và payment.
 | `FineType` | `chk_fines_type` | 4 | Khớp |
 | `FineStatus` | `chk_fines_status` | 4 | Khớp |
 | `ReservationStatus` | `chk_reservations_status` | 5 | Khớp |
-| `PaymentType` | `chk_payments_payment_type` | 4 | Khớp |
+| `PaymentType` | `chk_payments_payment_type` | 2 | Khớp sau khi loại bỏ hai giá trị thanh toán legacy |
 | `PaymentStatus` | `chk_payments_status` | 6 | Khớp |
 | `PaymentGateway` | `chk_payments_gateway` | 1 (`PAYOS`) | Khớp |
 
@@ -582,25 +599,26 @@ vi mặc định chặn xóa hàng cha còn được tham chiếu.
 | Loan | fine và payment | Không mất nguồn phát sinh phạt/thanh toán. |
 | Fine | payment | Không mất đối soát khoản phạt. |
 
-Thiết kế này phù hợp quyết định gần nhất: ADMIN có quyền yêu cầu xóa, nhưng Database chỉ cho xóa cứng
-khi không có lịch sử liên kết. Cột `active` của gói vẫn tồn tại và dữ liệu cũ có thể còn trạng thái ẩn;
-việc có tiếp tục dùng “ngừng bán” hay chỉ Sửa/Xóa là quyết định contract/UI cần chốt ở `AUD-4`, không
-phải lý do bỏ FK lịch sử.
+Thiết kế này phù hợp quyết định hiện hành: ADMIN chỉ sửa hoặc xóa. Nếu plan có lịch sử, Backend từ chối
+xóa bằng HTTP 409; không đặt `isActive=false`, không bỏ FK và không làm mất lịch sử.
 
-### 12.5. Phát hiện cần xử lý sau audit
+### 12.5. Phát hiện audit và trạng thái xử lý
 
-#### `AUD1-DB-01` — P2 — Contract nội dung đánh giá không đồng nhất
+#### `AUD1-DB-01` — P2 — Contract nội dung đánh giá không đồng nhất — ĐÃ ĐỒNG BỘ SOURCE
 
-- **Bằng chứng:** `database/library_db1.sql:569,580` bắt `review_text NOT NULL` và dài `10–2000`;
-  `CreateReviewRequest.java:23-24`, `UpdateReviewRequest.java:20-21` chỉ giới hạn tối đa và cho phép null;
-  `BookReview.java:35-36` cũng không khai báo `nullable=false`.
-- **Hành vi hiện tại:** `BookReviewServiceImpl.java:142-152` chèn ký tự zero-width cho nội dung ngắn/rỗng,
-  rồi `BookReviewMapper.java:15-17` loại ký tự đó khi trả API.
-- **Ảnh hưởng:** Database lưu nội dung không đúng nguyên văn; đường ghi khác service này có thể bị CHECK
-  từ chối dù DTO/entity cho là hợp lệ; Hibernate `validate` không phát hiện lệch nghiệp vụ này.
-- **Nguyên nhân gốc:** API chọn “nội dung tùy chọn”, còn schema cũ chọn “tối thiểu 10 ký tự”.
-- **Cần chốt trước khi sửa:** hoặc cho phép đánh giá chỉ có số sao và nới schema, hoặc bắt buộc tối thiểu
-  10 ký tự hiển thị ở DTO/UI và bỏ cơ chế padding vô hình.
+- **Bằng chứng ban đầu:** schema cũ bắt `review_text NOT NULL` và dài `10–2000`, trong khi request/entity
+  cho phép bỏ trống; Backend và Frontend đã chèn ký tự zero-width để lách CHECK.
+- **Quyết định:** USER có thể gửi đánh giá chỉ gồm 1–5 sao, hoặc thêm nhận xét tùy chọn. Nhận xét rỗng/chỉ
+  có khoảng trắng được chuẩn hóa thành `NULL`; nếu có nội dung thì tối đa 2.000 ký tự.
+- **Đã đồng bộ:** DDL chuẩn `database/library_db1.sql`, entity, service, mapper, form USER, màn hình ADMIN,
+  tài liệu gốc và bộ kiểm tra Frontend hiện dùng cùng hợp đồng. Không còn cơ chế padding zero-width.
+- **Dữ liệu cũ:** Mapper vẫn loại ký tự zero-width và khoảng trắng đầu/cuối khi đọc, nên các review cũ đã
+  lưu nội dung giả chỉ còn khoảng trắng được trả về như không có nhận xét.
+- **MySQL live:** Chủ dự án đã truy vấn metadata và xác nhận `book_reviews.review_text` có
+  `IS_NULLABLE = YES`. Vì vậy không còn căn cứ để nói cột live đang chặn đánh giá chỉ có sao do `NOT NULL`.
+  Nội dung CHECK hiện có trên MySQL live chưa được xác minh độc lập trong lượt audit này; nếu đánh giá chỉ sao
+  vẫn lỗi, cần đọc định nghĩa CHECK của đúng schema `library_db1` và response/log của request trước khi đề xuất
+  ALTER. Không chạy lại ALTER nullable chỉ dựa trên trạng thái trước đó.
 
 #### `AUD1-DB-02` — P2 — Payment chưa có ràng buộc quan hệ mục tiêu
 
@@ -623,6 +641,10 @@ phải lý do bỏ FK lịch sử.
   khác VND; gói đó tồn tại trong Database nhưng không thể đi qua luồng mua hiện tại.
 - **Đề xuất:** cân bằng CHECK của `subscription_plans` với contract V1 sau khi xác nhận có hay không gói
   miễn phí. Bảng snapshot `subscriptions` đã có CHECK hạn mức dương.
+- **Quyết định đã chốt:** V1 không có gói miễn phí; mọi gói phải có giá nguyên VND lớn hơn `0`, tiền tệ
+  `VND`, `max_books_allowed > 0` và `max_days_per_book > 0`.
+- **Đồng bộ source:** Backend validation và `database/library_db1.sql` đã được cập nhật theo quy tắc trên.
+  MySQL live chưa được ALTER hoặc kiểm tra dữ liệu; cần kiểm tra các dòng gói hiện có trước khi áp dụng.
 
 #### `AUD1-DB-04` — P3 — Có truy vấn chưa có index trực tiếp phù hợp
 
@@ -650,8 +672,10 @@ phải lý do bỏ FK lịch sử.
 - `subscription_plans` còn `billing_cycle`, `trial_days`, `max_users_allowed`, `features`, `auto_renew`
   nhưng `SubscriptionPlan` không ánh xạ các trường này.
 - `payments` còn `payment_method`, `metadata` nhưng `Payment` không ánh xạ.
-- `LOST_BOOK_PENALTY` và `DAMAGED_BOOK_PENALTY` vẫn có trong enum/CHECK/UI ADMIN, trong khi luồng phạt
-  payOS hiện tạo `PaymentType.FINE` cho mọi loại fine.
+- `LOST_BOOK_PENALTY` và `DAMAGED_BOOK_PENALTY` đã được loại khỏi enum Java, CHECK canonical và nhãn UI.
+  Các khoản mất/hư sách tiếp tục dùng `PaymentType.FINE`; loại vi phạm cụ thể được lưu ở `fines.type`.
+  MySQL live `library_db1` đã cập nhật CHECK ngày 13/11/2026 sau khi xác nhận không có dòng legacy;
+  dump trước ALTER và kết quả kiểm chứng được ghi tại `DB2_SCHEMA_CONSTRAINTS.md`.
 - Các cột bắt buộc chưa ánh xạ đều có default nên chưa làm hỏng INSERT hiện tại. Đây là nợ mô hình/tài
   liệu, không phải lỗi runtime đã được chứng minh. `AUD-4` cần chốt giữ cho tương lai hay loại bỏ có kiểm soát.
 
@@ -756,7 +780,7 @@ stateless dùng bearer JWT; tuy nhiên CORS còn nợ cấu hình môi trường
 
 ### 13.4. Phát hiện P2
 
-#### `AUD2-BE-01` — P2 — Lỗi nghiệp vụ thông thường có thể rơi thành HTTP 500 và response không đồng nhất
+#### `AUD2-BE-01` — P2 — ĐÃ XỬ LÝ SOURCE, CHỜ KIỂM CHỨNG TOÀN BỘ
 
 - `GlobalException` chỉ ánh xạ một số exception chuyên biệt như validation, user, genre, book và upload.
 - `SubscriptionPlanServiceImpl`, `WishlistServiceImpl` và một số service khác vẫn ném `Exception` chung cho
@@ -765,7 +789,17 @@ stateless dùng bearer JWT; tuy nhiên CORS còn nợ cấu hình môi trường
   4xx theo một contract thống nhất.
 - **Ảnh hưởng:** lỗi do dữ liệu người dùng có thể bị trả như lỗi máy chủ, Frontend khó hiển thị đúng thông báo và
   log vận hành bị nhiễu.
-- **Hướng sau audit:** thay exception chung bằng exception nghiệp vụ có status/code ổn định và bổ sung test contract.
+- **Đã triển khai:** `ResourceNotFoundException` ánh xạ HTTP 404; `BusinessConflictException` ánh xạ HTTP 409.
+  Response lỗi giữ `message/status` và bổ sung `errorCode` ổn định. Các lỗi dự kiến trong plan, wishlist và
+  user profile dùng các mã như `SUBSCRIPTION_PLAN_NOT_FOUND`, `SUBSCRIPTION_PLAN_CODE_EXISTS`,
+  `BOOK_NOT_FOUND`, `WISHLIST_ITEM_EXISTS`, `WISHLIST_ITEM_NOT_FOUND` và `USER_NOT_FOUND`.
+- Ràng buộc trùng mã gói ở Database cũng ánh xạ về `SUBSCRIPTION_PLAN_CODE_EXISTS`; các lỗi toàn vẹn dữ liệu
+  khác nhận mã `DATA_INTEGRITY_CONFLICT`. Không thêm handler tổng quát biến lỗi hệ thống thành 4xx; lỗi không
+  dự kiến tiếp tục trả HTTP 500.
+- **Kiểm chứng đã chạy:** 11 test tập trung cho service exception, HTTP status/error code, ràng buộc dữ liệu và
+  vòng đời gói đều đạt; Maven cũng biên dịch toàn bộ source/test. Chưa chạy toàn bộ backend suite, MySQL contract,
+  startup live hoặc browser/E2E. Các controller/service khác còn khai báo `throws Exception` vì luồng của chúng
+  có thể truyền lỗi tích hợp hoặc đã có handler riêng; không bị đổi hàng loạt trong mục này.
 
 #### `AUD2-BE-02` — P2 — Đăng nhập sai có contract khác nhau và làm lộ việc email có tồn tại
 
@@ -774,64 +808,102 @@ stateless dùng bearer JWT; tuy nhiên CORS còn nợ cấu hình môi trường
 - Email tồn tại nhưng sai mật khẩu lại ném `UserException("Mật khẩu không chính xác.")`, được trả theo contract khác.
 - **Ảnh hưởng:** cùng là thông tin đăng nhập không hợp lệ nhưng có thể khác status/body, vừa dễ thành 500 vừa cho
   phép suy đoán tài khoản tồn tại.
-- **Hướng sau audit:** chuẩn hóa một lỗi xác thực chung, cùng HTTP status và thông báo không tiết lộ email tồn tại.
+- **Đã triển khai source:** `AuthServiceImpl` chuyển cả `UsernameNotFoundException` lẫn mật khẩu sai thành
+  `InvalidCredentialsException`; `GlobalException` trả HTTP `401`, thông báo `Email hoặc mật khẩu không chính xác.`
+  và mã `AUTH_INVALID_CREDENTIALS`. Lỗi database/lỗi hệ thống khác không bị đổi thành lỗi xác thực.
+- **Frontend:** `LoginPage` hiện đã dùng cùng thông báo cho HTTP `401`, không cần đổi giao diện cho hợp đồng này.
+- **Trạng thái:** source đã sửa; build, test contract và kiểm tra runtime đang chờ giai đoạn kiểm chứng được duyệt.
 
-#### `AUD2-BE-03` — P2 — Điều kiện được đánh giá sách chỉ công nhận trạng thái `RETURNED`
+#### `AUD2-BE-03` — P2 — ĐÃ ĐỒNG BỘ SOURCE, CHỜ KIỂM CHỨNG
 
-- `BookReviewServiceImpl.hasUserReadBook()` chỉ gọi repository với `BookLoanStatus.RETURNED`.
-- Các trạng thái check-in cuối `DAMAGED` và `LOST` không bao giờ thỏa điều kiện này.
-- **Ảnh hưởng:** người đã mượn/đọc sách nhưng ADMIN kết thúc lượt mượn là hư hỏng hoặc mất sẽ không đủ điều kiện
-  từ chính lịch sử đó; chưa có nhánh kiểm tra khoản phạt đã thanh toán.
-- **Cần chốt tại AUD-4:** hư hỏng có được đánh giá ngay không; mất sách có chỉ được đánh giá sau khi trả phạt không.
+- **Nguyên nhân:** Backend và Frontend trước đây chỉ công nhận lượt mượn `RETURNED`; `DAMAGED` và `LOST` bị loại.
+- **Quyết định đã chốt:** USER được đánh giá sau khi ADMIN kết thúc lượt mượn với một trong ba trạng thái
+  `RETURNED`, `DAMAGED`, `LOST`. Khoản phạt, nếu có, không chặn đánh giá. Chỉ cần có ít nhất một lượt đủ điều kiện
+  cho cùng đầu sách; giới hạn một đánh giá của mỗi USER trên mỗi đầu sách vẫn giữ nguyên.
+- **Đã cập nhật source:** Repository tra cứu ba trạng thái cuối; service Backend và helper Frontend dùng cùng tập trạng thái.
+  Lượt còn `CHECKED_OUT`/`OVERDUE` hoặc đang chờ ADMIN check-in vẫn chưa đủ điều kiện.
+- **Database:** không thay đổi schema.
+- **Trạng thái:** source đã đồng bộ; build, test contract và kiểm tra runtime đang chờ giai đoạn kiểm chứng được duyệt.
 
-#### `AUD2-BE-04` — P2 — Vòng đời xóa gói thành viên chưa khớp quyết định mới nhất
+#### `AUD2-BE-04` — P2 — Vòng đời xóa gói thành viên — ĐÃ ĐỒNG BỘ SOURCE
 
-- Service hiện xóa cứng gói chưa có lịch sử; nếu đã có lịch sử thì đặt `isActive=false`.
-- Controller và test cùng trả thông điệp “chỉ được ngừng bán”.
-- Quyết định mới hơn của chủ dự án là giao diện/nghiệp vụ chỉ còn **Sửa** hoặc **Xóa**, không còn “ngừng bán”.
-- FK bảo toàn lịch sử hiện cũng ngăn xóa cứng gói đã được tham chiếu.
-- **Kết luận:** đây là xung đột yêu cầu xuyên tầng, không nên sửa riêng Backend trước khi chốt cách bảo toàn lịch sử
-  ở `AUD-4`.
+- **Quyết định:** gói chưa từng có lịch sử đăng ký được xóa cứng. Gói đã được đăng ký (kể cả đăng ký đã hủy/hết hạn) bị từ chối xóa; giữ nguyên `isActive`, `updatedBy`, các đăng ký và payment.
+- **Backend:** service ném `BusinessConflictException` với mã `SUBSCRIPTION_PLAN_HAS_HISTORY`; global handler trả HTTP 409. Controller chỉ trả thành công sau khi xóa cứng.
+- **Frontend ADMIN:** bỏ điều khiển “Mở bán ngay”; gói mới luôn được tạo ở trạng thái hiển thị, sửa giữ nguyên trạng thái; nút và hộp thoại chỉ nói về xóa. Bộ lọc dùng nhãn “Trạng thái hiển thị”.
+- **Database:** không đổi schema hoặc FK; FK hiện có tiếp tục bảo vệ tham chiếu lịch sử.
+- **Kiểm chứng:** assertion hiện có đã được cập nhật, nhưng không chạy test/build/runtime trong lượt này.
 
 #### `AUD2-BE-05` — P2 — Validation phân trang và trường sắp xếp chưa đồng đều
 
-- Catalog sách giới hạn `size` nhưng không chặn `page < 0` và cho client truyền tùy ý `sortBy` vào `Sort.by()`.
-- Tìm kiếm lượt mượn ADMIN chỉ kiểm tra field khác null; `page` âm và thuộc tính sort không tồn tại có thể đi vào
-  Spring Data rồi phát sinh exception.
-- Lịch sử mượn USER kiểm tra page/size tối thiểu nhưng không giới hạn size tối đa.
-- Wishlist đưa page/size trực tiếp vào `PageRequest.of()` mà không validation/cap.
-- **Ảnh hưởng:** request xấu có thể thành 500 hoặc tạo response quá lớn; contract giữa các API không nhất quán.
-- **Hướng sau audit:** dùng allowlist sort, `page >= 0`, `1 <= size <= 100` và lỗi 400 thống nhất.
+- **Đã đồng bộ source:** dùng quy tắc chung `page >= 0`, `1 <= size <= 100`; request vượt giới hạn bị từ chối thay vì âm thầm ép về giới hạn.
+- **Sort sách:** chỉ nhận `createdAt`, `title`, `author`, `publicationYear`, `availableCopies`, `totalCopies`; chiều sắp xếp chỉ nhận `ASC` hoặc `DESC`.
+- **Sort lượt mượn ADMIN:** chỉ nhận `id`, `createdAt`, `checkoutDate`, `dueDate`, `returnDate`, `status`; chiều sắp xếp chỉ nhận `ASC` hoặc `DESC`.
+- **USER:** lịch sử mượn và wishlist dùng cùng giới hạn phân trang; ADMIN search và danh sách yêu cầu trả cũng được kiểm tra trước khi tạo `PageRequest`.
+- **Response lỗi:** `InvalidPaginationException` được ánh xạ thành HTTP 400, mã `INVALID_PAGINATION_REQUEST` và thông báo tiếng Việt.
+- **Database/Frontend:** không đổi schema hoặc luồng Frontend; các request hợp lệ và giá trị mặc định hiện có tiếp tục hoạt động.
+- **Kiểm chứng:** chưa chạy test/build/runtime trong lượt này; cần kiểm tra riêng trước khi nghiệm thu.
 
-#### `AUD2-BE-06` — P2 — Đơn payOS đã hủy/thất bại có thể khóa khả năng tạo đơn thay thế
+#### `AUD2-BE-06` — P2 — Retry đơn payOS cuối vòng đời — ĐÃ TRIỂN KHAI
 
-- Store gói và tiền phạt luôn lấy payment payOS gần nhất theo đối tượng, không lọc trạng thái.
-- Nếu đã có payment, service luôn đối soát lại đơn cũ và không tạo đơn mới.
-- Confirmation chỉ quyết toán khi gateway là `PAID`; trạng thái không phải PAID chỉ return/throw, không ánh xạ
-  `CANCELLED` hoặc `FAILED` vào payment nội bộ.
-- **Ảnh hưởng:** người dùng hủy link hoặc link thất bại/hết khả dụng có thể bị giữ ở payment cũ và không thanh toán lại.
-- **Lưu ý:** không được tạo đơn thay thế khi trạng thái còn không chắc chắn là đúng; `AUD-4` cần tách rõ
-  `PENDING/PROCESSING` với trạng thái cuối `CANCELLED/FAILED` rồi mới thiết kế retry an toàn.
+- **Quy tắc đã áp dụng:** `PAID` tiếp tục đi qua settlement hiện có, kể cả khi được phát hiện lúc USER mở lại đơn cũ; `CANCELLED` ánh xạ thành payment nội bộ
+  `CANCELLED`; `FAILED` và `EXPIRED` ánh xạ thành `FAILED`. `PENDING`/`PROCESSING` tiếp tục dùng đơn hiện tại;
+  `UNDERPAID` giữ ở `PROCESSING` để đối soát thủ công. Không trạng thái nào được hạ payment đã
+  `SUCCESS` hoặc `REFUNDED`.
+- **Store:** luồng gói thành viên và tiền phạt chỉ tái sử dụng payment payOS ở `PENDING` hoặc `PROCESSING`.
+  Payment cuối vòng đời không còn khóa việc tạo payment mới ở lần yêu cầu tiếp theo.
+- **Đối soát:** trạng thái không thành công được cập nhật trong transaction riêng có khóa dòng. Khi lần mở lại
+  đầu tiên phát hiện đơn cũ đã kết thúc, API trả trạng thái cuối và yêu cầu USER quay lại tạo đơn mới; không tạo
+  hai đơn trong cùng lần đối soát.
+- **An toàn:** trạng thái chưa chắc chắn và `UNDERPAID` không tự sinh đơn thay thế; gateway order/amount/link ID
+  vẫn phải khớp trước khi cập nhật trạng thái.
+- **Database/Frontend:** không ALTER schema. Frontend hiện đã nhận biết `FAILED`/`CANCELLED`, nên không cần đổi UI
+  cho contract này.
+- **Kiểm chứng:** 42 test payOS mục tiêu đạt, gồm gói, tiền phạt, confirmation, trạng thái cuối, retry đơn đã `PAID` và atomicity.
+  Toàn bộ suite chạy 232 test, trong đó 231 đạt; 1 test cũ ngoài phạm vi payOS thất bại vì câu thông báo xóa gói
+  không khớp (`Đã xóa vĩnh viễn...` so với `Đã xóa...`).
 
 ### 13.5. Phát hiện P3
 
 #### `AUD2-BE-07` — P3 — Query parameter `activeOnly` của catalog là tham số chết
 
-- `BookController.searchBooks()` nhận `activeOnly` nhưng không gán vào `BookSearchRequest`.
-- Request model chỉ có trường `active`; public repository hiện luôn lọc sách active nên chưa làm lộ sách ẩn.
-- **Ảnh hưởng:** API công bố một tham số không có tác dụng, dễ làm Frontend/Postman hiểu sai contract.
+- **Phát hiện ban đầu:** `BookController.searchBooks()` nhận `activeOnly` nhưng không gán vào
+  `BookSearchRequest`; repository công khai vốn luôn lọc sách đang hoạt động.
+- **Quyết định V1:** catalog công khai chỉ trả sách đang hoạt động. Không cung cấp bộ lọc sách ẩn ở endpoint public;
+  nhu cầu quản trị sách ẩn thuộc endpoint ADMIN riêng.
+- **Đã xử lý source ngày 14/11/2026:** controller từ chối tham số `activeOnly` (dù là `true` hay `false`) bằng
+  HTTP 400, thông báo `Danh mục công khai chỉ hỗ trợ sách đang hoạt động.` và mã lỗi
+  `UNSUPPORTED_QUERY_PARAMETER`. Luồng catalog không có tham số này vẫn giữ nguyên bộ lọc active ở repository.
+- **Tài liệu:** `Library_Management_System_VI.md` đã ghi rõ hành vi trên. Không tìm thấy client catalog
+  Frontend/Postman nào đang gửi `activeOnly`; tham số cùng tên trong màn hình đặt giữ ADMIN là bộ lọc khác.
+- **Kiểm chứng còn lại:** chưa chạy test trong lượt triển khai này. Test HTTP hiện có trong working tree kiểm tra
+  `activeOnly=false` trả 400, nhưng chưa chạy; cần xác nhận thêm `activeOnly=true` và request catalog không có
+  tham số vẫn chỉ trả sách active.
 
 #### `AUD2-BE-08` — P3 — CORS gắn cứng vào source
 
 - Allowed origins hiện chỉ có `http://localhost:5173` và `https://library.com` trong `SecurityConfig`.
 - **Ảnh hưởng:** đổi domain/staging cần sửa và build lại source; dễ lỗi CORS khi triển khai.
-- **Hướng sau audit:** đưa danh sách origin sang biến môi trường có default localhost an toàn.
+- **Việc cần làm:** chuyển allowlist sang cấu hình môi trường, hỗ trợ nhiều origin; giữ `http://localhost:5173`
+  làm mặc định cho phát triển local và cấu hình staging/production bên ngoài source. Không dùng wildcard `*`
+  khi request có credentials/cookie.
+- **Điều kiện hoàn tất:** kiểm tra origin hợp lệ và preflight `OPTIONS` cho các method/header mà Frontend dùng;
+  origin ngoài allowlist không được cấp `Access-Control-Allow-Origin`; hướng dẫn cấu hình môi trường được ghi
+  trong tài liệu vận hành. Test bao gồm origin local được phép, origin lạ bị từ chối và preflight có/không có
+  credentials theo cấu hình.
 
 #### `AUD2-BE-09` — P3 — Ảnh bìa tải lên nhưng bỏ dở form có thể thành file mồ côi
 
 - Upload ghi file UUID xuống đĩa ngay và trả URL độc lập với transaction tạo/cập nhật sách.
 - Storage service chỉ có `store()` và `load()`, chưa có cleanup/delete hoặc liên kết ownership tạm thời.
 - **Ảnh hưởng:** ADMIN tải ảnh rồi đóng form, thay ảnh hoặc lưu sách thất bại sẽ để file không còn bản ghi sử dụng.
+- **Việc cần làm:** thiết kế dọn file mồ côi có độ trễ an toàn. Chỉ xét ảnh upload nội bộ nằm trong thư mục
+  storage; chỉ xóa file cũ hơn khoảng chờ đã chốt (đề xuất 24 giờ) và không được URL bìa của bất kỳ sách nào
+  tham chiếu. Khi thay ảnh, lưu ảnh mới thành công trước; ảnh cũ chỉ là ứng viên dọn nếu không còn sách nào dùng.
+  Không xóa URL bên ngoài, file còn được tham chiếu, hoặc đường dẫn nằm ngoài thư mục upload. Lỗi lưu sách/đóng
+  form không được làm ảnh đang dùng biến mất.
+- **Điều kiện hoàn tất:** có cleanup chạy lặp lại an toàn; kiểm tra được trường hợp form bỏ dở, lưu thất bại,
+  thay ảnh, một file được tham chiếu nhiều lần và URL ngoài. Có test bảo vệ đường dẫn để không thể xóa file
+  ngoài storage. Khoảng chờ cần được xác nhận trước khi đưa vào cấu hình.
 
 #### `AUD2-BE-10` — P3 — Batch hết hạn đặt giữ chạy toàn vòng lặp trong một transaction
 
@@ -839,28 +911,50 @@ stateless dùng bearer JWT; tuy nhiên CORS còn nợ cấu hình môi trường
 - `expireAvailableReservations()` lặp nhiều batch, khóa book và reservation cho đến khi toàn method hoàn tất.
 - **Ảnh hưởng:** backlog lớn có thể giữ transaction/lock lâu. Đây là rủi ro hiệu năng–concurrency, chưa phải sự cố
   runtime đã được chứng minh.
+- **Việc cần làm:** giới hạn transaction và phạm vi khóa theo từng batch hữu hạn; hoàn tất/commit một batch rồi
+  mới lấy batch tiếp theo, không giữ transaction mở suốt vòng lặp. Giữ nguyên quy tắc hết hạn và thứ tự queue hiện
+  tại; đảm bảo một lần chạy lại không xử lý sai bản ghi đã đổi trạng thái.
+- **Điều kiện hoàn tất:** test chứng minh mỗi batch có giới hạn, lỗi batch sau không rollback batch đã commit,
+  chạy lặp không tạo trạng thái sai, và cạnh tranh với thao tác nhận/hủy/gia hạn không làm hết hạn nhầm lượt đặt
+  giữ. Chỉ kết luận giảm lock sau khi xem ranh giới transaction/lock trong code và test; đây chưa phải lỗi runtime
+  đã tái hiện.
 
 #### `AUD2-BE-11` — P3 — Độ phủ contract/integration còn thiếu ở đúng các nhánh rủi ro
 
 - Có 61 file test Java, nhưng Surefire mặc định loại toàn bộ `*IT.java`.
 - Profile `mysql-contract` chỉ include 5 IT; `mysql-e2e` chỉ include 3 IT và đều chưa chạy trong audit.
 - 12 file Postman hiện có chỉ bao phủ một phần so với 76 operation Backend đã kiểm kê ở `AUD-0`.
-- Không tìm thấy test mục tiêu cho: unknown-user login response, exception chung wishlist/gói, sort field bất hợp lệ
-  của catalog/loan, quyền review với DAMAGED/LOST và retry payment payOS ở trạng thái cuối.
-- Đây là khoảng trống kiểm chứng; việc test có pass hay fail chỉ được kết luận sau `AUD-6`.
+- Đã bổ sung unit/API contract cho đăng nhập email không tồn tại và sai mật khẩu (cùng HTTP 401, mã/thông báo lỗi),
+  kiểm thử biên cho page/size/sort allowlist, và MySQL IT cho sort không hợp lệ trên catalog/lượt mượn cùng quyền
+  đánh giá sau check-in `DAMAGED`/`LOST`.
+- Exception Wishlist/gói đã có test loại exception và response API tại `AUD2-BE-01`; retry payOS trạng thái cuối đã
+  có test ở `AUD2-BE-06`.
+- Surefire unit suite chạy trên H2/in-memory; MySQL IT vẫn opt-in và chỉ được chạy khi `TEST_DB_URL` trỏ database
+  thử nghiệm kết thúc `_test`. Lượt này không chạy Postman hoặc MySQL IT; vì vậy các nhánh mới ở MySQL IT đã được
+  biên dịch nhưng chưa có kết quả chạy trên MySQL.
+- Trạng thái: **unit/API contracts đã kiểm chứng; MySQL contract/E2E còn chờ database thử nghiệm riêng**.
+- **Việc cần làm để đóng mục:** tạo hoặc xác nhận một schema MySQL thử nghiệm riêng có tên kết thúc `_test`,
+  tài khoản/test credentials riêng và dữ liệu có thể tái tạo. Trước khi chạy profile, xác minh cấu hình test đang
+  trỏ đúng schema `_test`; tuyệt đối không dùng `library_db1` vận hành. Sau đó chạy các profile
+  `mysql-contract` và `mysql-e2e`, ghi nhận test nào được phát hiện/chạy, tổng pass/fail/skip và lỗi nếu có.
+  Không cần Postman cho mục này theo phạm vi hiện tại. Nếu chưa có DB `_test`, trạng thái vẫn là **chờ môi trường**,
+  không suy diễn test đã đạt từ việc biên dịch.
 
 ### 13.6. Liên kết với phát hiện Database và quyết định nghiệp vụ
 
-- `AUD1-DB-01` về `review_text` vẫn có thể bị lách bằng zero-width character; Backend hiện chỉ `trim()` và pad
-  ký tự zero-width. Không tạo mã mới để tránh đếm trùng phát hiện.
+- `AUD1-DB-01` đã được giải quyết trong source cho hợp đồng nội dung: sao bắt buộc, nhận xét tùy chọn,
+  bỏ padding zero-width. Chủ dự án xác nhận `review_text` trên MySQL live có `IS_NULLABLE = YES`; định nghĩa
+  CHECK live vẫn cần đọc nếu lỗi đánh giá chỉ sao còn tái hiện.
 - `AUD1-DB-02`/`AUD1-DB-03` về payment target cần được xét cùng retry/idempotency payOS ở `AUD2-BE-06`.
 - Quy tắc xóa gói ở `AUD2-BE-04` phải được giải quyết cùng FK/lịch sử subscription, không sửa riêng UI.
-- Quyền đánh giá sau `RETURNED/DAMAGED/LOST` ở `AUD2-BE-03` là quyết định Business Logic của `AUD-4`.
+- Quyền đánh giá sau `RETURNED/DAMAGED/LOST` đã được chốt và đồng bộ source tại `AUD2-BE-03`; khoản phạt không phải điều kiện.
 
 ### 13.7. Kết luận AUD-2
 
 - Không phát hiện `P0` hoặc `P1` từ audit tĩnh Backend.
-- Ghi nhận `6` phát hiện `P2` và `5` phát hiện `P3`; chưa sửa mục nào.
+- Audit ban đầu ghi nhận `6` phát hiện `P2` và `5` phát hiện `P3`. Các mục P2 từ `AUD2-BE-01` đến
+  `AUD2-BE-06` hiện đã được triển khai source theo quyết định đã chốt; trạng thái kiểm chứng cụ thể được ghi ở
+  từng mục, không đồng nghĩa toàn bộ Project đã nghiệm thu runtime/E2E.
 - Nền security/JWT, transaction/lock, check-in và xác minh payOS nhìn chung tốt hơn mức CRUD cơ bản.
 - Rủi ro ưu tiên là contract lỗi HTTP, login invalid credentials, review terminal states, lifecycle gói,
   validation pagination/sort và retry đơn payOS cuối vòng đời.
@@ -982,9 +1076,9 @@ Giới hạn của kết quả:
 
 ### 14.5. Liên kết với phát hiện trước và quyết định AUD-4
 
-- `reviewRules.js:15-25` chỉ cho đánh giá khi có loan `RETURNED`, khớp `AUD2-BE-03`; quyền với `DAMAGED/LOST` phải chốt xuyên tầng ở `AUD-4`, không tính lại thành phát hiện Frontend.
-- `AdminSubscriptionsPage.jsx:531-560,1042-1050` vẫn có filter “đang/tạm ngừng bán” và copy “xóa hoặc ngừng bán”, khớp xung đột vòng đời gói ở `AUD2-BE-04`.
-- `reviewRules.js:1-13` pad nội dung ngắn bằng zero-width để vượt minimum Database, đã được ghi tại `AUD1-DB-01`.
+- `reviewRules.js` hiện chỉ cho đánh giá khi có loan cuối `RETURNED`, `DAMAGED` hoặc `LOST`, khớp quyết định và source ở `AUD2-BE-03`; loan còn hoạt động/chờ check-in chưa đủ điều kiện.
+- Tại thời điểm AUD-3, `AdminSubscriptionsPage.jsx` còn filter/trạng thái và copy “ngừng bán”; phần này đã được đồng bộ ở `AUD2-BE-04`.
+- `reviewRules.js` trước đây pad nội dung bằng zero-width; phần này đã được loại bỏ khi đồng bộ `AUD1-DB-01`.
 - UI vẫn có checkout trực tiếp và ADMIN “cấp sách”; quan hệ với queue đặt giữ là quyết định nghiệp vụ cần truy vết tại `AUD-4`.
 
 ### 14.6. Kết luận AUD-3
@@ -1087,12 +1181,12 @@ phản hồi giao diện.
 
 | Nghiệp vụ | Mã nguồn phát hiện | Kết luận truy vết |
 |---|---|---|
-| Login/JWT | `AUD2-BE-01`, `AUD2-BE-02`, `AUD3-FE-01` | Cần chuẩn hóa HTTP/error cho credential sai và không xóa token khi chỉ lỗi mạng/5xx. |
+| Login/JWT/API error | `AUD2-BE-01`, `AUD2-BE-02`, `AUD3-FE-01` | BE-01 đã có exception nghiệp vụ, mã lỗi ổn định và mapping 404/409 cho plan/wishlist/user; BE-02 còn cần chuẩn hóa credential sai, FE-01 còn cần giữ phiên khi chỉ lỗi mạng/5xx. |
 | Chi tiết sách | `AUD3-FE-04`, `AUD3-FE-05` | UI có thể giữ dữ liệu sách cũ và suy luận eligibility/thống kê từ trang đầu. |
-| Xóa gói | `AUD2-BE-04` | Code/UI/test vẫn dùng “ngừng bán” khi có lịch sử, trái quyết định mới chỉ Sửa/Xóa; FK vẫn phải bảo toàn lịch sử. |
+| Xóa gói | `AUD2-BE-04` | Đã đồng bộ: xóa cứng khi chưa có lịch sử; có lịch sử trả 409, giữ trạng thái và toàn bộ lịch sử; FK vẫn bảo toàn tham chiếu. |
 | Payment target | `AUD1-DB-02`, `AUD1-DB-03` | Schema cần contract mục tiêu payment rõ hơn và ngăn nhiều order chưa kết thúc cho cùng đối tượng. |
-| Retry payOS | `AUD2-BE-06` | Order `CANCELLED/FAILED` cuối vòng đời có thể bị tái sử dụng và chặn tạo order thay thế. |
-| Review | `AUD1-DB-01`, `AUD2-BE-03` | Contract nội dung review lệch; eligibility chỉ nhận `RETURNED`, chưa có chính sách `DAMAGED/LOST`. |
+| Retry payOS | `AUD2-BE-06` | Đã đồng bộ: chỉ tái sử dụng order `PENDING/PROCESSING`; `UNDERPAID` giữ để đối soát; `CANCELLED/FAILED/EXPIRED` kết thúc order cũ và cho phép tạo order thay thế ở lần yêu cầu sau. |
+| Review | `AUD1-DB-01`, `AUD2-BE-03` | Nội dung đã đồng bộ source: bắt buộc sao, nhận xét tùy chọn; chủ dự án xác nhận cột MySQL live nullable, CHECK live chỉ cần rà lại nếu lỗi còn tái hiện. Quyền đánh giá sau `RETURNED/DAMAGED/LOST` đã đồng bộ source; khoản phạt không chặn. |
 | Thông báo | `AUD3-FE-02` | V1 có notification tổng hợp từ API nghiệp vụ thật, nhưng các công tắc settings đang hứa chức năng không tồn tại. |
 | Privacy review | `AUD3-FE-03` | “Ẩn danh” chỉ che cục bộ cho chính người viết, không che response công khai. |
 
@@ -1111,13 +1205,12 @@ Chủ dự án đã nêu ý kiến bỏ “Cấp sách” vì dễ trùng với 
 chốt một trong hai mô hình trước khi sửa: giữ checkout ADMIN tại quầy cho sách còn sẵn, hoặc mọi lượt mượn đều
 phải xuất phát từ request/đặt giữ và ADMIN chỉ xác nhận. Không nên chỉ ẩn nút vì API hiện vẫn cho phép.
 
-#### `AUD4-D02` — Đánh giá sau `DAMAGED` và `LOST`
+#### `AUD4-D02` — ĐÃ CHỐT — Đánh giá sau `DAMAGED` và `LOST`
 
-Hiện Backend/Frontend chỉ chấp nhận lịch sử `RETURNED`. Cần chốt rõ:
-
-- `DAMAGED`: được đánh giá ngay sau ADMIN check-in hay chỉ sau khi thanh toán fine;
-- `LOST`: không được đánh giá, được đánh giá ngay, hay chỉ sau khi fine `LOSS` đã thanh toán/miễn;
-- nếu một user có nhiều lượt mượn cùng sách, chỉ cần ít nhất một lượt đủ điều kiện hay xét lượt cuối.
+- USER được đánh giá ngay sau khi ADMIN hoàn tất check-in với trạng thái `RETURNED`, `DAMAGED` hoặc `LOST`.
+- Không yêu cầu khoản phạt được thanh toán/miễn trước khi đánh giá.
+- Nếu USER có nhiều lượt mượn cùng đầu sách, chỉ cần ít nhất một lượt kết thúc ở trạng thái đủ điều kiện; vẫn tối đa một đánh giá mỗi USER/đầu sách.
+- Backend, Frontend và thông báo điều kiện đã được đồng bộ tại `AUD2-BE-03`; kiểm chứng runtime/test còn chờ giai đoạn được duyệt.
 
 #### `AUD4-D03` — Khoản phạt chưa thanh toán có chặn nghiệp vụ mới không
 
@@ -1129,19 +1222,20 @@ hay không. Cần chốt chính sách trước khi thêm kiểm tra, tránh tự
 
 | Module | Chuyển trạng thái hợp lệ hiện tại | Điểm còn mở |
 |---|---|---|
-| Loan | `CHECKED_OUT -> OVERDUE`; USER request-return giữ trạng thái; ADMIN -> `RETURNED/DAMAGED/LOST` | Eligibility review và nợ fine. |
+| Loan | `CHECKED_OUT -> OVERDUE`; USER request-return giữ trạng thái; ADMIN -> `RETURNED/DAMAGED/LOST` | Quyền review đã chốt theo `AUD2-BE-03`; chính sách nợ fine còn mở. |
 | Reservation | `PENDING -> AVAILABLE -> FULFILLED`; `PENDING/AVAILABLE -> CANCELLED`; `AVAILABLE -> EXPIRED` | Có giữ ADMIN checkout trực tiếp song song hay không. |
 | Fine | `PENDING/PARTIALLY_PAID -> PAID` qua payOS; `PENDING/PARTIALLY_PAID -> WAIVED` bởi ADMIN | Nợ fine có khóa nghiệp vụ mới hay không. |
-| Subscription | draft inactive -> active sau settlement; active -> cancelled/inactive; hết hạn -> inactive | Xóa plan có lịch sử sau quyết định bỏ “ngừng bán”. |
-| Payment | `PENDING/PROCESSING -> SUCCESS`; có enum trạng thái cuối khác | Chưa ánh xạ/retry an toàn cho `FAILED/CANCELLED`. |
-| Review | tạo sau loan `RETURNED`; owner sửa/xóa; ADMIN active -> hidden | `DAMAGED/LOST`, nội dung rỗng/ngắn và ẩn danh. |
+| Subscription | draft inactive -> active sau settlement; active -> cancelled/inactive; hết hạn -> inactive | Plan có history không được xóa; hành vi đã cập nhật tại AUD2-BE-04. |
+| Payment | `PENDING/PROCESSING -> SUCCESS/CANCELLED/FAILED`; `EXPIRED -> FAILED`; `UNDERPAID -> PROCESSING` để đối soát | Retry trạng thái cuối đã đồng bộ tại `AUD2-BE-06`; ràng buộc payment–target trong Database vẫn thuộc `AUD1-DB-02`. |
+| Review | tạo sau loan `RETURNED/DAMAGED/LOST`; owner sửa/xóa; ADMIN active -> hidden | Nội dung rỗng/ngắn và ẩn danh. |
 
 ### 15.8. Độ phủ kiểm thử theo nghiệp vụ
 
 - Có test tĩnh cho cả 24 hàng ở mức Backend hoặc helper/API Frontend, nhưng chất lượng không đồng đều.
 - Mạnh nhất: mượn–trả, race/rollback, đặt giữ, fine/check-in và payOS callback/settlement.
-- Yếu nhất: render route/form thật, notification settings, privacy ẩn danh, review `DAMAGED/LOST`, payment retry
-  sau trạng thái cuối và các quyết định D01–D03.
+- Yếu nhất: render route/form thật, notification settings, privacy ẩn danh và các quyết định D01–D03. Test contract
+  cho review sau `DAMAGED/LOST` và payment retry sau trạng thái cuối đã có trong source, nhưng các MySQL IT liên
+  quan chưa được chạy.
 - `Step6ApiMySqlIT` và các `*IT` cung cấp contract rộng nhưng không thuộc bằng chứng pass hiện tại; Surefire mặc
   định loại một số integration test như đã ghi ở `AUD2-BE-11`.
 
@@ -1206,8 +1300,8 @@ hay không. Cần chốt chính sách trước khi thêm kiểm tra, tránh tự
 - Notification setting không có hiệu lực thật và ẩn danh review chỉ che cục bộ: `AUD3-FE-02`, `AUD3-FE-03`.
 - Dữ liệu chi tiết sách stale và eligibility/stats chỉ đọc trang đầu: `AUD3-FE-04`, `AUD3-FE-05`.
 - Thiếu rendered component/E2E test: `AUD3-FE-06`; đây là lý do AUD-5 không tuyên bố responsive/accessibility đã pass.
-- Luồng “Cấp sách”, quyền đánh giá sau `DAMAGED/LOST` và chính sách nợ phạt phải theo `AUD4-D01`–`AUD4-D03`,
-  không giải quyết bằng cách chỉ ẩn/đổi nút trên giao diện.
+- Luồng “Cấp sách” và chính sách nợ phạt phải theo `AUD4-D01`/`AUD4-D03`, không giải quyết bằng cách chỉ ẩn/đổi nút.
+- Quyền đánh giá sau `DAMAGED/LOST` đã được chốt và triển khai ở `AUD2-BE-03`.
 
 ### 16.6. Checklist runtime chuyển sang AUD-6
 
@@ -1227,6 +1321,133 @@ hay không. Cần chốt chính sách trước khi thêm kiểm tra, tránh tự
   thao tác ADMIN phụ thuộc ID kỹ thuật và một số điều khiển chưa thân thiện với bàn phím/công nghệ hỗ trợ.
 - Chưa thể tuyên bố responsive, accessibility hoặc contrast đã đạt vì chưa có kiểm chứng trình duyệt/runtime.
 - Không có source/schema/config/data nào bị thay đổi; chỉ tài liệu tracker này được cập nhật.
-- Giai đoạn tiếp theo là `AUD-6 — Kiểm chứng kỹ thuật`, cần chủ dự án duyệt trước khi chạy lint/test/build,
-  startup, browser audit hoặc E2E.
+- Giai đoạn tiếp theo là `AUD-6 — Kiểm chứng kỹ thuật`.
+
+## 17. Kết quả AUD-6 — Kiểm chứng kỹ thuật
+
+Ngày thực hiện: **13/11/2026**
+Trạng thái: **ĐANG KIỂM CHỨNG — FRONTEND TEST/BUILD ĐẠT, LINT CÒN LỖI; BACKEND UNIT TEST/API ĐỌC ĐẠT; MYSQL CONTRACT VÀ BROWSER CHƯA XÁC NHẬN**
+Phạm vi: kiểm chứng cục bộ, không sửa source, schema hay dữ liệu.
+
+### 17.1. Frontend
+
+| Kiểm tra | Kết quả | Bằng chứng / ghi chú |
+|---|---|---|
+| `npm test` | **ĐẠT** | 111 test, 111 pass, 0 fail. Một test fallback cố ý in lỗi phân tích JSON giả lập ra console; test vẫn pass. |
+| `npm run build` | **ĐẠT CÓ CẢNH BÁO** | Vite 8.3.2 build thành công, xử lý 1.158 modules. Có cảnh báo `[MODULE_LEVEL_DIRECTIVE]` từ dependency có chỉ thị `use client`; cần theo dõi khi đánh giá bundle/runtime. |
+| `npm run lint` | **KHÔNG ĐẠT** | 23 lỗi: 10 `react-hooks/set-state-in-effect`, 12 lỗi biến/import không dùng và 1 `react-refresh/only-export-components`. Không sửa lỗi trong giai đoạn audit. |
+
+Các cảnh báo lint được ghi nhận ở:
+
+- `AdminLoansPage.jsx`, `AdminTopbar.jsx`, `UserLayout/Navbar.jsx`;
+- `MyReservations/MyReservation.jsx`;
+- `public/Home/LandingPage.jsx`, `public/PublicBooks/PublicBookDetailPage.jsx`,
+  `public/PublicBooks/PublicBooksPage.jsx`, `public/PublicLayout/PublicLayout.jsx` và `public/PublicLayout/PublicNavbar.jsx`.
+
+### 17.2. Backend, Database và tích hợp
+
+| Kiểm tra | Kết quả | Bằng chứng / lý do |
+|---|---|---|
+| Maven compile/unit test | **ĐẠT** | `Library\.mvnw.cmd test`: `Tests run: 214, Failures: 0, Errors: 0, Skipped: 0`, `BUILD SUCCESS`. Log xác nhận dùng các URL H2 `jdbc:h2:mem:...`; Surefire loại các lớp `*IT`, nên đây là unit suite, không phải kiểm thử MySQL contract. |
+| Backend runtime/API đọc | **ĐẠT MỘT PHẦN** | Kiểm tra host với quyền truy cập local: TCP 3306 và 8000 `True`; `GET http://127.0.0.1:8000/api/books?page=0&size=1` trả HTTP 200, `application/json`. Xác nhận Backend phục vụ truy vấn danh mục. Chưa đọc metadata schema; `DB_URL` có thể override cấu hình mặc định nên không khẳng định độc lập database đích chỉ từ kết quả này. |
+| MySQL metadata trực tiếp | **CHƯA XÁC NHẬN** | Cổng 3306 mở, nhưng lần JDBC chỉ đọc từ shell bị từ chối vì shell không có giá trị `DB_PASSWORD`; driver báo xác thực với mật khẩu trống. Đây là khác biệt môi trường so với IntelliJ có thể đang chạy Backend. Không có câu lệnh ghi nào được gửi và chưa đọc được metadata. |
+| Backend startup/schema validation | **CHƯA KIỂM CHỨNG ĐỘC LẬP** | API hiện đang hoạt động trên cổng 8000, nhưng không có log startup hiện tại để xác nhận phiên bản source/config đang chạy và kết quả `ddl-auto=validate` của lần khởi động đó. Cấu hình mặc định trỏ `jdbc:mysql://localhost:3306/library_db1`; môi trường có thể override `DB_URL`. |
+| MySQL contract/integration | **CHƯA CHẠY** | Shell không có `TEST_DB_URL`, `TEST_DB_USERNAME` hoặc `TEST_DB_PASSWORD`; chưa xác nhận Database `_test`. Không chạy test ghi dữ liệu vào MySQL live. |
+| Backend API / E2E | **API ĐỌC ĐẠT; E2E CHƯA CHẠY** | GET sách công khai trả HTTP 200. Cổng Frontend 5173 đang đóng, nên chưa thể chạy luồng browser/E2E end-to-end. |
+
+### 17.3. Kiểm tra trình duyệt và môi trường
+
+- Lần kiểm tra mặc định trong sandbox không truy cập được loopback; kết quả đó không đại diện cho máy người dùng. Sau khi kiểm tra host được cho phép, TCP 3306/8000 là `True`, còn 5173 là `False`.
+- API GET danh mục sách trả HTTP 200 trên host. Không thực hiện thao tác ghi hoặc thanh toán.
+- Thử kết nối JDBC chỉ đọc bằng datasource mặc định của file cấu hình không thành công: shell hiện tại thiếu `DB_PASSWORD`, trong khi IntelliJ có thể có biến môi trường riêng. Vì vậy không kết luận schema metadata MySQL từ phép thử này; không thử dò hoặc in bí mật cấu hình IDE.
+- Chưa có bằng chứng render trình duyệt; do 5173 hiện không mở, chưa kiểm tra viewport 320/768/1440 px, zoom 200%, bàn phím, focus, contrast hoặc accessible name.
+- Không để lại tiến trình Vite thử nghiệm chạy nền.
+- `git diff --check` trả exit code 0; chỉ có cảnh báo chuyển LF/CRLF, không báo whitespace error.
+- Các thay đổi source có sẵn trước AUD-6 vẫn được giữ nguyên. Trong AUD-6 chỉ cập nhật tracker này; không thay đổi source, schema hay dữ liệu.
+
+### 17.4. Kết luận và điều kiện tiếp tục
+
+- Có thể khẳng định **Frontend test đạt 111/111, production build thành công có cảnh báo, lint còn 23 lỗi**.
+- Backend **unit test đạt 214/214 trên H2 in-memory**; API GET danh mục sách trả HTTP 200 trên host. TCP 3306 và 8000 mở, nhưng chưa đọc metadata để xác nhận schema/database đích và chưa chạy contract test trên MySQL `_test`.
+- E2E, responsive và accessibility chưa kiểm chứng vì Frontend cổng 5173 chưa mở và chưa có render browser.
+- AUD-6 **chưa hoàn tất**. Cần Database `_test` riêng để chạy contract/integration và bật Frontend để kiểm tra browser/E2E. Chạy lại unit suite chỉ khi source thay đổi; không cần chạy lại Frontend test/build nếu source không đổi.
+- Không sửa các lỗi lint trong AUD-6; gom chúng vào AUD-7 để báo cáo mức độ, nguyên nhân và thứ tự đề xuất sửa.
+
+## 18. Kết quả AUD-7 — Tổng hợp và lộ trình sửa
+
+Ngày thực hiện: **13/11/2026**
+Trạng thái: **ĐÃ TỔNG HỢP CÓ GIỚI HẠN — AUD-6 CHƯA HOÀN TẤT**
+Phạm vi: tổng hợp kết quả AUD-0 đến AUD-6 hiện có; không sửa code, cấu hình, schema hoặc dữ liệu.
+
+### 18.1. Cách hiểu kết quả
+
+- Danh mục trước AUD-7 có **32 mã phát hiện**: `18` P2 và `14` P3. Đây là số mã audit, không đồng nghĩa 32 lỗi runtime đã tái hiện; có mục là thiếu kiểm soát, nợ kỹ thuật, lệch tài liệu hoặc cần quyết định nghiệp vụ.
+- Chưa có P0/P1 nào được xác nhận bằng bằng chứng audit hiện có. Điều này không xóa rủi ro P2 về thanh toán, đăng nhập, quyền riêng tư hoặc tính toàn vẹn dữ liệu.
+- Không cộng trùng các chuỗi xuyên tầng thành phát hiện mới; các mã liên quan được gom theo nguyên nhân và thứ tự phụ thuộc ở Mục 18.5.
+- AUD-7 là bản tổng hợp theo hồ sơ đã có. Vì AUD-6 còn thiếu kiểm tra MySQL metadata/contract và browser/E2E, các kết luận tương ứng vẫn được đánh dấu chưa xác nhận.
+
+### 18.2. Bằng chứng nghiệm thu đang có
+
+| Phần | Kết quả hiện có | Giới hạn |
+|---|---|---|
+| Frontend | `npm test`: 111/111 đạt; production build thành công có cảnh báo. | `npm run lint` còn 23 lỗi; cổng 5173 đóng nên chưa có kiểm tra trình duyệt, responsive hoặc accessibility thực tế. |
+| Backend | `mvnw test`: 214/214 đạt trên H2 in-memory; GET `/api/books?page=0&size=1` trả HTTP 200 trên backend đang chạy. | Surefire loại `*IT`; unit pass không chứng minh MySQL contract hoặc toàn bộ luồng tích hợp. |
+| Cổng dịch vụ | Host trả TCP 3306 và 8000 thành công. | 5173 không nhận kết nối. Mở cổng 3306 chưa tự xác nhận schema/database được Backend sử dụng. |
+| MySQL trực tiếp | Chưa đọc được metadata từ shell kiểm tra vì shell không có `DB_PASSWORD`; JDBC bị từ chối với thông tin xác thực trống. | IntelliJ có thể có biến môi trường riêng. Không dò hoặc trích xuất bí mật từ IDE; chưa chạy contract test trên database `_test`. |
+
+### 18.3. Danh mục phát hiện P2
+
+| Nhóm | Mã và nội dung | Trạng thái rút gọn |
+|---|---|---|
+| Database | `AUD1-DB-01` — contract nhận xét đánh giá; `AUD1-DB-02` — payment chưa ràng buộc đúng mục tiêu; `AUD1-DB-03` — CHECK gói thành viên; `AUD1-DB-05` — file tạo schema mới nhưng không nâng cấp schema cũ. | DB-01 đã đồng bộ trong source/canonical DDL; chủ dự án xác nhận cột `review_text` live nullable, CHECK live chưa được đọc lại. DB-03 đã đồng bộ source/canonical DDL nhưng live chưa xác nhận. DB-02 và DB-05 còn là việc thiết kế/kiểm chứng. |
+| Backend | `AUD2-BE-01` — exception nghiệp vụ có thể thành HTTP 500; `AUD2-BE-02` — đăng nhập sai có phản hồi khác nhau; `AUD2-BE-03` — quyền đánh giá chỉ nhận `RETURNED`; `AUD2-BE-04` — xóa gói và bảo toàn lịch sử chưa thống nhất; `AUD2-BE-05` — phân trang/sort thiếu validation đồng đều; `AUD2-BE-06` — retry payment payOS cuối vòng đời chưa an toàn. | BE-01 đã xử lý source và có test tập trung; BE-02 đã sửa source theo contract HTTP 401/thông báo/mã lỗi chung; BE-03 đã đồng bộ review terminal states; BE-04 đã đồng bộ Backend/Frontend/docs; BE-05 đã đồng bộ validation/source, còn chờ kiểm chứng. BE-06 đã triển khai và 42 test payOS mục tiêu đạt. |
+| Frontend | `AUD3-FE-01` — lỗi mạng/5xx có thể xóa phiên hợp lệ; `AUD3-FE-02` — cài đặt thông báo chỉ lưu local; `AUD3-FE-03` — lời hứa đánh giá ẩn danh không được bảo vệ ở response Backend; `AUD3-FE-04` — dữ liệu chi tiết cũ có thể còn sau khi đổi sách và request lỗi; `AUD3-FE-05` — số liệu/điều kiện thao tác suy từ trang dữ liệu đầu. | Chưa có kiểm tra browser/component để chứng minh hành vi khi chạy. FE-03 là rủi ro quyền riêng tư, không chỉ vấn đề thẩm mỹ. |
+| Business/API docs | `AUD4-BL-01` — phần API trong tài liệu gốc còn payload/endpoint cũ. | Cần sửa tài liệu theo hợp đồng đã chốt trước khi dùng tài liệu làm hướng dẫn triển khai mới. |
+| UI/UX | `AUD5-UX-01` — trường xác thực thiếu accessible name; `AUD5-UX-02` — nhiều thao tác ADMIN yêu cầu ID Database thô. | Audit tĩnh; kiểm tra screen reader/keyboard và khả năng vận hành thực tế còn thiếu. |
+
+### 18.4. Danh mục phát hiện P3
+
+- **Database:** `AUD1-DB-04` index ứng viên chưa đo bằng `EXPLAIN`; `AUD1-DB-06` còn cột legacy chưa có chủ sở hữu model; `AUD1-DB-07` MySQL contract test opt-in và chưa phủ đủ schema.
+- **Backend:** `AUD2-BE-07` đã chốt contract và đồng bộ controller/tài liệu; cần chạy kiểm chứng API. `AUD2-BE-08` CORS cần chuyển sang cấu hình môi trường; `AUD2-BE-09` cần dọn ảnh mồ côi an toàn; `AUD2-BE-10` cần giới hạn transaction/lock theo batch; `AUD2-BE-11` unit/API contract đã được bổ sung, MySQL IT còn chờ DB thử nghiệm riêng.
+- **Frontend:** `AUD3-FE-06` test chưa render route/component/form thật; `AUD3-FE-07` nhiều trang tải toàn bộ collection rồi phân trang tại client; `AUD3-FE-08` theme/settings phân mảnh; `AUD3-FE-09` hai trang chi tiết sách lặp logic và đã lệch hành vi.
+- **UI/UX:** `AUD5-UX-03` một số điều khiển thiếu keyboard/accessibility semantics; `AUD5-UX-04` một số nhãn còn tiếng Anh trong giao diện.
+- Các mục P3 không có cùng mức khẩn cấp. Chỉ thêm index sau khi có truy vấn/`EXPLAIN` trên bộ dữ liệu đại diện; chỉ xóa cột legacy sau khi xác nhận không còn client/runtime phụ thuộc.
+
+#### 18.4.1. Checklist Backend P3 trước khi triển khai
+
+| Thứ tự | Mã | Phạm vi công việc | Bằng chứng để đóng mục |
+|---:|---|---|---|
+| 1 | `AUD2-BE-07` — đã triển khai source | Catalog public luôn lọc sách active; controller từ chối `activeOnly=true/false` bằng HTTP 400 và mã `UNSUPPORTED_QUERY_PARAMETER`. Đã đồng bộ tài liệu API; không có client catalog cần cập nhật. Endpoint ADMIN riêng chưa nằm trong phạm vi V1. | Còn chạy test HTTP cho `activeOnly=true`, `activeOnly=false`, và request không có tham số xác nhận catalog chỉ trả sách active. Chưa đánh dấu nghiệm thu runtime. |
+| 2 | `AUD2-BE-08` | Đưa CORS allowlist ra cấu hình môi trường; local có mặc định `http://localhost:5173`, domain từng môi trường được cấu hình ngoài source. Giữ allowlist chính xác; không bật wildcard với credentials. | Test origin được phép/bị từ chối và preflight `OPTIONS`; tài liệu vận hành nêu tên biến và ví dụ cấu hình không chứa bí mật. |
+| 3 | `AUD2-BE-09` | Thiết kế dọn file upload không còn được sách tham chiếu. Chỉ xóa file nội bộ cũ hơn khoảng chờ an toàn (đề xuất 24 giờ, cần chốt), xác nhận không sách nào dùng; ảnh mới phải được lưu thành công trước khi ảnh cũ thành ứng viên cleanup. Không tác động URL ngoài hoặc đường dẫn ngoài storage. | Test form bỏ dở/lưu lỗi/thay ảnh, nhiều sách dùng chung URL, chạy cleanup lặp lại và chặn path traversal; xác nhận ảnh đang dùng được giữ nguyên. |
+| 4 | `AUD2-BE-10` | Chuyển xử lý hết hạn sang các batch hữu hạn với ranh giới transaction/lock theo từng batch; giữ nguyên quy tắc thời hạn và thứ tự queue, xử lý idempotent khi trạng thái thay đổi đồng thời. | Test giới hạn batch, commit/rollback riêng từng batch, chạy lặp và tranh chấp với nhận/hủy/gia hạn; review xác nhận không giữ lock qua toàn vòng lặp. |
+| 5 | `AUD2-BE-11` | Tạo/xác nhận MySQL `_test` riêng với cấu hình và dữ liệu kiểm thử tái tạo được; xác minh DB đích trước khi chạy `mysql-contract` và `mysql-e2e`. Không dùng `library_db1` live; không cần Postman theo phạm vi đã chốt. | Lưu lại profile/test được phát hiện, số lượng pass/fail/skip và kết quả trên MySQL. Nếu chưa có `_test`, giữ trạng thái chờ môi trường; việc compile test không được tính là test pass. |
+
+`AUD2-BE-07` đã có thay đổi source và đồng bộ tài liệu; kiểm chứng vẫn còn mở. `AUD2-BE-08`–`AUD2-BE-11` chưa triển khai. Trước khi làm `AUD2-BE-09`, cần chốt khoảng chờ dọn ảnh; các mục khác giữ tiêu chí nghiệm thu đã nêu ở bảng.
+
+### 18.5. Lộ trình sửa đề xuất
+
+| Nhóm | Phạm vi và mã | Việc cần đạt trước khi sang nhóm sau |
+|---|---|---|
+| `R0 — Hoàn tất baseline kiểm chứng` | Chốt phần còn lại của `AUD-6`: xác nhận schema MySQL chỉ đọc (đúng `library_db1`), tạo/sử dụng riêng Database `_test` cho contract, bật Frontend để kiểm tra browser/E2E. Rà lại các quyết định D01–D03 bên dưới. | Có bằng chứng schema/runtime đúng môi trường; không chạy test ghi vào DB vận hành. Nếu chưa có DB test hoặc browser, giữ mục tương ứng ở trạng thái BLOCKED thay vì suy ra pass. |
+| `R1 — Tính toàn vẹn dữ liệu và thanh toán` | `AUD1-DB-01/02/03/05`, `AUD2-BE-06`; kiểm tra ràng buộc mục tiêu payment theo `payment_type`, retry trạng thái cuối payOS, điều kiện gói VND dương và quy trình ALTER thủ công cho schema đã tồn tại. | Retry trạng thái cuối payOS đã triển khai và có test mục tiêu. Phần còn lại cần ma trận payment–FK, test âm tính trên `_test`; schema live chỉ được sửa sau khi đối chiếu metadata, sao lưu và duyệt câu ALTER cụ thể. DB-01: `review_text` nullable đã được chủ dự án xác nhận; chỉ kiểm tra CHECK live nếu lỗi còn tái hiện. DB-03 vẫn cần xác minh live. Không sửa lại phần source đã đồng bộ nếu không có bằng chứng lệch. |
+| `R2 — Đăng nhập và quyền riêng tư` | `AUD2-BE-02`, `AUD3-FE-01/03`; BE-02 đã chuẩn hóa lỗi đăng nhập trong source; giữ phiên khi lỗi mạng/5xx, bảo đảm lựa chọn ẩn danh được thực thi ở Backend hoặc bỏ lời hứa khỏi giao diện. `AUD2-BE-01` đã xử lý source, còn chờ kiểm chứng toàn bộ. | Còn test HTTP cho email không tồn tại/sai mật khẩu, test session theo 401 so với lỗi mạng/5xx, và test response review không lộ danh tính khi ẩn danh. |
+| `R3 — Chốt nghiệp vụ và hợp đồng API` | `AUD2-BE-03/04/05`, `AUD4-BL-01`; đồng bộ quy tắc review terminal states, xóa gói có lịch sử, validation pagination/sort và tài liệu API canonical. | BE-03/04 đã đồng bộ source; BE-05 đã đồng bộ validation/source, còn chờ kiểm chứng. Một số nội dung API canonical còn việc; dữ liệu lịch sử phải được giữ nguyên. |
+| `R4 — Độ tin cậy luồng USER` | `AUD3-FE-02/04/05`; loại bỏ hoặc thực thi thật các công tắc thông báo, reset state theo `bookId`, dùng API summary/eligibility thay cho suy luận từ trang đầu. | Component/API tests chứng minh đổi route không để dữ liệu sách cũ và thống kê/điều kiện thao tác không sai do phân trang. |
+| `R5 — Vận hành ADMIN và khả năng tiếp cận` | `AUD5-UX-01/02/03/04`; nhãn input/accessibility, cách chọn người/sách thay ID thô, bàn phím/focus và chuẩn hóa tiếng Việt. | Kiểm tra keyboard/accessibility và các biểu mẫu ADMIN trên browser, gồm màn hình nhỏ và zoom. |
+| `R6 — Nợ kỹ thuật P3 có bằng chứng` | `AUD1-DB-04/06/07`, `AUD2-BE-07/08/09/10/11`, `AUD3-FE-06/07/08/09`; đo index, quyết định cột legacy, test contract/component, CORS env, cleanup ảnh, batch transaction, tải/pagination và trùng logic chi tiết sách. Checklist Backend chi tiết nằm ở `18.4.1`. | BE-07 đã đồng bộ source/tài liệu, còn kiểm chứng. Chỉ triển khai tối ưu khác dựa trên phép đo hoặc lỗi tái hiện; các test mới phải bao phủ hành vi thay đổi. Riêng BE-11 chỉ xác nhận sau khi chạy profile trên DB `_test` tách biệt. |
+
+### 18.6. Các quyết định phải rà soát trước khi sửa
+
+1. **D01 — Cấp sách và đặt giữ:** ý kiến trước đây nghiêng về bỏ ADMIN “Cấp sách” và để ADMIN xác nhận nghiệp vụ; tracker chưa ghi quyết định cuối về việc USER có được mượn trực tiếp khi còn sách sẵn hay mọi lượt mượn phải qua ADMIN.
+2. **D02 — Review sau khi trả hư/mất (đã chốt):** USER được đánh giá sau khi ADMIN kết thúc lượt mượn ở `RETURNED`, `DAMAGED` hoặc `LOST`; không cần thanh toán khoản phạt trước. Nếu có nhiều lượt cùng sách, chỉ cần một lượt đủ điều kiện; mỗi USER vẫn chỉ có một đánh giá cho mỗi đầu sách. Source đã đồng bộ ở `AUD2-BE-03`, còn kiểm chứng.
+3. **D03 — Nợ fine:** chưa có quy tắc cuối về việc fine chưa trả có chặn mượn, gia hạn hoặc đặt giữ hay không.
+4. **Xóa gói có lịch sử (đã chốt và đồng bộ tại AUD2-BE-04):** gói chưa đăng ký lần nào được xóa cứng; gói có bất kỳ lịch sử đăng ký nào trả HTTP 409, giữ nguyên trạng thái và lịch sử. Không có thao tác ngừng bán, không cascade và không đổi schema.
+
+### 18.7. Kết luận AUD-7
+
+- Đã gom các phát hiện theo mức độ, phân biệt việc đã đồng bộ source với việc chưa xác nhận trên MySQL/browser, và đề xuất thứ tự sửa `R0`–`R6`.
+- Không có code, cấu hình, schema hoặc dữ liệu nào bị sửa trong AUD-7; chỉ cập nhật tài liệu context này.
+- AUD-7 hoàn tất với giới hạn bằng chứng của AUD-6. AUD-6 vẫn **chưa hoàn tất**, do đó chưa tuyên bố toàn Project đã nghiệm thu runtime/E2E.
+- Chưa bắt đầu các nhóm sửa `R1`–`R6`; cần duyệt phạm vi từng nhóm trước khi thay đổi code hoặc Database.
 

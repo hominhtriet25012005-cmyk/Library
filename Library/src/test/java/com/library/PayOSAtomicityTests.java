@@ -100,7 +100,8 @@ class PayOSAtomicityTests {
     }
     private com.library.service.impl.PayOSFineSettlementService fineSettlement(PaymentRepository repository) {
         return transactional(new com.library.service.impl.PayOSFineSettlementService(repository,
-                new JpaRepositoryFactory(em).getRepository(FineRepository.class)));
+                new JpaRepositoryFactory(em).getRepository(FineRepository.class),
+                mock(com.library.service.NotificationPublisher.class)));
     }
     private Long ownerId() { return tx.execute(status -> em.find(Payment.class, paymentId).getUser().getId()); }
 
@@ -229,7 +230,8 @@ class PayOSAtomicityTests {
     }
     @SuppressWarnings("deprecation")
     private PayOSSettlementService proxied(PaymentRepository repository) {
-        var target = new PayOSSettlementService(repository, subscriptions, users);
+        var target = new PayOSSettlementService(repository, subscriptions, users,
+                mock(com.library.service.NotificationPublisher.class));
         org.springframework.test.util.ReflectionTestUtils.setField(target, "entityManager", em);
         var proxy = new ProxyFactory(target);
         proxy.setProxyTargetClass(true);

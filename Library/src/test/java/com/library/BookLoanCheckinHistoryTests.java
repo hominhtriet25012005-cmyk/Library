@@ -68,7 +68,8 @@ class BookLoanCheckinHistoryTests {
 
         subject = new BookLoanServiceImpl(loans, users, mock(SubscriptionService.class),
                 books, new BookLoanMapper(), mock(UserRepository.class), reservationLifecycle,
-                mock(com.library.repository.FineRepository.class));
+                mock(com.library.repository.FineRepository.class),
+                mock(com.library.service.NotificationPublisher.class));
         ReflectionTestUtils.setField(subject, "entityManager", mock(EntityManager.class));
     }
 

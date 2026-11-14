@@ -1,6 +1,7 @@
 package com.library.service.impl;
 
 import com.library.domain.ReservationStatus;
+import com.library.domain.NotificationEventType;
 import com.library.domain.UserRole;
 import com.library.exception.ReservationException;
 import com.library.exception.SubscriptionException;
@@ -17,6 +18,7 @@ import com.library.repository.BookLoanRepository;
 import com.library.repository.BookRepository;
 import com.library.repository.ReservationRepository;
 import com.library.service.BookLoanService;
+import com.library.service.NotificationPublisher;
 import com.library.service.ReservationService;
 import com.library.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +47,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final com.library.repository.UserRepository userRepository;
     private final com.library.service.SubscriptionService subscriptionService;
     private final ReservationLifecycleService reservationLifecycleService;
+    private final NotificationPublisher notificationPublisher;
     @jakarta.persistence.PersistenceContext
     private jakarta.persistence.EntityManager entityManager;
 
@@ -164,6 +167,17 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setQueuePosition((int) pendingCount + 1);
 
         Reservation savedReservation = reservationRepository.save(reservation);
+        notificationPublisher.publish(
+                user.getId(),
+                null,
+                NotificationEventType.RESERVATION_CREATED,
+                "Đã tạo lượt đặt giữ",
+                "Bạn đã vào hàng chờ sách “" + book.getTitle() + "” ở vị trí "
+                        + savedReservation.getQueuePosition() + ".",
+                "/user/my-reservations",
+                "RESERVATION",
+                savedReservation.getId(),
+                null);
 
         return reservationMapper.toDTO(savedReservation);
     }
@@ -188,6 +202,17 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setQueuePosition(null);
 
         Reservation savedReservation = reservationRepository.save(reservation);
+        Long actorId = userService.getCurrentUser().getId();
+        notificationPublisher.publish(
+                reservation.getUser().getId(),
+                actorId,
+                NotificationEventType.RESERVATION_CANCELLED,
+                "Lượt đặt giữ đã bị hủy",
+                "Lượt đặt giữ sách “" + reservation.getBook().getTitle() + "” đã bị hủy.",
+                "/user/my-reservations",
+                "RESERVATION",
+                reservation.getId(),
+                null);
         reservationLifecycleService.activateNextPendingForBook(
                 reservation.getBook().getId(), cancelledAt);
 
@@ -197,6 +222,7 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public ReservationDTO fulfillReservation(Long reservationId) throws Exception {
         requireAdmin();
+        User admin = userService.getCurrentUser();
         Reservation reservation = ownedReservation(reservationId);
 
         if (reservation.getStatus() != ReservationStatus.AVAILABLE) {
@@ -238,6 +264,17 @@ public class ReservationServiceImpl implements ReservationService {
         reservation.setFulfilledAt(fulfilledAt);
         reservation.setQueuePosition(null);
         Reservation savedReservation = reservationRepository.save(reservation);
+        notificationPublisher.publish(
+                reservation.getUser().getId(),
+                admin.getId(),
+                NotificationEventType.RESERVATION_FULFILLED,
+                "Đã nhận sách đặt giữ",
+                "Lượt đặt giữ sách “" + reservation.getBook().getTitle()
+                        + "” đã được ADMIN hoàn tất và chuyển thành lượt mượn.",
+                "/user/my-loans",
+                "RESERVATION",
+                reservation.getId(),
+                null);
         reservationLifecycleService.activateNextPendingForBook(
                 reservation.getBook().getId(), fulfilledAt);
 

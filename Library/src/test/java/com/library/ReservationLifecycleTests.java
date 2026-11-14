@@ -33,7 +33,8 @@ class ReservationLifecycleTests {
         book = Book.builder().id(8L).totalCopies(2).availableCopies(1).build();
         when(books.findLockedById(book.getId())).thenReturn(Optional.of(book));
 
-        subject = new ReservationLifecycleService(reservations, books);
+        subject = new ReservationLifecycleService(
+                reservations, books, mock(com.library.service.NotificationPublisher.class));
         ReflectionTestUtils.setField(subject, "entityManager", mock(EntityManager.class));
     }
 

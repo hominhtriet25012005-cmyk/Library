@@ -46,7 +46,8 @@ class SubscriptionRepurchasePolicyTests {
         when(currentUser.getCurrentUser()).thenReturn(user);
         var subscriptionService = new SubscriptionImpl(subscriptions, mock(SubscriptionMapper.class), currentUser,
                 plans, mock(com.library.service.PaymentService.class), mock(PayOSMembershipPaymentService.class),
-                mock(PayOSOrderStore.class), payments);
+                mock(PayOSOrderStore.class), payments,
+                mock(com.library.service.NotificationPublisher.class));
 
         subscriptionService.cancelSubscription(8L, "Đổi gói");
         Long draftId = new PayOSOrderStore(payments, subscriptions, users, plans)
