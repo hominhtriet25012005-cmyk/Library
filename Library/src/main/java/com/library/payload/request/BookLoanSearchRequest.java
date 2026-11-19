@@ -11,8 +11,10 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class BookLoanSearchRequest {
 
+    @jakarta.validation.constraints.Positive(message = "ID người dùng phải là số dương.")
     private Long userId;
 
+    @jakarta.validation.constraints.Positive(message = "ID sách phải là số dương.")
     private Long bookId;
 
     private BookLoanStatus status;
@@ -32,4 +34,10 @@ public class BookLoanSearchRequest {
     private String sortBy = "createdAt";
 
     private String sortDirection = "DESC";
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @jakarta.validation.constraints.AssertTrue(message = "Ngày bắt đầu không được sau ngày kết thúc.")
+    public boolean isDateRangeValid() {
+        return startDate == null || endDate == null || !startDate.isAfter(endDate);
+    }
 }

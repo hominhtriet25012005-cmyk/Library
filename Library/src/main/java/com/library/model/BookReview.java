@@ -38,6 +38,10 @@ public class BookReview {
     @Column(length = 200)
     private String title;
 
+    @Column(name = "is_anonymous", nullable = false)
+    @Builder.Default
+    private Boolean anonymous = false;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;

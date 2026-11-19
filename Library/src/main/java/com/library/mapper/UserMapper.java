@@ -20,6 +20,7 @@ public class UserMapper {
         userDTO.setPhone(user.getPhone());
         userDTO.setLastLogin(user.getLastLogin());
         userDTO.setRole(user.getRole());
+        userDTO.setVerified(Boolean.TRUE.equals(user.getVerified()));
 
         return userDTO;
     }

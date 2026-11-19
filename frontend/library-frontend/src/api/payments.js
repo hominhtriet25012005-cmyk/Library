@@ -1,6 +1,9 @@
 import { api } from "./client.js";
 
 export const createPaymentsApi = (client) => ({
+  pendingMemberships: (options) => client.get("/api/payments/membership/pending", options),
+  resume: (paymentId, options) =>
+    client.post(`/api/payments/${encodeURIComponent(paymentId)}/resume`, undefined, options),
   subscribe: (planId) =>
     client.post("/api/subscriptions/subscribe", { planId }),
   payFine: (fineId) =>

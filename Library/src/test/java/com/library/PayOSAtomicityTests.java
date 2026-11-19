@@ -105,6 +105,80 @@ class PayOSAtomicityTests {
     }
     private Long ownerId() { return tx.execute(status -> em.find(Payment.class, paymentId).getUser().getId()); }
 
+    private com.library.service.impl.PayOSOrderStore membershipStore() {
+        return transactional(new com.library.service.impl.PayOSOrderStore(payments, subscriptions, users,
+                new JpaRepositoryFactory(em).getRepository(SubscriptionPlanRepository.class)));
+    }
+
+    private Long differentPlanDraft() {
+        return tx.execute(status -> {
+            var first = em.find(Subscription.class, subscriptionId);
+            var plan = SubscriptionPlan.builder().planCode("OTHER").name("Other Plan")
+                    .price(new BigDecimal("80000")).currency("VND").durationDays(30)
+                    .maxBooksAllowed(4).maxDaysPerBook(14).isActive(true).build();
+            em.persist(plan);
+            var sub = Subscription.builder().user(first.getUser()).plan(plan).isActive(false).build();
+            sub.initializeFromPlan(); em.persist(sub); em.flush();
+            return sub.getId();
+        });
+    }
+
+    @Test void pendingMembershipBlocksAnotherPlanAtBothEntryPoints() {
+        Long other = differentPlanDraft();
+        Long owner = ownerId();
+        Long plan = tx.execute(status -> em.find(Subscription.class, other).getPlan().getId());
+        var store = membershipStore();
+        assertThatThrownBy(() -> store.draftSubscription(plan, owner, null))
+                .isInstanceOf(com.library.exception.BusinessConflictException.class);
+        assertThatThrownBy(() -> store.prepare(other, owner))
+                .isInstanceOf(com.library.exception.BusinessConflictException.class);
+        long count = tx.execute(status -> payments.count());
+        assertThat(count).isEqualTo(1L);
+        assertThat(store.prepare(subscriptionId, owner).newlyCreated()).isFalse();
+    }
+
+    @Test void confirmedTerminalOrderAllowsAnotherPlan() {
+        Long other = differentPlanDraft();
+        for (PaymentStatus terminal : new PaymentStatus[]{PaymentStatus.CANCELLED, PaymentStatus.FAILED}) {
+            tx.executeWithoutResult(status -> {
+                em.find(Payment.class, paymentId).setStatus(terminal);
+                for (Payment payment : payments.findAll()) {
+                    if (!payment.getId().equals(paymentId)) payment.setStatus(terminal);
+                }
+            });
+            assertThat(membershipStore().prepare(other, ownerId()).newlyCreated()).isTrue();
+        }
+    }
+
+    @Test void concurrentDifferentPlanRequestsCreateOnlyOnePayableOrder() throws Exception {
+        Long other = differentPlanDraft();
+        Long owner = ownerId();
+        tx.executeWithoutResult(status -> em.find(Payment.class, paymentId).setStatus(PaymentStatus.CANCELLED));
+        var store = membershipStore();
+        var ready = new CountDownLatch(2);
+        var start = new CountDownLatch(1);
+        var executor = Executors.newFixedThreadPool(2);
+        try {
+            java.util.List<Future<Boolean>> results = new java.util.ArrayList<>();
+            for (Long draft : java.util.List.of(subscriptionId, other)) {
+                results.add(executor.submit(() -> {
+                    ready.countDown();
+                    if (!start.await(10, TimeUnit.SECONDS)) throw new AssertionError("Start timeout");
+                    try { return store.prepare(draft, owner).newlyCreated(); }
+                    catch (com.library.exception.BusinessConflictException expected) { return false; }
+                }));
+            }
+            assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            int created = 0;
+            for (Future<Boolean> result : results) if (result.get(20, TimeUnit.SECONDS)) created++;
+            assertThat(created).isEqualTo(1);
+            long pendingCount = tx.execute(status -> payments.findAll().stream()
+                    .filter(p -> p.getStatus() == PaymentStatus.PENDING).count());
+            assertThat(pendingCount).isEqualTo(1L);
+        } finally { start.countDown(); executor.shutdownNow(); }
+    }
+
     private Long secondMembershipOrder() {
         return tx.execute(status -> {
             var first = em.find(Subscription.class, subscriptionId);

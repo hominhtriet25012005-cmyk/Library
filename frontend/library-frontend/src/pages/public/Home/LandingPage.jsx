@@ -5,11 +5,9 @@ import {
   Button,
   Chip,
   Container,
-  InputAdornment,
   Paper,
   Skeleton,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
@@ -565,7 +563,6 @@ export const LandingPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [genres, setGenres] = useState([]);
   const [genresLoading, setGenresLoading] = useState(true);
   const [genresError, setGenresError] = useState("");
@@ -633,16 +630,6 @@ export const LandingPage = () => {
     loadCatalogPreview(controller.signal);
     return () => controller.abort();
   }, [loadCatalogPreview]);
-
-  const handleHeroSearch = (event) => {
-    event.preventDefault();
-    const trimmed = searchQuery.trim();
-    if (trimmed) {
-      navigate(`/books?q=${encodeURIComponent(trimmed)}`);
-    } else {
-      navigate("/books");
-    }
-  };
 
   const handleScrollToGuide = () => {
     const element = document.getElementById("huong-dan-muon");

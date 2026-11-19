@@ -41,12 +41,6 @@ function setupMockBrowser() {
 }
 
 test("DEFAULT_USER_SETTINGS chứa đầy đủ các phân hệ và giá trị chuẩn", () => {
-  assert.equal(DEFAULT_USER_SETTINGS.notifications.dueReminder, true);
-  assert.equal(DEFAULT_USER_SETTINGS.notifications.reminderDaysBefore, 2);
-  assert.equal(DEFAULT_USER_SETTINGS.notifications.reservationAlert, true);
-  assert.equal(DEFAULT_USER_SETTINGS.notifications.overdueAlert, true);
-  assert.equal(DEFAULT_USER_SETTINGS.notifications.newsletter, false);
-
   assert.equal(DEFAULT_USER_SETTINGS.appearance.theme, "light");
   assert.equal(DEFAULT_USER_SETTINGS.appearance.defaultBookView, "grid");
   assert.equal(DEFAULT_USER_SETTINGS.appearance.booksPerPage, 12);
@@ -64,14 +58,13 @@ test("normalizeUserSettings gộp an toàn khi dữ liệu rỗng hoặc thiếu
 
   const partial = normalizeUserSettings({
     appearance: { defaultBookView: "list" },
-    notifications: { reminderDaysBefore: 1 },
+    privacy: { anonymousReview: true },
   });
 
   assert.equal(partial.appearance.defaultBookView, "list");
   assert.equal(partial.appearance.booksPerPage, 12); // fallback
-  assert.equal(partial.notifications.reminderDaysBefore, 1);
-  assert.equal(partial.notifications.dueReminder, true); // fallback
-  assert.equal(partial.privacy.saveSearchHistory, true);
+  assert.equal(partial.privacy.anonymousReview, true);
+  assert.equal(partial.privacy.saveSearchHistory, true); // fallback
 });
 
 test("loadUserSettings trả về mặc định khi localStorage trống hoặc lỗi cú pháp", () => {
@@ -90,13 +83,6 @@ test("saveUserSettings lưu vào localStorage và phát event library:settings-c
   const { store, dispatchedEvents } = setupMockBrowser();
 
   const custom = {
-    notifications: {
-      dueReminder: false,
-      reminderDaysBefore: 3,
-      reservationAlert: false,
-      overdueAlert: true,
-      newsletter: true,
-    },
     appearance: {
       theme: "dark",
       defaultBookView: "list",

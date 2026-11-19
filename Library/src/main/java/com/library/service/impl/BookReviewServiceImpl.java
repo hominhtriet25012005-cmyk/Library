@@ -51,7 +51,7 @@ public class BookReviewServiceImpl implements BookReviewService {
         }
         Pageable pageable = PageRequest.of(page, size,
                 Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
-        return convertToPageResponse(bookReviewRepository.searchAdminReviews(userId, bookId, active, pageable));
+        return convertToPageResponse(bookReviewRepository.searchAdminReviews(userId, bookId, active, pageable), true, null);
     }
 
     @Override
@@ -67,7 +67,7 @@ public class BookReviewServiceImpl implements BookReviewService {
             review.setIsActive(false);
             review = bookReviewRepository.save(review);
         }
-        return bookReviewMapper.toDTO(review);
+        return bookReviewMapper.toDTO(review, true, null);
     }
 
     private void requireAdmin() throws Exception {
@@ -108,10 +108,11 @@ public class BookReviewServiceImpl implements BookReviewService {
         bookReview.setReviewText(normalizeOptionalReviewText(request.getReviewText()));
         bookReview.setTitle(normalizeOptionalTitle(request.getTitle()));
         bookReview.setIsActive(true);
+        bookReview.setAnonymous(Boolean.TRUE.equals(request.getAnonymous()));
 
         BookReview savedBookReview = bookReviewRepository.save(bookReview);
 
-        return bookReviewMapper.toDTO(savedBookReview);
+        return bookReviewMapper.toDTO(savedBookReview, false, user.getId());
     }
 
     @Override
@@ -130,13 +131,14 @@ public class BookReviewServiceImpl implements BookReviewService {
         }
 
         // 3. Cập nhật đánh giá
+        if (request.getAnonymous() != null) bookReview.setAnonymous(request.getAnonymous());
         bookReview.setReviewText(normalizeOptionalReviewText(request.getReviewText()));
         bookReview.setTitle(normalizeOptionalTitle(request.getTitle()));
         bookReview.setRating(request.getRating());
 
         BookReview savedBookReview = bookReviewRepository.save(bookReview);
 
-        return bookReviewMapper.toDTO(savedBookReview);
+        return bookReviewMapper.toDTO(savedBookReview, false, user.getId());
     }
 
     private String normalizeOptionalReviewText(String reviewText) {
@@ -195,14 +197,21 @@ public class BookReviewServiceImpl implements BookReviewService {
 
         Page<BookReview> reviewPage = bookReviewRepository.findActiveByBook(book, pageable);
 
-        return convertToPageResponse(reviewPage);
+        Long viewerId = null;
+        var authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()
+                && !(authentication instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
+            User viewer = userService.getCurrentUser();
+            if (viewer != null) viewerId = viewer.getId();
+        }
+        return convertToPageResponse(reviewPage, false, viewerId);
     }
 
-    private PageResponse<BookReviewDTO> convertToPageResponse(Page<BookReview> reviewPage) {
+    private PageResponse<BookReviewDTO> convertToPageResponse(Page<BookReview> reviewPage, boolean adminView, Long viewerId) {
 
         List<BookReviewDTO> reviewDTOs = reviewPage.getContent()
                 .stream()
-                .map(bookReviewMapper::toDTO)
+                .map(review -> bookReviewMapper.toDTO(review, adminView, viewerId))
                 .collect(Collectors.toList());
 
         return new PageResponse<>(

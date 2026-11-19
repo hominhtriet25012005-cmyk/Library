@@ -17,7 +17,7 @@ import AuthShell from "./AuthShell";
 import { validateNewPassword } from "./passwordRules";
 
 const RegisterPage = () => {
-  const { signUp } = useAuth();
+  const { signUp, retryProfile, profileLoadFailed } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     fullName: "",
@@ -30,6 +30,27 @@ const RegisterPage = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const retryProfileLoad = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const authenticatedUser = await retryProfile();
+      if (!authenticatedUser) {
+        setError("Không tìm thấy phiên đăng nhập để khôi phục. Vui lòng đăng nhập lại.");
+        return;
+      }
+      navigate("/user", { replace: true });
+    } catch (cause) {
+      setError(
+        cause.status === 401
+          ? "Phiên đăng nhập đã hết hiệu lực. Vui lòng đăng nhập lại."
+          : "Chưa tải được hồ sơ. Phiên đăng nhập vẫn được giữ; bạn có thể thử lại.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const update = (field) => (event) =>
     setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -56,11 +77,19 @@ const RegisterPage = () => {
       });
       navigate("/user", { replace: true });
     } catch (cause) {
-      setError(
-        cause.message && !/^HTTP \d+$/.test(cause.message)
-          ? cause.message
-          : "Không thể tạo tài khoản lúc này. Vui lòng thử lại sau.",
-      );
+      if (cause.authStage === "profile") {
+        setError(
+          cause.status === 401
+            ? "Tài khoản đã được tạo nhưng phiên không hợp lệ khi tải hồ sơ. Vui lòng đăng nhập lại."
+            : "Tài khoản đã được tạo nhưng chưa tải được hồ sơ. Phiên được giữ; hãy thử tải lại hồ sơ.",
+        );
+      } else {
+        setError(
+          cause.message && !/^HTTP \d+$/.test(cause.message)
+            ? cause.message
+            : "Không thể tạo tài khoản lúc này. Vui lòng thử lại sau.",
+        );
+      }
     } finally {
       setBusy(false);
     }
@@ -75,7 +104,19 @@ const RegisterPage = () => {
       >
         {error && (
           <Alert
-            severity="error"
+            severity={profileLoadFailed ? "warning" : "error"}
+            action={
+              profileLoadFailed ? (
+                <Button
+                  color="inherit"
+                  size="small"
+                  disabled={busy}
+                  onClick={retryProfileLoad}
+                >
+                  Thử lại
+                </Button>
+              ) : undefined
+            }
             sx={{
               borderRadius: 2,
               justifyContent: "center",

@@ -134,7 +134,7 @@ const AdminFinesPage = () => {
 
   const handleReset = () => {
     setDraft(initialFilter);
-    setFilter(initialFilter);
+    setFilter({ ...initialFilter });
     setPage(0);
     setResult(null);
     setLoading(true);
@@ -214,7 +214,6 @@ const AdminFinesPage = () => {
       {/* Header */}
       <PageHeader
         title="Quản lý tiền phạt"
-        subtitle="Theo dõi công nợ thư viện, quản lý các khoản phạt theo lượt mượn sách và xử lý miễn giảm"
         badge={
           result?.totalElements
             ? `${result.totalElements} khoản phạt`

@@ -126,7 +126,7 @@ const AdminReservationsPage = () => {
 
   const applyFilter = (next) => {
     setDraft(next);
-    setFilter(next);
+    setFilter({ ...next });
     setPage(0);
     setResult(null);
     setLoading(true);
@@ -197,7 +197,6 @@ const AdminReservationsPage = () => {
     >
       <PageHeader
         title="Quản lý đặt giữ sách"
-        subtitle="Theo dõi hàng đợi đặt giữ, tiếp nhận yêu cầu tại quầy, hủy hoặc xác nhận giao sách cho độc giả."
         action={
           <Button
             variant="contained"

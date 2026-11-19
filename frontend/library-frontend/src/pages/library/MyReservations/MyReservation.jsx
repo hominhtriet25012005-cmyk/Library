@@ -6,7 +6,6 @@ import {
   Paper,
   Tab,
   Tabs,
-  Typography,
 } from "@mui/material";
 import Book from "@mui/icons-material/BookRounded";
 import CalendarToday from "@mui/icons-material/CalendarTodayRounded";

@@ -13,6 +13,13 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @RestControllerAdvice
 public class GlobalException {
 
+    @ExceptionHandler(InvalidSubscriptionPlanCreationException.class)
+    public ResponseEntity<ApiResponse> handleInvalidSubscriptionPlanCreation(
+            InvalidSubscriptionPlanCreationException e) {
+        return ResponseEntity.badRequest().body(new ApiResponse(
+                e.getMessage(), false, InvalidSubscriptionPlanCreationException.ERROR_CODE));
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse> handleResourceNotFound(ResourceNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -23,6 +30,13 @@ public class GlobalException {
     public ResponseEntity<ApiResponse> handleBusinessConflict(BusinessConflictException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ApiResponse(e.getMessage(), false, e.getErrorCode()));
+    }
+
+    @ExceptionHandler(PendingMembershipPaymentException.class)
+    public ResponseEntity<?> handlePendingMembershipPayment(PendingMembershipPaymentException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of(
+                "message", e.getMessage(), "status", false,
+                "errorCode", e.getErrorCode(), "paymentId", e.getPaymentId()));
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)

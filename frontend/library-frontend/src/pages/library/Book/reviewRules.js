@@ -12,8 +12,11 @@ export const hasReviewableLoan = (loans, bookId) =>
       REVIEWABLE_LOAN_STATUSES.has(loan.status),
   );
 
+export const hasReturnedLoan = hasReviewableLoan;
+
 export const ownReview = (reviews, userId) =>
-  reviews.find((review) => Number(review.userId) === Number(userId));
+  reviews.find((review) => review.ownedByCurrentUser === true ||
+    (userId != null && review.userId != null && Number(review.userId) === Number(userId)));
 
 export const canCreateReview = (loans, bookId, reviews, userId) =>
   hasReviewableLoan(loans, bookId) && !ownReview(reviews, userId);

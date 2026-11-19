@@ -477,7 +477,6 @@ const AdminLoansPage = () => {
     >
       <PageHeader
         title="Quản lý mượn – trả sách"
-        subtitle="Tra cứu lượt mượn, xử lý yêu cầu trả tại quầy, gia hạn và cập nhật quá hạn."
         action={
           <Stack direction="row" spacing={1.5}>
             <Button

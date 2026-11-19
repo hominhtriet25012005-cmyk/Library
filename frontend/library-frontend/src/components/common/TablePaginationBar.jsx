@@ -27,6 +27,11 @@ export const TablePaginationBar = ({
   const from = totalElements === 0 ? 0 : page * pageSize + 1;
   const to = Math.min((page + 1) * pageSize, totalElements);
   const safeTotalPages = Math.max(totalPages || 1, 1);
+  const changePage = (nextPage) => {
+    if (loading || !Number.isInteger(nextPage) || nextPage < 0 ||
+        nextPage >= safeTotalPages || nextPage === page) return;
+    onPageChange(nextPage);
+  };
 
   return (
     <Box
@@ -64,7 +69,7 @@ export const TablePaginationBar = ({
             page={page + 1}
             count={safeTotalPages}
             disabled={loading}
-            onChange={(_, value) => onPageChange(value - 1)}
+            onChange={(_, value) => changePage(value - 1)}
             shape="rounded"
             sx={{
               "& .MuiPaginationItem-root": {
@@ -80,7 +85,7 @@ export const TablePaginationBar = ({
               variant="outlined"
               startIcon={<NavigateBeforeRoundedIcon />}
               disabled={page === 0 || loading}
-              onClick={() => onPageChange(page - 1)}
+              onClick={() => changePage(page - 1)}
               sx={{ borderRadius: 2 }}
             >
               Trước
@@ -93,7 +98,7 @@ export const TablePaginationBar = ({
               variant="outlined"
               endIcon={<NavigateNextRoundedIcon />}
               disabled={page >= safeTotalPages - 1 || loading}
-              onClick={() => onPageChange(page + 1)}
+              onClick={() => changePage(page + 1)}
               sx={{ borderRadius: 2 }}
             >
               Sau

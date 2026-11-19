@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Alert,
+  Checkbox,
+  FormControlLabel,
   Avatar,
   Box,
   Button,
@@ -134,9 +136,10 @@ const BookReviewsSection = ({ bookId }) => {
       review
         ? {
             rating: review.rating,
+            anonymous: Boolean(review.anonymous),
             reviewText: cleanReviewText(review.reviewText),
           }
-        : emptyForm,
+        : { ...emptyForm, anonymous: Boolean(settings?.privacy?.anonymousReview) },
     );
     setFormError("");
     setFormOpen(true);
@@ -153,6 +156,7 @@ const BookReviewsSection = ({ bookId }) => {
       return;
     }
     const payload = {
+      anonymous: Boolean(form.anonymous),
       rating: form.rating,
       reviewText: cleanedText || null,
     };
@@ -522,15 +526,15 @@ const BookReviewsSection = ({ bookId }) => {
       ) : (
         <Box sx={{ display: "grid", gap: 2 }}>
           {visible.map((review) => {
-            const isMe = Number(review.userId) === Number(user?.id);
-            const isAnonymous = isMe && settings?.privacy?.anonymousReview;
+            const isMe = review.ownedByCurrentUser === true || (review.userId != null && user?.id != null && Number(review.userId) === Number(user.id));
+            const isAnonymous = Boolean(review.anonymous);
             const authorInitial = isAnonymous
               ? "?"
               : review.userName
                 ? review.userName.charAt(0).toUpperCase()
                 : "U";
             const authorDisplayName = isAnonymous
-              ? "Độc giả ẩn danh (Đánh giá của bạn)"
+              ? (isMe ? "Độc giả ẩn danh (Đánh giá của bạn)" : "Độc giả ẩn danh")
               : isMe
                 ? `${review.userName || "Bạn"} (Đánh giá của bạn)`
                 : review.userName || "Độc giả";
@@ -657,6 +661,10 @@ const BookReviewsSection = ({ bookId }) => {
           </IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ py: 2.5 }}>
+          <FormControlLabel label="Ẩn tên của tôi với người đọc khác" control={
+            <Checkbox checked={Boolean(form.anonymous)} disabled={busy}
+              onChange={(event) => setForm((current) => ({ ...current, anonymous: event.target.checked }))} />
+          } />
           <Box sx={{ display: "grid", gap: 2.5 }}>
             {!editing && (
               <Alert

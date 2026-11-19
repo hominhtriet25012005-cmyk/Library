@@ -34,6 +34,7 @@ import { adminPageForPath } from "./adminNavigation";
 import { adminDrawerWidth } from "./AdminSidebar";
 import { formatDateTimeVN } from "../../../utils/formatters";
 import { useNotifications } from "../../../notifications/useNotifications.js";
+import NotificationPagination from "../../../notifications/NotificationPagination.jsx";
 import { notificationPath } from "../../../api/notifications.js";
 
 const AdminTopbar = ({ onMenuClick, density, onDensityChange }) => {
@@ -51,6 +52,9 @@ const AdminTopbar = ({ onMenuClick, density, onDensityChange }) => {
     refresh: refreshNotifications,
     markAsRead,
     markAllAsRead,
+    page: notificationPage,
+    totalPages: notificationTotalPages,
+    changePage: changeNotificationPage,
   } = useNotifications({
     enabled: Boolean(user?.id),
     scope: `${user?.id || "guest"}:${user?.role || "ADMIN"}`,
@@ -247,6 +251,8 @@ const AdminTopbar = ({ onMenuClick, density, onDensityChange }) => {
               Làm mới thông báo
             </Button>
           </Box>
+          <NotificationPagination page={notificationPage} totalPages={notificationTotalPages}
+            loading={notificationsLoading} onChange={changeNotificationPage} />
         </Popover>
         <Tooltip title="Cài đặt">
           <IconButton

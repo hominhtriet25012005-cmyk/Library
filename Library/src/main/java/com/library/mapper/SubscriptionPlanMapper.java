@@ -43,7 +43,7 @@ public class SubscriptionPlanMapper {
         }
 
         SubscriptionPlan plan = new SubscriptionPlan();
-        plan.setId(dto.getId());
+        // New entities must use database-generated IDs, never client-supplied IDs.
         plan.setPlanCode(dto.getPlanCode());
         plan.setName(dto.getName());
         plan.setDescription(dto.getDescription());

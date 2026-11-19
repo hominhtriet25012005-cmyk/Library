@@ -28,6 +28,10 @@ public class SubscriptionPlanServiceImpl implements SubscriptionPlanService {
     @Override
     public SubscriptionPlanDTO createSubscriptionPlan(SubscriptionPlanDTO planDTO) {
 
+        if (planDTO.getId() != null) {
+            throw new com.library.exception.InvalidSubscriptionPlanCreationException();
+        }
+
         if (planRepository.existsByPlanCode(planDTO.getPlanCode())) {
             throw new BusinessConflictException(
                     "SUBSCRIPTION_PLAN_CODE_EXISTS",

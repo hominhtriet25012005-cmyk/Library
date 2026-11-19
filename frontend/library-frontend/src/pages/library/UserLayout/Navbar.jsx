@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   AppBar,
   Avatar,
@@ -34,6 +34,7 @@ import { useAuth } from "../../../auth/useAuth";
 import { drawerWidth } from "./layout";
 import { formatDateTimeVN } from "../../../utils/formatters";
 import { useNotifications } from "../../../notifications/useNotifications.js";
+import NotificationPagination from "../../../notifications/NotificationPagination.jsx";
 import { notificationPath } from "../../../api/notifications.js";
 
 const Navbar = ({ handleDrawerToggle, preview = false }) => {
@@ -42,8 +43,12 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
   const theme = useTheme();
   const { user } = useAuth();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(
+    () => new URLSearchParams(location.search).get("q") || "",
+  );
+  const [searchOpen, setSearchOpen] = useState(() =>
+    Boolean(new URLSearchParams(location.search).get("q")),
+  );
   const searchInputRef = useRef(null);
   const [notificationAnchor, setNotificationAnchor] = useState(null);
   const {
@@ -54,6 +59,9 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
     refresh: refreshNotifications,
     markAsRead,
     markAllAsRead,
+    page: notificationPage,
+    totalPages: notificationTotalPages,
+    changePage: changeNotificationPage,
   } = useNotifications({
     enabled: Boolean(user?.id) && !preview,
     scope: `${user?.id || "guest"}:${user?.role || "USER"}`,
@@ -64,14 +72,6 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
   );
 
   const isDark = theme.palette.mode === "dark";
-
-  useEffect(() => {
-    const q = new URLSearchParams(location.search).get("q");
-    if (q) {
-      setSearchQuery(q);
-      setSearchOpen(true);
-    }
-  }, [location.search]);
 
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
@@ -530,6 +530,8 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
             Làm mới thông báo
           </Button>
         </Box>
+        <NotificationPagination page={notificationPage} totalPages={notificationTotalPages}
+          loading={notificationsLoading} onChange={changeNotificationPage} />
       </Popover>
     </AppBar>
   );

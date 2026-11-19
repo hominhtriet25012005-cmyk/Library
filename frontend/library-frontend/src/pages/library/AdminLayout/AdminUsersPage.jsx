@@ -96,10 +96,7 @@ const AdminUsersPage = () => {
       component="section"
       sx={{ maxWidth: 1240, mx: "auto", py: { xs: 2.5, sm: 3.5 } }}
     >
-      <PageHeader
-        title="Quản lý người dùng"
-        subtitle="Tra cứu tài khoản, phân quyền vai trò và theo dõi hoạt động đăng nhập trong hệ thống."
-      />
+      <PageHeader title="Quản lý người dùng" />
 
       {error && (
         <Alert

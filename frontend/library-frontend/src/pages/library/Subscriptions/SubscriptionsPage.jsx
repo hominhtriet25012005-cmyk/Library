@@ -170,7 +170,23 @@ const SubscriptionsPage = () => {
   const [actionError, setActionError] = useState("");
   const [message, setMessage] = useState("");
   const [paymentError, setPaymentError] = useState("");
+  const [pendingPaymentId, setPendingPaymentId] = useState(null);
+  const [pendingOrders, setPendingOrders] = useState([]);
+  const [pendingOrdersError, setPendingOrdersError] = useState("");
   const creatingPayment = useRef(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    paymentsApi.pendingMemberships({ signal: controller.signal }).then((orders) => {
+      if (controller.signal.aborted) return;
+      if (!Array.isArray(orders)) throw new Error("Không thể đọc đơn thanh toán đang chờ.");
+      setPendingOrders(orders);
+      setPendingOrdersError("");
+    }).catch((failure) => {
+      if (!controller.signal.aborted) setPendingOrdersError(failure.message);
+    });
+    return () => controller.abort();
+  }, [refresh]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -244,6 +260,7 @@ const SubscriptionsPage = () => {
     )
       return;
     creatingPayment.current = true;
+    setPendingPaymentId(null);
     setBusy(true);
     setPaymentError("");
     try {
@@ -251,9 +268,13 @@ const SubscriptionsPage = () => {
       paymentSession.save(response, { kind: "membership" });
       navigate(`/user/payments/${response.paymentId}`);
     } catch (failure) {
+      if (failure.errorCode === "MEMBERSHIP_PAYMENT_PENDING"
+          && Number.isSafeInteger(failure.paymentId) && failure.paymentId > 0) {
+        setPendingPaymentId(failure.paymentId);
+      }
       setPaymentError(
         failure.status === 409
-          ? "Bạn đã có gói đang hoạt động. Tải lại trang để kiểm tra."
+          ? failure.message || "Chưa thể mua gói do trạng thái tài khoản hoặc đơn thanh toán hiện tại."
           : "Chưa thể mở đơn thanh toán. Nếu yêu cầu đã được gửi, không bấm tạo lại trước khi kiểm tra/đối soát. " +
               (failure.message || ""),
       );
@@ -265,6 +286,19 @@ const SubscriptionsPage = () => {
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", pb: 6 }}>
+      {pendingOrdersError && <Alert severity="warning" action={
+        <Button color="inherit" onClick={() => setRefresh((value) => value + 1)}>Thử lại</Button>
+      }>{pendingOrdersError}</Alert>}
+      {pendingOrders.map((order) => (
+        <Alert key={order.paymentId} severity="info" sx={{ mb: 2 }} action={
+          <Button color="inherit" onClick={() => navigate(`/user/payments/${order.paymentId}`)}>
+            Tiếp tục thanh toán
+          </Button>
+        }>
+          Đơn gói thành viên #{order.paymentId} — {formatCurrencyVND(order.amount)} chưa hoàn tất.
+          Hãy kiểm tra đơn này trước khi tạo đơn khác.
+        </Alert>
+      ))}
       {/* HERO HEADER CĂN GIỮA - NỔI BẬT */}
       <Box
         sx={{
@@ -1065,6 +1099,11 @@ const SubscriptionsPage = () => {
           {paymentError && (
             <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
               {paymentError}
+              {pendingPaymentId && (
+                <Button color="inherit" onClick={() => navigate(`/user/payments/${pendingPaymentId}`)}>
+                  Kiểm tra đơn đang chờ
+                </Button>
+              )}
             </Alert>
           )}
         </DialogContent>

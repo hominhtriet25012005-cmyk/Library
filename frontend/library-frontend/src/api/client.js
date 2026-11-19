@@ -1,10 +1,12 @@
 import { tokenStore } from "./tokenStore.js";
 
 export class ApiError extends Error {
-  constructor(status, message) {
+  constructor(status, message, details) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.errorCode = details?.errorCode;
+    this.paymentId = details?.paymentId;
   }
 }
 
@@ -62,8 +64,10 @@ export const createApiClient = ({
     }
 
     if (!response.ok) {
-      if (response.status === 401 && token) onUnauthorized();
-      if (response.status === 403 && token) onForbidden(path);
+      // A late failure from a previous token must not invalidate the current session.
+      const currentSession = token && token === getToken() && !signal?.aborted;
+      if (response.status === 401 && currentSession) onUnauthorized();
+      if (response.status === 403 && currentSession) onForbidden(path);
       throw new ApiError(
         response.status,
         data?.message ||
@@ -71,6 +75,7 @@ export const createApiClient = ({
           data?.["Lỗi"] ||
           data?.detail ||
           fallbackMessageByStatus(response.status),
+        data,
       );
     }
     return data;

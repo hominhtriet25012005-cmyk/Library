@@ -18,6 +18,8 @@ public class BookReviewDTO {
     private Long userId;
 
     private String userName;
+    private Boolean anonymous;
+    private Boolean ownedByCurrentUser;
 
     @NotNull(message = "ID sách là bắt buộc")
     private Long bookId;

@@ -17,7 +17,6 @@ import {
   Stack,
   TextField,
   Toolbar,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";

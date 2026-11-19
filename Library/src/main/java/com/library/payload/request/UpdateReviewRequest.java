@@ -22,4 +22,5 @@ public class UpdateReviewRequest {
 
     @Size(max = 200, message = "Tiêu đề đánh giá không được vượt quá 200 ký tự")
     private String title;
+    private Boolean anonymous;
 }

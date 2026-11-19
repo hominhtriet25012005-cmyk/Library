@@ -91,11 +91,7 @@ const planToForm = (plan) =>
 
 const SubscriptionsHeader = ({ activeTab, actionButton = null }) => (
   <Box sx={{ mb: 3 }}>
-    <PageHeader
-      title="Quản lý gói thành viên"
-      subtitle="Thiết lập các gói hội viên mượn sách và theo dõi lịch sử độc giả đăng ký dịch vụ"
-      action={actionButton}
-    />
+    <PageHeader title="Quản lý gói thành viên" action={actionButton} />
     <Tabs
       value={activeTab}
       aria-label="Tab gói thành viên"
@@ -541,9 +537,7 @@ export const AdminSubscriptionPlansPage = () => {
       setLoading(true);
       setReload((value) => value + 1);
     } catch (cause) {
-      setActionError(
-        cause.message || "Không thể xóa gói thành viên.",
-      );
+      setActionError(cause.message || "Không thể xóa gói thành viên.");
     } finally {
       setActionBusy(false);
     }
@@ -636,7 +630,7 @@ export const AdminSubscriptionPlansPage = () => {
         filters={
           <FormControl size="small" sx={{ minWidth: 160 }}>
             <InputLabel id="plan-status-filter-label">
-            Trạng thái hiển thị
+              Trạng thái hiển thị
             </InputLabel>
             <Select
               labelId="plan-status-filter-label"

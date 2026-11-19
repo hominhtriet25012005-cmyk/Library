@@ -16,6 +16,16 @@ public class PayOSController {
 
     private final PayOSConfirmationService confirmation;
 
+    @GetMapping("/membership/pending")
+    public java.util.List<PayOSConfirmationService.Status> pendingMemberships() {
+        return confirmation.pendingMemberships();
+    }
+
+    @PostMapping("/{id}/resume")
+    public PayOSConfirmationService.Resume resume(@PathVariable Long id) {
+        return confirmation.resume(id);
+    }
+
     @PostMapping("/webhook/payos")
     public Map<String, String> webhook(@RequestBody Map<String, Object> body) {
 

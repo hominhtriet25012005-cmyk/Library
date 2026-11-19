@@ -28,6 +28,7 @@ import { useAuth } from "../../../auth/useAuth";
 import { formatDateTimeVN } from "../../../utils/formatters.js";
 import PageHeader from "../../../components/common/PageHeader";
 import ConfirmDialog from "../../../components/common/ConfirmDialog";
+import EmailVerificationNotice from "./EmailVerificationNotice";
 
 const ProfilePage = () => {
   const { user, signOut } = useAuth();
@@ -62,6 +63,7 @@ const ProfilePage = () => {
       />
 
       <Stack spacing={3}>
+        {user?.verified && <EmailVerificationNotice showVerified />}
         {/* BANNER THÔNG TIN NGƯỜI DÙNG */}
         <Paper
           elevation={0}

@@ -9,18 +9,15 @@ import {
   Drawer,
   FormControl,
   IconButton,
-  InputAdornment,
   MenuItem,
   Pagination,
   Paper,
   Select,
   Skeleton,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink, useSearchParams } from "react-router-dom";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import { useSearchParams } from "react-router-dom";
 import FilterListRoundedIcon from "@mui/icons-material/FilterListRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
@@ -82,7 +79,6 @@ export const PublicBooksPage = () => {
   );
   const currentPage = parsePageParam(searchParams.get("page"));
 
-  const [searchInput, setSearchInput] = useState(queryText);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
 
   const [genres, setGenres] = useState([]);
@@ -93,11 +89,6 @@ export const PublicBooksPage = () => {
   const [booksLoading, setBooksLoading] = useState(true);
   const [booksError, setBooksError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
-
-  // Đồng bộ ô input khi URL thay đổi (ví dụ bấm nút Xóa bộ lọc hoặc Back trình duyệt)
-  useEffect(() => {
-    setSearchInput(queryText);
-  }, [queryText]);
 
   const updateFilterParams = useCallback(
     (updates) => {
@@ -212,16 +203,7 @@ export const PublicBooksPage = () => {
     sortValue !== "createdAt-DESC",
   );
 
-  const handleSearchSubmit = (event) => {
-    event.preventDefault();
-    updateFilterParams({
-      q: searchInput.trim(),
-      page: 1,
-    });
-  };
-
   const handleResetFilters = () => {
-    setSearchInput("");
     setSearchParams(new URLSearchParams());
     setMobileFilterOpen(false);
   };
@@ -233,11 +215,6 @@ export const PublicBooksPage = () => {
   }, [genres, selectedGenreId]);
 
   const books = catalog?.content ?? [];
-  const hasExactTotal =
-    !booksLoading &&
-    !booksError &&
-    Number.isInteger(catalog?.totalElements) &&
-    catalog.totalElements >= 0;
   const totalPages = Math.max(Number(catalog?.totalPages ?? 0), 0);
 
   const renderFilterSidebarContent = (inDrawer = false) => (

@@ -53,6 +53,43 @@ public class PayOSConfirmationService {
 
     public Status status(Long id) { return snapshot(authorized(id)); }
 
+    public record Resume(Status payment, String checkoutUrl) {}
+
+    public java.util.List<Status> pendingMemberships() {
+        Long userId = users.getCurrentUser().getId();
+        return payments.findByUserIdAndPaymentTypeAndGatewayAndStatusInOrderByIdDesc(
+                userId, PaymentType.MEMBERSHIP, PaymentGateway.PAYOS,
+                java.util.List.of(PaymentStatus.PENDING, PaymentStatus.PROCESSING),
+                org.springframework.data.domain.PageRequest.of(0, 100))
+                .stream().map(this::snapshot).toList();
+    }
+
+    /** Recover an existing order only; never create a gateway order here. */
+    public Resume resume(Long id) {
+        Payment payment = authorized(id);
+        if (payment.getStatus() != PaymentStatus.PENDING && payment.getStatus() != PaymentStatus.PROCESSING) {
+            return new Resume(snapshot(payment), null);
+        }
+        // Reuse receipt validation and settlement, including partial-payment safeguards.
+        confirm(payment, null);
+        payment = authorized(id);
+        if (payment.getStatus() != PaymentStatus.PENDING) return new Resume(snapshot(payment), null);
+        var link = gateway().getPaymentLink(id);
+        if (payment.getGateway() != PaymentGateway.PAYOS || !"VND".equals(payment.getCurrency())
+                || link == null || !Objects.equals(link.getOrderCode(), id)
+                || !Objects.equals(link.getAmount(), payment.getAmount())
+                || link.getId() == null || !link.getId().matches("[a-zA-Z0-9-]{1,128}")
+                || (payment.getGatewayOrderId() != null && !payment.getGatewayOrderId().equals(link.getId()))) {
+            throw new IllegalArgumentException("Gateway order mismatch");
+        }
+        if (link.getStatus() != PaymentLinkStatus.PENDING || !Long.valueOf(0).equals(link.getAmountPaid())) {
+            confirm(payment, null);
+            return new Resume(snapshot(authorized(id)), null);
+        }
+        // Official payOS hosted checkout route; ID comes only from authenticated gateway lookup.
+        return new Resume(snapshot(payment), "https://pay.payos.vn/web/" + link.getId());
+    }
+
     public Status reconcile(Long id) {
         Payment payment = authorized(id);
         confirm(payment, null);

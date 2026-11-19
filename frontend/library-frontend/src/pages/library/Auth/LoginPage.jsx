@@ -17,7 +17,7 @@ import AuthShell from "./AuthShell";
 import { safeReturnPath } from "../../../auth/access";
 
 const LoginPage = () => {
-  const { signIn } = useAuth();
+  const { signIn, retryProfile, profileLoadFailed } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState("");
@@ -26,23 +26,56 @@ const LoginPage = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const continueToUserArea = (authenticatedUser) => {
+    const from = location.state?.from;
+    const safeFrom = safeReturnPath(from);
+    navigate(safeFrom || (authenticatedUser.role === "ROLE_ADMIN" ? "/admin" : "/user"), {
+      replace: true,
+    });
+  };
+
+  const retryProfileLoad = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const authenticatedUser = await retryProfile();
+      if (!authenticatedUser) {
+        setError("Không tìm thấy phiên đăng nhập để khôi phục. Vui lòng đăng nhập lại.");
+        return;
+      }
+      continueToUserArea(authenticatedUser);
+    } catch (cause) {
+      setError(
+        cause.status === 401
+          ? "Phiên đăng nhập đã hết hiệu lực. Vui lòng đăng nhập lại."
+          : "Chưa tải được hồ sơ. Phiên đăng nhập vẫn được giữ; bạn có thể thử lại.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     setBusy(true);
     setError("");
     try {
-      const user = await signIn({ email: email.trim(), password });
-      const from = location.state?.from;
-      const safeFrom = safeReturnPath(from);
-      navigate(safeFrom || (user.role === "ROLE_ADMIN" ? "/admin" : "/user"), {
-        replace: true,
-      });
+      const authenticatedUser = await signIn({ email: email.trim(), password });
+      continueToUserArea(authenticatedUser);
     } catch (cause) {
-      setError(
-        [400, 401, 403].includes(cause.status)
-          ? "Tài khoản hoặc mật khẩu không chính xác."
-          : "Không thể kết nối đến máy chủ. Vui lòng kiểm tra và thử lại.",
-      );
+      if (cause.authStage === "profile") {
+        setError(
+          cause.status === 401
+            ? "Thông tin đăng nhập đã được chấp nhận nhưng phiên không hợp lệ khi tải hồ sơ. Vui lòng đăng nhập lại."
+            : "Đăng nhập đã được chấp nhận nhưng chưa tải được hồ sơ. Phiên được giữ; hãy thử tải lại hồ sơ.",
+        );
+      } else {
+        setError(
+          [400, 401, 403].includes(cause.status)
+            ? "Tài khoản hoặc mật khẩu không chính xác."
+            : "Không thể kết nối đến máy chủ. Vui lòng kiểm tra và thử lại.",
+        );
+      }
     } finally {
       setBusy(false);
     }
@@ -57,7 +90,19 @@ const LoginPage = () => {
       >
         {error && (
           <Alert
-            severity="error"
+            severity={profileLoadFailed ? "warning" : "error"}
+            action={
+              profileLoadFailed ? (
+                <Button
+                  color="inherit"
+                  size="small"
+                  disabled={busy}
+                  onClick={retryProfileLoad}
+                >
+                  Thử lại
+                </Button>
+              ) : undefined
+            }
             sx={{
               borderRadius: 2,
               justifyContent: "center",

@@ -14,6 +14,11 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "payments")
+@org.hibernate.annotations.Check(name = "chk_payments_target", constraints =
+        "(payment_type = 'MEMBERSHIP' AND subscription_id IS NOT NULL "
+        + "AND fine_id IS NULL AND book_loan_id IS NULL) OR "
+        + "(payment_type = 'FINE' AND subscription_id IS NULL "
+        + "AND fine_id IS NOT NULL AND book_loan_id IS NOT NULL)")
 @Getter
 @Setter
 @AllArgsConstructor

@@ -191,6 +191,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
     booksApi
       .genres({ signal: controller.signal })
       .then((data) => {
+        if (controller.signal.aborted) return;
         const activeGenres = data.filter((genre) => genre.active);
         activeGenres.sort(
           (a, b) =>
@@ -201,7 +202,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
         setGenreError("");
       })
       .catch((error) => {
-        if (error.name !== "AbortError") setGenreError(error.message);
+        if (!controller.signal.aborted && error.name !== "AbortError") setGenreError(error.message);
       });
     return () => controller.abort();
   }, [preview, retry]);
@@ -211,6 +212,8 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
     const controller = new AbortController();
     const timer = setTimeout(
       () => {
+        if (controller.signal.aborted) return;
+        setLoading(true);
         if (searchTerm.trim() && settings?.privacy?.saveSearchHistory) {
           addUserSearchHistory(userId, searchTerm.trim());
         }
@@ -228,11 +231,12 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
             { signal: controller.signal },
           )
           .then((data) => {
+            if (controller.signal.aborted) return;
             setCatalog(data);
             setCatalogError("");
           })
           .catch((error) => {
-            if (error.name !== "AbortError") setCatalogError(error.message);
+            if (!controller.signal.aborted && error.name !== "AbortError") setCatalogError(error.message);
           })
           .finally(() => {
             if (!controller.signal.aborted) setLoading(false);
@@ -259,6 +263,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
   ]);
 
   const handleGenreChange = (event) => {
+    if (event === selectedGenreId && page === 0) return;
     setSelectedGenreId(event);
     setPage(0);
     if (!preview) setLoading(true);
@@ -266,6 +271,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
 
   const handleSortChange = (value) => {
     const [field, direction] = value.split("-");
+    if (field === sortBy && direction.toUpperCase() === sortDirection && page === 0) return;
     setSortBy(field);
     setSortDirection(direction.toUpperCase());
     setPage(0);
@@ -378,6 +384,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
               <Select
                 value={availabilityFilter}
                 onChange={(e) => {
+                  if (e.target.value === availabilityFilter && page === 0) return;
                   setAvailabilityFilter(e.target.value);
                   setPage(0);
                   if (!preview) setLoading(true);
@@ -427,6 +434,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
                 placeholder="Tìm theo tên sách, tác giả hoặc ISBN..."
                 value={searchTerm}
                 onChange={(e) => {
+                  if (e.target.value === searchTerm && page === 0) return;
                   setSearchTerm(e.target.value);
                   setPage(0);
                   if (!preview) setLoading(true);
@@ -553,6 +561,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
                     size="small"
                     clickable
                     onClick={() => {
+                      if (term === searchTerm && page === 0) return;
                       setSearchTerm(term);
                       setPage(0);
                       if (!preview) setLoading(true);
@@ -789,6 +798,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
               totalElements={catalog.totalElements}
               pageSize={pageSize}
               onPageChange={(newPage) => {
+                if (newPage === page) return;
                 setPage(newPage);
                 setLoading(true);
               }}

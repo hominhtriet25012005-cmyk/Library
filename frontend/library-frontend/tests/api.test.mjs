@@ -3,6 +3,18 @@ import test from "node:test";
 import { createApiClient } from "../src/api/client.js";
 import { createTokenStore } from "../src/api/tokenStore.js";
 
+test("409 đơn thành viên đang chờ giữ mã lỗi và ID để mở đúng đơn cũ", async () => {
+  const client = createApiClient({
+    fetchImpl: async () => new Response(JSON.stringify({
+      message: "Đơn thành viên đang chờ xử lý.",
+      errorCode: "MEMBERSHIP_PAYMENT_PENDING", paymentId: 42,
+    }), { status: 409 }),
+  });
+  await assert.rejects(client.post("/api/subscriptions/subscribe", { planId: 2 }),
+    (error) => error.status === 409 && error.errorCode === "MEMBERSHIP_PAYMENT_PENDING"
+      && error.paymentId === 42);
+});
+
 test("token chỉ được lưu trong kho phiên và có thể xóa", () => {
   const values = new Map();
   const storage = {

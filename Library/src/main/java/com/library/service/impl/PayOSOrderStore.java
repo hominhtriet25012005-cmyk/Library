@@ -37,6 +37,13 @@ public class PayOSOrderStore {
 
         if (!Boolean.TRUE.equals(plan.getIsActive())) throw new IllegalArgumentException("Subscription plan is inactive");
 
+        for (Payment open : payments.findOpenMembershipPaymentsForUpdate(userId)) {
+            if (open.getSubscription() == null || open.getSubscription().getPlan() == null
+                    || !Objects.equals(open.getSubscription().getPlan().getId(), planId)) {
+                throw new com.library.exception.PendingMembershipPaymentException(open.getId());
+            }
+        }
+
         var pending = subscriptions.findAwaitingPayment(userId, planId, PaymentGateway.PAYOS,
                 java.util.List.of(PaymentStatus.PENDING, PaymentStatus.PROCESSING),
                 org.springframework.data.domain.PageRequest.of(0, 1));
@@ -73,6 +80,15 @@ public class PayOSOrderStore {
 
         if (Boolean.TRUE.equals(subscription.getIsActive()) || subscription.getCancelledAt() != null) {
             throw new IllegalArgumentException("Subscription is not awaiting payment");
+        }
+
+        // Drafts may have been created concurrently before either payment existed.
+        // Recheck under the same account lock immediately before creating any payable order.
+        for (Payment open : payments.findOpenMembershipPaymentsForUpdate(userId)) {
+            if (open.getSubscription() == null
+                    || !Objects.equals(open.getSubscription().getId(), subscriptionId)) {
+                throw new com.library.exception.PendingMembershipPaymentException(open.getId());
+            }
         }
 
         if (!"VND".equals(subscription.getCurrency()) || subscription.getPrice() == null

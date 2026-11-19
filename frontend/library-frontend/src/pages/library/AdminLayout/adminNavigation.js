@@ -3,7 +3,7 @@ export const adminNavigationSections = [
     title: "Tổng quan",
     items: [
       {
-        title: "Dashboard",
+        title: "Trang chủ",
         path: "/admin/dashboard",
         icon: "dashboard",
         stage: "AD1",

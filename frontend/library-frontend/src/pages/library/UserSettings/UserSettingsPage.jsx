@@ -461,8 +461,9 @@ export const UserSettingsPage = () => {
                   color="text.secondary"
                   sx={{ fontSize: "0.825rem", mt: 0.25 }}
                 >
-                  Tên của bạn sẽ hiển thị là "Độc giả ẩn danh" trong mục đánh
-                  giá cộng đồng
+                  Chọn ẩn danh mặc định cho bài đánh giá mới trên trình duyệt này.
+                  Bạn có thể đổi lựa chọn khi viết hoặc sửa từng bài. Bài đã đăng không tự thay đổi;
+                  quản trị viên vẫn xem được tác giả để kiểm duyệt.
                 </Typography>
               </Box>
               <Switch

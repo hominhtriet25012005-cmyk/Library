@@ -638,32 +638,13 @@ public class BookLoanServiceImpl implements BookLoanService {
                 searchRequest.getSortDirection()
         );
 
-        Page<BookLoan> bookLoanPage;
-
-        // 2 Áp dụng logic lọc một cách linh hoạt
-        if (Boolean.TRUE.equals(searchRequest.getOverdueOnly())) {
-            // Truy xuất các khoản vay quá hạn
-            bookLoanPage = bookLoanRepository.findOverdueBookLoans(LocalDate.now(), pageable);
-        } else if (searchRequest.getUserId() != null) {
-            // Truy xuất các khoản vay theo người dùng cụ thể
-            bookLoanPage = bookLoanRepository.findByUserId(searchRequest.getUserId(), pageable);
-        } else if (searchRequest.getBookId() != null) {
-            // Truy xuất các khoản cho mượn theo một cuốn sách cụ thể
-            bookLoanPage = bookLoanRepository.findByBookId(searchRequest.getBookId(), pageable);
-        } else if (searchRequest.getStatus() != null) {
-            // Truy xuất các khoản vay theo trạng thái khoản vay
-            bookLoanPage = bookLoanRepository.findByStatus(searchRequest.getStatus(), pageable);
-        } else if (searchRequest.getStartDate() != null && searchRequest.getEndDate() != null) {
-            // Truy xuất các khoản vay trong khoảng thời gian nhất định
-            bookLoanPage = bookLoanRepository.findBookLoansByDateRange(
-                    searchRequest.getStartDate(),
-                    searchRequest.getEndDate(),
-                    pageable
-            );
-        } else {
-            // Không thanh toán: Hoàn trả tất cả các khoản vay
-            bookLoanPage = bookLoanRepository.findAll(pageable);
-        }
+        // Apply every supplied filter before pagination; EXISTS prevents duplicate loans.
+        Page<BookLoan> bookLoanPage = bookLoanRepository.searchWithFilters(
+                searchRequest.getUserId(), searchRequest.getBookId(), searchRequest.getStatus(),
+                searchRequest.getStartDate(), searchRequest.getEndDate(),
+                Boolean.TRUE.equals(searchRequest.getOverdueOnly()),
+                Boolean.TRUE.equals(searchRequest.getUnpaidFinesOnly()),
+                LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")), pageable);
 
         // 3 Chuyển đổi các thực thể (entities)
         // thành các DTO và bao gói chúng trong một đối tượng phản hồi (response object)

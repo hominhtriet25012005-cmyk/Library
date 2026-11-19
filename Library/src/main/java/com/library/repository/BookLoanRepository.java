@@ -16,6 +16,30 @@ import java.util.List;
 
 public interface BookLoanRepository extends JpaRepository<BookLoan, Long> {
 
+    @Query("""
+        SELECT bl FROM BookLoan bl
+        WHERE (:userId IS NULL OR bl.user.id = :userId)
+          AND (:bookId IS NULL OR bl.book.id = :bookId)
+          AND (:status IS NULL OR bl.status = :status)
+          AND (:startDate IS NULL OR bl.checkoutDate >= :startDate)
+          AND (:endDate IS NULL OR bl.checkoutDate <= :endDate)
+          AND (:overdueOnly = false OR
+               (bl.dueDate < :today AND bl.status IN ('CHECKED_OUT', 'OVERDUE')))
+          AND (:unpaidFinesOnly = false OR EXISTS (
+               SELECT f.id FROM Fine f WHERE f.bookLoan.id = bl.id
+               AND f.status IN ('PENDING', 'PARTIALLY_PAID') AND f.amount > f.amountPaid))
+        """)
+    Page<BookLoan> searchWithFilters(
+            @Param("userId") Long userId,
+            @Param("bookId") Long bookId,
+            @Param("status") BookLoanStatus status,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("overdueOnly") boolean overdueOnly,
+            @Param("unpaidFinesOnly") boolean unpaidFinesOnly,
+            @Param("today") LocalDate today,
+            Pageable pageable);
+
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select bl from BookLoan bl where bl.id = :id")
     java.util.Optional<BookLoan> findLockedById(@Param("id") Long id);

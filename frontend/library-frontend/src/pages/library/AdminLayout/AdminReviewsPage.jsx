@@ -96,7 +96,7 @@ const AdminReviewsPage = () => {
 
   const handleReset = () => {
     setDraft(emptyFilter);
-    setFilter(emptyFilter);
+    setFilter({ ...emptyFilter });
     setPage(0);
     setResult(null);
     setLoadError("");
@@ -162,7 +162,6 @@ const AdminReviewsPage = () => {
       {/* Header */}
       <PageHeader
         title="Kiểm duyệt đánh giá"
-        subtitle="Quản lý và kiểm duyệt các bài nhận xét, xếp hạng sách từ độc giả để bảo đảm tiêu chuẩn cộng đồng"
         badge={
           result?.totalElements ? `${result.totalElements} đánh giá` : undefined
         }

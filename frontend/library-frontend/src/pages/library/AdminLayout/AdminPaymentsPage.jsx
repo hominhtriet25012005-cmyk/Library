@@ -32,7 +32,10 @@ import PendingActionsRoundedIcon from "@mui/icons-material/PendingActionsRounded
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import SyncRoundedIcon from "@mui/icons-material/SyncRounded";
 
-import { adminFinanceApi, canReconcilePayment } from "../../../api/adminFinance";
+import {
+  adminFinanceApi,
+  canReconcilePayment,
+} from "../../../api/adminFinance";
 import { paymentsEnabled } from "../Payments/paymentRules";
 import {
   PageHeader,
@@ -260,7 +263,6 @@ const AdminPaymentsPage = () => {
       {/* Header */}
       <PageHeader
         title="Quản lý thanh toán"
-        subtitle="Đối soát và theo dõi toàn bộ giao dịch thanh toán trực tuyến qua cổng PayOS"
         badge={
           result?.totalElements
             ? `${result.totalElements} giao dịch`

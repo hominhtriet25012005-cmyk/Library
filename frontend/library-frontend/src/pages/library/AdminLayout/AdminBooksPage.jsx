@@ -774,6 +774,8 @@ const AdminBooksPage = () => {
   };
 
   const handleSearchSubmit = () => {
+    // Repeating the same search must still start a request if loading is enabled.
+    setReload((value) => value + 1);
     setLoading(true);
     setError("");
     setPage(0);
@@ -799,7 +801,6 @@ const AdminBooksPage = () => {
     >
       <PageHeader
         title="Quản lý sách"
-        subtitle="Tra cứu danh mục, thêm mới, cập nhật thông tin và quản lý ẩn/hiện đầu sách."
         action={
           <Button
             variant="contained"

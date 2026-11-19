@@ -485,7 +485,6 @@ const AdminGenresPage = () => {
     >
       <PageHeader
         title="Quản lý thể loại"
-        subtitle="Quản lý danh mục và cấu trúc phân cấp thể loại sách trong hệ thống."
         action={
           <Button
             variant="contained"

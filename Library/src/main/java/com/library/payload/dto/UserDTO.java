@@ -45,4 +45,7 @@ public class UserDTO {
     private String username;
 
     private LocalDateTime lastLogin;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private Boolean verified;
 }

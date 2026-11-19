@@ -47,6 +47,7 @@ const UserSettingsPage = lazy(
 
 // Auth Pages (Lazy Chunks)
 const LoginPage = lazy(() => import("./pages/library/Auth/LoginPage"));
+const VerifyEmailPage = lazy(() => import("./pages/library/Auth/VerifyEmailPage"));
 const RegisterPage = lazy(() => import("./pages/library/Auth/RegisterPage"));
 const ForgotPasswordPage = lazy(
   () => import("./pages/library/Auth/ForgotPasswordPage"),
@@ -96,6 +97,7 @@ function App() {
         </Route>
 
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />

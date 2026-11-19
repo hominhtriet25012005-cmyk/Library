@@ -846,12 +846,16 @@ CREATE TABLE IF NOT EXISTS wishlists (
         UNIQUE (user_id, book_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Existing databases: apply once, only if is_anonymous is absent (CREATE IF NOT EXISTS does not add columns):
+-- ALTER TABLE book_reviews ADD COLUMN is_anonymous BOOLEAN NOT NULL DEFAULT FALSE;
+-- Previous browser-only anonymous preferences cannot be recovered from the database.
 CREATE TABLE IF NOT EXISTS book_reviews (
     id BIGINT NOT NULL AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
     book_id BIGINT NOT NULL,
     rating INT NOT NULL,
     review_text VARCHAR(2000) NULL,
+    is_anonymous BOOLEAN NOT NULL DEFAULT FALSE,
     title VARCHAR(200) NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -877,6 +881,26 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     CONSTRAINT fk_password_reset_tokens_user FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Payment target contract: MEMBERSHIP -> subscription only; FINE -> fine + loan only.
+-- Existing databases: CREATE IF NOT EXISTS will not retrofit the CHECK below.
+-- Before adding it, inspect existing violations (do not delete payment history):
+-- SELECT id, payment_type, subscription_id, fine_id, book_loan_id
+-- FROM library_db1.payments
+-- WHERE NOT (
+--   (payment_type = 'MEMBERSHIP' AND subscription_id IS NOT NULL
+--      AND fine_id IS NULL AND book_loan_id IS NULL)
+--   OR (payment_type = 'FINE' AND subscription_id IS NULL
+--      AND fine_id IS NOT NULL AND book_loan_id IS NOT NULL)
+-- );
+-- Once violations have been resolved, add ONLY IF the constraint is absent:
+-- ALTER TABLE library_db1.payments ADD CONSTRAINT chk_payments_target CHECK (
+--   (payment_type = 'MEMBERSHIP' AND subscription_id IS NOT NULL
+--      AND fine_id IS NULL AND book_loan_id IS NULL)
+--   OR (payment_type = 'FINE' AND subscription_id IS NULL
+--      AND fine_id IS NOT NULL AND book_loan_id IS NOT NULL)
+-- );
+-- This CHECK enforces target shape. Cross-table ownership and fine/loan identity
+-- remain checked by the payment services; individual FKs enforce existence.
 CREATE TABLE IF NOT EXISTS payments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -968,6 +992,17 @@ CREATE TABLE IF NOT EXISTS payments (
             payment_type IN ('FINE', 'MEMBERSHIP')
         ),
 
+    CONSTRAINT chk_payments_target
+        CHECK (
+            (payment_type = 'MEMBERSHIP'
+                AND subscription_id IS NOT NULL
+                AND fine_id IS NULL AND book_loan_id IS NULL)
+            OR
+            (payment_type = 'FINE'
+                AND subscription_id IS NULL
+                AND fine_id IS NOT NULL AND book_loan_id IS NOT NULL)
+        ),
+
     CONSTRAINT chk_payments_status
         CHECK (
             status IN (
@@ -985,3 +1020,8 @@ CREATE TABLE IF NOT EXISTS payments (
             gateway = 'PAYOS'
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+ALTER TABLE library_db1.book_reviews
+ADD COLUMN is_anonymous BOOLEAN NOT NULL DEFAULT FALSE;
+
+

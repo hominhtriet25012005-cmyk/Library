@@ -7,6 +7,8 @@ const initialState = (scope) => ({
   unreadCount: 0,
   error: "",
   loading: true,
+  page: 0,
+  totalPages: 0,
 });
 
 export const useNotifications = ({
@@ -14,12 +16,20 @@ export const useNotifications = ({
   scope = "current-user",
 } = {}) => {
   const [state, setState] = useState(() => initialState(scope));
+  const [selection, setSelection] = useState({ scope, page: 0 });
+  const selectedPage = selection.scope === scope ? selection.page : 0;
   const requestController = useRef(null);
   const matchesScope = state.scope === scope;
-  const notifications = matchesScope ? state.notifications : [];
+  const notifications = matchesScope && state.page === selectedPage ? state.notifications : [];
   const unreadCount = matchesScope ? state.unreadCount : 0;
   const error = matchesScope ? state.error : "";
-  const loading = enabled && (!matchesScope || state.loading);
+  const loading = enabled && (!matchesScope || state.loading || state.page !== selectedPage);
+  const totalPages = matchesScope ? state.totalPages : 0;
+  const changePage = (nextPage) => {
+    if (!enabled || loading || !Number.isInteger(nextPage) || nextPage < 0 ||
+        nextPage >= totalPages || nextPage === selectedPage) return;
+    setSelection({ scope, page: nextPage });
+  };
 
   const refresh = useCallback(async () => {
     requestController.current?.abort();
@@ -35,12 +45,18 @@ export const useNotifications = ({
     }));
     try {
       const [page, count] = await Promise.all([
-        notificationsApi.list({ page: 0, size: 20 }, { signal: controller.signal }),
+        notificationsApi.list({ page: selectedPage, size: 20 }, { signal: controller.signal }),
         notificationsApi.unreadCount({ signal: controller.signal }),
       ]);
       if (controller.signal.aborted) return;
+      if (selectedPage > 0 && selectedPage >= page.totalPages) {
+        setSelection({ scope, page: Math.max(0, page.totalPages - 1) });
+        return;
+      }
       setState({
         scope,
+        page: selectedPage,
+        totalPages: page.totalPages,
         notifications: page.content,
         unreadCount: count,
         error: "",
@@ -52,12 +68,14 @@ export const useNotifications = ({
       setState((current) => ({
         ...(current.scope === scope ? current : initialState(scope)),
         error: requestError?.message || "Không tải được thông báo.",
+        page: selectedPage,
+        notifications: current.scope === scope && current.page === selectedPage ? current.notifications : [],
         loading: false,
       }));
     } finally {
       if (requestController.current === controller) requestController.current = null;
     }
-  }, [enabled, scope]);
+  }, [enabled, scope, selectedPage]);
 
   useEffect(() => {
     void refresh();
@@ -144,5 +162,6 @@ export const useNotifications = ({
     }
   }, [scope]);
 
-  return { notifications, unreadCount, error, loading, refresh, markAsRead, markAllAsRead };
+  return { notifications, unreadCount, error, loading, refresh, markAsRead, markAllAsRead,
+    page: selectedPage, totalPages, changePage };
 };

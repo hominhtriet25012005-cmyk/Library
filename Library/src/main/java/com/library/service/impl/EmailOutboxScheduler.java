@@ -21,6 +21,7 @@ public class EmailOutboxScheduler {
     private final EmailOutboxDispatchService dispatchService;
     private final EmailService emailService;
     private final VerificationEmailComposer verificationEmailComposer;
+    private final LoanReminderDeliveryService loanReminderDeliveryService;
 
     @Value("${spring.mail.username:}")
     private String mailUsername;
@@ -54,6 +55,10 @@ public class EmailOutboxScheduler {
             EmailOutbox outbox = dispatchService.claimNext(workerId, LocalDateTime.now(BUSINESS_ZONE)).orElse(null);
             if (outbox == null) return;
             try {
+                if (LoanReminderDeliveryService.supports(outbox.getEventType())) {
+                    loanReminderDeliveryService.deliver(outbox.getId(), workerId);
+                    continue;
+                }
                 String body = verificationEmailComposer.bodyFor(outbox);
                 emailService.sendEmail(outbox.getRecipientEmail(), outbox.getSubject(), body);
                 dispatchService.markSent(outbox.getId(), workerId, LocalDateTime.now(BUSINESS_ZONE));

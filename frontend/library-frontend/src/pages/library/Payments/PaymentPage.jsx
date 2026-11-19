@@ -26,18 +26,47 @@ import {
   paymentsEnabled,
   readReturnOrderCode,
   validateSnapshot,
+  checkoutUrl,
 } from "./paymentRules.js";
 import StatusChip from "../../../components/common/StatusChip";
 
 const PaymentDetails = ({ paymentId, returned }) => {
   const cached = paymentSession.get(paymentId);
   const [snapshot, setSnapshot] = useState(null);
+  const [recoveredCheckout, setRecoveredCheckout] = useState(null);
+  const [recoveryError, setRecoveryError] = useState("");
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryVersion, setRecoveryVersion] = useState(0);
   const [loading, setLoading] = useState(Boolean(paymentId));
   const [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0);
   const [reconciling, setReconciling] = useState(false);
   const reconcilingRef = useRef(false);
   const requestVersion = useRef(0);
+
+  useEffect(() => {
+    if (!paymentId || !paymentsEnabled) return;
+    const controller = new AbortController();
+    setRecovering(true);
+    setRecoveredCheckout(null);
+    setRecoveryError("");
+    paymentsApi.resume(paymentId, { signal: controller.signal })
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        const current = validateSnapshot(result.payment, paymentId);
+        ++requestVersion.current;
+        setSnapshot(current);
+        setLoading(false);
+        setRecoveredCheckout(checkoutUrl(result.checkoutUrl));
+      })
+      .catch((failure) => {
+        if (!controller.signal.aborted) setRecoveryError(
+          failure.message || "Chưa thể khôi phục đơn. Vui lòng thử lại; không tạo đơn khác.",
+        );
+      })
+      .finally(() => { if (!controller.signal.aborted) setRecovering(false); });
+    return () => controller.abort();
+  }, [paymentId, recoveryVersion]);
 
   useEffect(() => {
     if (!paymentId) return;
@@ -111,8 +140,10 @@ const PaymentDetails = ({ paymentId, returned }) => {
     snapshot?.fineId || cached?.kind === "fine"
       ? "/user/my-fines"
       : "/user/subscriptions";
-  const matchingCache =
-    snapshot && cached?.amount === Number(snapshot.amount) ? cached : null;
+  const matchingCache = snapshot?.status === "PENDING" && recoveredCheckout && !recovering && !recoveryError
+    ? { checkoutUrl: recoveredCheckout,
+        qrCode: cached?.amount === Number(snapshot.amount) ? cached.qrCode : null }
+    : null;
 
   return (
     <Box
@@ -243,6 +274,12 @@ const PaymentDetails = ({ paymentId, returned }) => {
 
             {snapshot && (
               <>
+                {recovering && <Alert severity="info">Đang khôi phục đơn thanh toán...</Alert>}
+                {recoveryError && <Alert severity="warning" action={
+                  <Button color="inherit" onClick={() => setRecoveryVersion((value) => value + 1)}>
+                    Thử khôi phục lại
+                  </Button>
+                }>{recoveryError}</Alert>}
                 <Alert severity={view.severity} sx={{ borderRadius: 2 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {view.label}

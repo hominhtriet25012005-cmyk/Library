@@ -25,6 +25,18 @@ public class EmailVerificationController {
     private static final String HTML_TYPE = "text/html;charset=UTF-8";
     private final EmailVerificationService emailVerificationService;
 
+    public record VerifyEmailRequest(String token) {}
+
+    @PostMapping(value = "/verify-email", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ApiResponse> confirmEmailJson(@RequestBody VerifyEmailRequest request) {
+        if (emailVerificationService.verify(request.token())) {
+            return ResponseEntity.ok(new ApiResponse("Email đã được xác minh thành công.", true));
+        }
+        return ResponseEntity.badRequest().body(new ApiResponse(
+                "Liên kết không hợp lệ, đã hết hạn hoặc đã được sử dụng. Vui lòng yêu cầu gửi lại email xác minh.", false));
+    }
+
     @PostMapping("/verification-email")
     public ResponseEntity<ApiResponse> requestVerificationEmail(
             @Valid @RequestBody ForgotPasswordRequest request) {

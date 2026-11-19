@@ -93,7 +93,7 @@ public class BookLoanController {
 
     @PostMapping("/search")
     public ResponseEntity<?> getAllBookLoans(
-            @RequestBody BookLoanSearchRequest searchRequest) throws Exception {
+            @jakarta.validation.Valid @RequestBody BookLoanSearchRequest searchRequest) throws Exception {
 
         PageResponse<BookLoanDTO> bookLoans = bookLoanService
                 .getBookLoans(searchRequest);

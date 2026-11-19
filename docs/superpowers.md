@@ -1181,7 +1181,7 @@ phản hồi giao diện.
 
 | Nghiệp vụ | Mã nguồn phát hiện | Kết luận truy vết |
 |---|---|---|
-| Login/JWT/API error | `AUD2-BE-01`, `AUD2-BE-02`, `AUD3-FE-01` | BE-01 đã có exception nghiệp vụ, mã lỗi ổn định và mapping 404/409 cho plan/wishlist/user; BE-02 còn cần chuẩn hóa credential sai, FE-01 còn cần giữ phiên khi chỉ lỗi mạng/5xx. |
+| Login/JWT/API error | `AUD2-BE-01`, `AUD2-BE-02`, `AUD3-FE-01` | BE-01 đã có exception nghiệp vụ, mã lỗi ổn định và mapping 404/409 cho plan/wishlist/user; BE-02 đã chuẩn hóa credential sai; FE-01 đã sửa source để giữ phiên khi lỗi mạng/5xx, còn chờ kiểm chứng runtime. |
 | Chi tiết sách | `AUD3-FE-04`, `AUD3-FE-05` | UI có thể giữ dữ liệu sách cũ và suy luận eligibility/thống kê từ trang đầu. |
 | Xóa gói | `AUD2-BE-04` | Đã đồng bộ: xóa cứng khi chưa có lịch sử; có lịch sử trả 409, giữ trạng thái và toàn bộ lịch sử; FK vẫn bảo toàn tham chiếu. |
 | Payment target | `AUD1-DB-02`, `AUD1-DB-03` | Schema cần contract mục tiêu payment rõ hơn và ngăn nhiều order chưa kết thúc cho cùng đối tượng. |
@@ -1401,7 +1401,7 @@ Phạm vi: tổng hợp kết quả AUD-0 đến AUD-6 hiện có; không sửa 
 |---|---|---|
 | Database | `AUD1-DB-01` — contract nhận xét đánh giá; `AUD1-DB-02` — payment chưa ràng buộc đúng mục tiêu; `AUD1-DB-03` — CHECK gói thành viên; `AUD1-DB-05` — file tạo schema mới nhưng không nâng cấp schema cũ. | DB-01 đã đồng bộ trong source/canonical DDL; chủ dự án xác nhận cột `review_text` live nullable, CHECK live chưa được đọc lại. DB-03 đã đồng bộ source/canonical DDL nhưng live chưa xác nhận. DB-02 và DB-05 còn là việc thiết kế/kiểm chứng. |
 | Backend | `AUD2-BE-01` — exception nghiệp vụ có thể thành HTTP 500; `AUD2-BE-02` — đăng nhập sai có phản hồi khác nhau; `AUD2-BE-03` — quyền đánh giá chỉ nhận `RETURNED`; `AUD2-BE-04` — xóa gói và bảo toàn lịch sử chưa thống nhất; `AUD2-BE-05` — phân trang/sort thiếu validation đồng đều; `AUD2-BE-06` — retry payment payOS cuối vòng đời chưa an toàn. | BE-01 đã xử lý source và có test tập trung; BE-02 đã sửa source theo contract HTTP 401/thông báo/mã lỗi chung; BE-03 đã đồng bộ review terminal states; BE-04 đã đồng bộ Backend/Frontend/docs; BE-05 đã đồng bộ validation/source, còn chờ kiểm chứng. BE-06 đã triển khai và 42 test payOS mục tiêu đạt. |
-| Frontend | `AUD3-FE-01` — lỗi mạng/5xx có thể xóa phiên hợp lệ; `AUD3-FE-02` — cài đặt thông báo chỉ lưu local; `AUD3-FE-03` — lời hứa đánh giá ẩn danh không được bảo vệ ở response Backend; `AUD3-FE-04` — dữ liệu chi tiết cũ có thể còn sau khi đổi sách và request lỗi; `AUD3-FE-05` — số liệu/điều kiện thao tác suy từ trang dữ liệu đầu. | Chưa có kiểm tra browser/component để chứng minh hành vi khi chạy. FE-03 là rủi ro quyền riêng tư, không chỉ vấn đề thẩm mỹ. |
+| Frontend | `AUD3-FE-01` — lỗi mạng/5xx có thể xóa phiên hợp lệ; `AUD3-FE-02` — cài đặt thông báo chỉ lưu local; `AUD3-FE-03` — lời hứa đánh giá ẩn danh không được bảo vệ ở response Backend; `AUD3-FE-04` — dữ liệu chi tiết cũ có thể còn sau khi đổi sách và request lỗi; `AUD3-FE-05` — số liệu/điều kiện thao tác suy từ trang dữ liệu đầu. | FE-01 đã được sửa ở source sau AUD-7; còn cần xác minh hành vi trên trình duyệt/test phù hợp. Các mục FE-02–FE-05 chưa được giải quyết trong đợt này. FE-03 là rủi ro quyền riêng tư, không chỉ vấn đề thẩm mỹ. |
 | Business/API docs | `AUD4-BL-01` — phần API trong tài liệu gốc còn payload/endpoint cũ. | Cần sửa tài liệu theo hợp đồng đã chốt trước khi dùng tài liệu làm hướng dẫn triển khai mới. |
 | UI/UX | `AUD5-UX-01` — trường xác thực thiếu accessible name; `AUD5-UX-02` — nhiều thao tác ADMIN yêu cầu ID Database thô. | Audit tĩnh; kiểm tra screen reader/keyboard và khả năng vận hành thực tế còn thiếu. |
 
@@ -1431,7 +1431,7 @@ Phạm vi: tổng hợp kết quả AUD-0 đến AUD-6 hiện có; không sửa 
 |---|---|---|
 | `R0 — Hoàn tất baseline kiểm chứng` | Chốt phần còn lại của `AUD-6`: xác nhận schema MySQL chỉ đọc (đúng `library_db1`), tạo/sử dụng riêng Database `_test` cho contract, bật Frontend để kiểm tra browser/E2E. Rà lại các quyết định D01–D03 bên dưới. | Có bằng chứng schema/runtime đúng môi trường; không chạy test ghi vào DB vận hành. Nếu chưa có DB test hoặc browser, giữ mục tương ứng ở trạng thái BLOCKED thay vì suy ra pass. |
 | `R1 — Tính toàn vẹn dữ liệu và thanh toán` | `AUD1-DB-01/02/03/05`, `AUD2-BE-06`; kiểm tra ràng buộc mục tiêu payment theo `payment_type`, retry trạng thái cuối payOS, điều kiện gói VND dương và quy trình ALTER thủ công cho schema đã tồn tại. | Retry trạng thái cuối payOS đã triển khai và có test mục tiêu. Phần còn lại cần ma trận payment–FK, test âm tính trên `_test`; schema live chỉ được sửa sau khi đối chiếu metadata, sao lưu và duyệt câu ALTER cụ thể. DB-01: `review_text` nullable đã được chủ dự án xác nhận; chỉ kiểm tra CHECK live nếu lỗi còn tái hiện. DB-03 vẫn cần xác minh live. Không sửa lại phần source đã đồng bộ nếu không có bằng chứng lệch. |
-| `R2 — Đăng nhập và quyền riêng tư` | `AUD2-BE-02`, `AUD3-FE-01/03`; BE-02 đã chuẩn hóa lỗi đăng nhập trong source; giữ phiên khi lỗi mạng/5xx, bảo đảm lựa chọn ẩn danh được thực thi ở Backend hoặc bỏ lời hứa khỏi giao diện. `AUD2-BE-01` đã xử lý source, còn chờ kiểm chứng toàn bộ. | Còn test HTTP cho email không tồn tại/sai mật khẩu, test session theo 401 so với lỗi mạng/5xx, và test response review không lộ danh tính khi ẩn danh. |
+| `R2 — Đăng nhập và quyền riêng tư` | `AUD2-BE-02`, `AUD3-FE-01/03`; BE-02 đã chuẩn hóa lỗi đăng nhập trong source; FE-01 đã sửa source để giữ phiên khi lỗi mạng/5xx và chỉ xóa phiên khi nhận 401; bảo đảm lựa chọn ẩn danh được thực thi ở Backend hoặc bỏ lời hứa khỏi giao diện. `AUD2-BE-01` đã xử lý source, còn chờ kiểm chứng toàn bộ. | Còn kiểm chứng trình duyệt/test phiên theo 401 so với lỗi mạng/5xx; test HTTP cho email không tồn tại/sai mật khẩu; và test response review không lộ danh tính khi ẩn danh. |
 | `R3 — Chốt nghiệp vụ và hợp đồng API` | `AUD2-BE-03/04/05`, `AUD4-BL-01`; đồng bộ quy tắc review terminal states, xóa gói có lịch sử, validation pagination/sort và tài liệu API canonical. | BE-03/04 đã đồng bộ source; BE-05 đã đồng bộ validation/source, còn chờ kiểm chứng. Một số nội dung API canonical còn việc; dữ liệu lịch sử phải được giữ nguyên. |
 | `R4 — Độ tin cậy luồng USER` | `AUD3-FE-02/04/05`; loại bỏ hoặc thực thi thật các công tắc thông báo, reset state theo `bookId`, dùng API summary/eligibility thay cho suy luận từ trang đầu. | Component/API tests chứng minh đổi route không để dữ liệu sách cũ và thống kê/điều kiện thao tác không sai do phân trang. |
 | `R5 — Vận hành ADMIN và khả năng tiếp cận` | `AUD5-UX-01/02/03/04`; nhãn input/accessibility, cách chọn người/sách thay ID thô, bàn phím/focus và chuẩn hóa tiếng Việt. | Kiểm tra keyboard/accessibility và các biểu mẫu ADMIN trên browser, gồm màn hình nhỏ và zoom. |
@@ -1448,6 +1448,17 @@ Phạm vi: tổng hợp kết quả AUD-0 đến AUD-6 hiện có; không sửa 
 
 - Đã gom các phát hiện theo mức độ, phân biệt việc đã đồng bộ source với việc chưa xác nhận trên MySQL/browser, và đề xuất thứ tự sửa `R0`–`R6`.
 - Không có code, cấu hình, schema hoặc dữ liệu nào bị sửa trong AUD-7; chỉ cập nhật tài liệu context này.
+
+## 19. Tiến độ xử lý sau AUD-7
+
+### `AUD3-FE-01` — ĐÃ SỬA SOURCE, CHỜ KIỂM CHỨNG RUNTIME
+
+- `AuthProvider` giữ JWT khi tải hồ sơ gặp lỗi mạng hoặc lỗi không phải `401`; chỉ xóa phiên khi nhận `401`.
+- Khi hồ sơ chưa tải được, các route cần đăng nhập hiển thị trạng thái thử lại thay vì điều hướng người dùng về đăng nhập.
+- Login/Register phân biệt lỗi xác thực với lỗi tải hồ sơ sau khi xác thực; nếu tải hồ sơ lỗi tạm thời, giao diện cho phép thử lại bằng JWT hiện có.
+- Kiểm tra đã chạy: production build thành công; ESLint trên bốn file thay đổi đạt; `git diff --check` đạt.
+- `npm run lint` toàn Frontend vẫn thất bại do 21 lỗi lint hiện có ở các file khác; không chạy test trong bước này.
+- Còn lại: xác minh trên trình duyệt lỗi mạng/HTTP 5xx giữ JWT, thao tác thử lại nạp được hồ sơ, và HTTP 401 xóa phiên rồi yêu cầu đăng nhập lại.
 - AUD-7 hoàn tất với giới hạn bằng chứng của AUD-6. AUD-6 vẫn **chưa hoàn tất**, do đó chưa tuyên bố toàn Project đã nghiệm thu runtime/E2E.
 - Chưa bắt đầu các nhóm sửa `R1`–`R6`; cần duyệt phạm vi từng nhóm trước khi thay đổi code hoặc Database.
 
