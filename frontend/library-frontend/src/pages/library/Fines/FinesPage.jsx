@@ -147,7 +147,6 @@ const FinesPage = () => {
       {/* Header */}
       <PageHeader
         title="Tiền phạt "
-        subtitle="Theo dõi chi tiết các khoản phí phạt phát sinh do trễ hạn mượn hoặc hư tổn tài liệu thư viện."
         icon={ReceiptLongRoundedIcon}
         badge={fines.length ? `${fines.length} khoản phạt` : undefined}
       />

@@ -202,7 +202,8 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
         setGenreError("");
       })
       .catch((error) => {
-        if (!controller.signal.aborted && error.name !== "AbortError") setGenreError(error.message);
+        if (!controller.signal.aborted && error.name !== "AbortError")
+          setGenreError(error.message);
       });
     return () => controller.abort();
   }, [preview, retry]);
@@ -236,7 +237,8 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
             setCatalogError("");
           })
           .catch((error) => {
-            if (!controller.signal.aborted && error.name !== "AbortError") setCatalogError(error.message);
+            if (!controller.signal.aborted && error.name !== "AbortError")
+              setCatalogError(error.message);
           })
           .finally(() => {
             if (!controller.signal.aborted) setLoading(false);
@@ -271,7 +273,12 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
 
   const handleSortChange = (value) => {
     const [field, direction] = value.split("-");
-    if (field === sortBy && direction.toUpperCase() === sortDirection && page === 0) return;
+    if (
+      field === sortBy &&
+      direction.toUpperCase() === sortDirection &&
+      page === 0
+    )
+      return;
     setSortBy(field);
     setSortDirection(direction.toUpperCase());
     setPage(0);
@@ -318,11 +325,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
       }}
     >
       {/* Header */}
-      <PageHeader
-        title="Khám phá kho sách"
-        subtitle="Tìm kiếm theo thể loại, tác giả và tình trạng mượn trả từ kho tài nguyên thư viện"
-        icon={AutoStoriesRoundedIcon}
-      />
+      <PageHeader title="Khám phá kho sách" icon={AutoStoriesRoundedIcon} />
 
       {/* Main Content Layout */}
       <Box
@@ -384,7 +387,8 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
               <Select
                 value={availabilityFilter}
                 onChange={(e) => {
-                  if (e.target.value === availabilityFilter && page === 0) return;
+                  if (e.target.value === availabilityFilter && page === 0)
+                    return;
                   setAvailabilityFilter(e.target.value);
                   setPage(0);
                   if (!preview) setLoading(true);

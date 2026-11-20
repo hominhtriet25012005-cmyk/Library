@@ -624,18 +624,18 @@ Trả về `Page<GenreDTO>`.
 
 ## 📚 Tổng quan
 
-Module **Book Loan** quản lý toàn bộ vòng đời mượn sách, từ lúc checkout đến lúc trả sách và xử lý quá hạn.
+Module **Book Loan** lưu lượt mượn thực tế sau khi ADMIN giao sách, tiếp nhận sách trả và theo dõi quá hạn. Trước lúc giao, USER tạo yêu cầu qua `Reservation`; yêu cầu này chưa phải lượt mượn.
 
-Người dùng có thể mượn sách; hệ thống tự động theo dõi hạn trả, số lần gia hạn, trạng thái quá hạn và tiền phạt. Admin có thể quản lý các khoản mượn của người dùng, cập nhật bản ghi và phân tích xu hướng mượn sách.
+Ngày mượn và hạn trả chỉ bắt đầu khi ADMIN xác nhận giao một reservation `AVAILABLE`. Hệ thống tự cập nhật quá hạn; ADMIN trực tiếp kiểm tra và check-in sách khi USER đem trả.
 
 ## 🎯 Chức năng
 
-### 1. Mượn sách (Checkout)
+### 1. Đăng ký mượn và nhận sách
 
-- User và admin có thể checkout sách.
-- Admin có thể cấp sách cho bất kỳ user nào.
-- Kiểm tra sách còn sẵn trước khi cho mượn.
-- Tự động gán hạn trả theo chính sách.
+- USER tạo yêu cầu bằng `POST /api/reservations`; sách còn bản được giữ và chuyển `AVAILABLE`, còn hết bản sẽ vào hàng chờ `PENDING`.
+- Chỉ ADMIN xác nhận giao một reservation `AVAILABLE` còn hạn. Backend chuyển reservation sang `FULFILLED` và tạo đúng một `BookLoan`.
+- Tồn kho đã giảm khi reservation được giữ bản; lúc ADMIN giao, không trừ bản lần nữa.
+- Hai endpoint checkout trực tiếp cũ trả HTTP `410 Gone`; không dùng để tạo lượt mượn.
 
 ### 2. Trả sách (yêu cầu trả và ADMIN check-in)
 
@@ -648,7 +648,7 @@ Người dùng có thể mượn sách; hệ thống tự động theo dõi hạ
 - Nếu quá hạn, hệ thống tạo phạt `min(số ngày trễ × 5.000đ, giá tham chiếu của sách)`. Hư hỏng nhẹ
   phạt 25% giá tham chiếu; hư hỏng nặng 75%; mất sách 100% giá tham chiếu + 20.000đ phí xử lý.
   ADMIN xác nhận tình trạng; USER xem và thanh toán khoản phạt qua payOS.
-- Chi tiết trạng thái/API/schema và giới hạn nghiệm thu xem tại [`docs/fix-returnbook.md`](fix-returnbook.md).
+- Chi tiết trạng thái/API/schema và kết quả nghiệm thu xem tại [`docs/fix-loan-return.md`](fix-loan-return.md).
 
 ### 3. Quản lý gia hạn
 
@@ -658,14 +658,13 @@ Người dùng có thể mượn sách; hệ thống tự động theo dõi hạ
 
 ### 4. Theo dõi và truy vấn khoản mượn
 
-- Lấy chi tiết khoản mượn theo loan ID.
-- Liệt kê theo user hoặc cấp admin.
-- Lọc theo trạng thái như ACTIVE, OVERDUE, RETURNED…
-- Hỗ trợ phân trang và tìm kiếm với bộ lọc.
+- USER xem lịch sử của mình bằng `GET /api/book-loans/my`.
+- ADMIN tìm các lượt mượn bằng `POST /api/book-loans/search` và xem nhóm chờ nhận trả.
+- Hỗ trợ phân trang và tìm kiếm theo bộ lọc được API công bố.
 
 ### 5. Theo dõi quá hạn và tiền phạt
 
-- Tự động đánh dấu quá hạn bằng scheduler hoặc thao tác admin.
+- Tự động đánh dấu quá hạn bằng scheduler; API ADMIN cũ vẫn tồn tại để hỗ trợ chuyển tiếp.
 - Theo dõi số ngày quá hạn động.
 - Theo dõi tiền phạt thông qua collection `Fine` liên kết.
 
@@ -685,11 +684,16 @@ Người dùng có thể mượn sách; hệ thống tự động theo dõi hạ
 | `id` | Long | Auto | PK | ID khoản mượn |
 | `user` | User | ✅ | FK `user_id` | Người mượn sách |
 | `book` | Book | ✅ | FK `book_id` | Sách được mượn |
-| `type` | BookLoanType | ✅ | ENUM | Loại mượn như NORMAL, SHORT_TERM… |
-| `status` | BookLoanStatus | ✅ | ENUM | Trạng thái như CHECKED_OUT, RETURNED, OVERDUE |
+| `type` | BookLoanType | ✅ | `CHECKOUT`, `RENEWAL`, `RETURN` | Nguồn phát sinh cập nhật lượt mượn |
+| `status` | BookLoanStatus | ✅ | `CHECKED_OUT`, `RETURNED`, `OVERDUE`, `LOST`, `DAMAGED` | Trạng thái vòng đời lượt mượn |
 | `checkoutDate` | LocalDate | ✅ | - | Ngày mượn |
 | `dueDate` | LocalDate | ✅ | - | Hạn trả |
 | `returnDate` | LocalDate | ❌ | Nullable | Ngày trả thực tế |
+| `returnRequestedAt` | LocalDateTime | ❌ | Nullable | Thời điểm USER gửi yêu cầu trả |
+| `returnRequestNote` | String(500) | ❌ | Nullable | Ghi chú yêu cầu trả |
+| `checkedInAt` | LocalDateTime | ❌ | Nullable | Thời điểm ADMIN xác nhận nhận sách |
+| `checkedInBy` | User | ❌ | FK `checked_in_by` | ADMIN thực hiện check-in |
+| `inspectionNote` | String(500) | ❌ | Nullable | Biên bản khi sách hư hỏng hoặc mất |
 | `renewalCount` | Integer | ❌ | Default: 0 | Số lần đã gia hạn |
 | `maxRenewals` | Integer | ❌ | Default: 2 | Số lần gia hạn tối đa |
 | `fines` | List<Fine> | ❌ | One-To-Many | Các khoản phạt đã/chưa thanh toán |
@@ -705,121 +709,54 @@ Người dùng có thể mượn sách; hệ thống tự động theo dõi hạ
 - `BookLoan → Book`: Many-to-One. Một sách có thể được mượn nhiều lần theo thời gian.
 - `BookLoan → Fine`: One-to-Many. Một khoản mượn có thể có nhiều khoản phạt.
 
-## 🔌 API Endpoint
+## 🔌 API Endpoint hiện hành
 
-Base URL: `/api/book-loans`
+Base URL: `/api/book-loans`. Các API ADMIN cần vai trò ADMIN; `/my` và yêu cầu trả dùng phiên USER.
 
-### 1. Mượn sách cho user đang đăng nhập
+| Method | Endpoint | Mục đích |
+| --- | --- | --- |
+| `POST` | `/api/book-loans/checkout` | Endpoint cũ; trả `410 Gone`, hướng dẫn tạo reservation |
+| `POST` | `/api/book-loans/checkout/user/{userId}` | Endpoint cấp sách cũ; trả `410 Gone` |
+| `GET` | `/api/book-loans/my?status=CHECKED_OUT&page=0&size=20` | USER đọc các lượt mượn của mình; `status` tùy chọn |
+| `POST` | `/api/book-loans/{id}/return-request` | USER gửi yêu cầu đem sách trả, body `{ "note": "..." }` |
+| `POST` | `/api/book-loans/renew` | Gia hạn; body gồm `bookLoanId`, `extensionDays` và `notes` tùy chọn |
+| `GET` | `/api/book-loans/admin/return-requests?page=0&size=20` | ADMIN xem lượt đang chờ tiếp nhận |
+| `POST` | `/api/book-loans/admin/checkin-preview` | ADMIN xem trước tiền phạt trước khi check-in |
+| `POST` | `/api/book-loans/checkin` | ADMIN ghi nhận ngày nhận, tình trạng và ghi chú kiểm tra |
+| `POST` | `/api/book-loans/search` | ADMIN tìm kiếm có phân trang và kết hợp bộ lọc |
+| `POST` | `/api/book-loans/admin/update-overdue` | API ADMIN chuyển tiếp; giao diện không còn nút chạy thủ công |
 
-`POST /api/book-loans/checkout`
-
-Hệ thống checkout sách cho user hiện đang xác thực.
-
-```json
-{
-  "bookId": 14,
-  "dueDays": 14
-}
-```
-
-Response:
-
-```json
-{
-  "id": 22,
-  "status": "CHECKED_OUT",
-  "dueDate": "2025-01-30"
-}
-```
-
-### 2. Admin cho user khác mượn sách
-
-`POST /api/book-loans/checkout/user/{userId}`
-
-```json
-{
-  "bookId": 14,
-  "dueDays": 10
-}
-```
-
-### 3. Trả sách
-
-`POST /api/book-loans/checkin`
-
-Đánh dấu khoản mượn đã trả và xử lý trạng thái quá hạn/tiền phạt nếu có.
-
-```json
-{
-  "bookLoanId": 22
-}
-```
-
-### 4. Gia hạn sách
-
-`POST /api/book-loans/renew`
-
-Gia hạn due date nếu được phép.
+Ví dụ check-in bình thường:
 
 ```json
 {
   "bookLoanId": 22,
-  "extendDays": 7
+  "condition": "RETURNED",
+  "receivedDate": "2026-11-20"
 }
 ```
 
-### 5. Lấy khoản mượn theo ID
+Với `DAMAGED`, gửi thêm `damageLevel` (`LIGHT` hoặc `SEVERE`) và `inspectionNote`; với `LOST`, `inspectionNote` là bắt buộc. Khi sách chưa có giá tham chiếu hợp lệ, ADMIN cần gửi `confirmDefaultReferencePrice: true` sau khi xác nhận dùng mức mặc định 100.000đ.
 
-`GET /api/book-loans/{id}`
-
-### 6. Lấy các khoản mượn của chính mình
-
-`GET /api/book-loans/my?status=ACTIVE&page=0&size=20`
-
-Hỗ trợ phân trang và lọc trạng thái.
-
-### 7. Admin lấy các khoản mượn của một user
-
-`GET /api/book-loans/user/{userId}?status=OVERDUE&page=0&size=20`
-
-### 8. Tìm kiếm nâng cao
-
-`POST /api/book-loans/search`
-
-Có thể lọc theo khoảng ngày, trạng thái, user, overdue, type…
-
-### 9. Admin cập nhật khoản mượn
-
-`PUT /api/book-loans/{id}`
-
-### 10. Đánh dấu các khoản quá hạn
-
-`POST /api/book-loans/admin/update-overdue`
-
-Tự động đánh dấu các khoản mượn đã quá hạn.
-
-### 11. Thống kê mượn sách
-
-`GET /api/book-loans/statistics`
-
-Trả về thống kê phục vụ dashboard.
+Scheduler mặc định chạy lúc `00:05` theo múi giờ `Asia/Ho_Chi_Minh`; có thể cấu hình bằng `LOAN_OVERDUE_ENABLED` và `LOAN_OVERDUE_CRON`. Phạt quá hạn chỉ được tính khi ADMIN check-in.
 
 ## 🔐 Quy tắc validation
 
 | Field | Quy tắc |
 | --- | --- |
-| User | Phải tồn tại và hợp lệ |
-| Book | Phải tồn tại và đang có sẵn |
-| checkoutDate | Bắt buộc khi tạo |
-| dueDate | Không được trước checkoutDate |
-| status | Phải là enum hợp lệ |
+| Reservation | Phải `AVAILABLE`, chưa hết hạn và giữ được một bản sách |
+| Subscription | Phải đang hiệu lực; quota, nợ quá hạn và lượt mượn được Backend kiểm tra |
+| checkoutDate | Backend ghi bằng ngày ADMIN xác nhận giao sách |
+| dueDate | Backend tính từ ngày giao và hạn mức gói; không trước `checkoutDate` |
+| status | Chỉ nhận trạng thái `BookLoanStatus` hợp lệ |
 
 ### Quy tắc nghiệp vụ
 
-1. Chỉ khoản mượn đang active (`CHECKED_OUT`) mới có thể gia hạn hoặc trả.
-2. Không thể gia hạn nếu đã overdue hoặc `renewalCount == maxRenewals`.
-3. Phát hiện quá hạn sẽ cập nhật `isOverdue` và `overdueDays`.
-4. Các khoản phạt vẫn có thể truy vết kể cả sau khi trả sách.
+1. ADMIN giao reservation `AVAILABLE` mới tạo `BookLoan` và bắt đầu ngày mượn.
+2. USER yêu cầu trả không tự đóng loan; ADMIN check-in mới kết thúc lượt.
+3. `RETURNED` hoàn một bản sách; `DAMAGED`/`LOST` kết thúc lượt nhưng không tăng tồn kho sẵn.
+4. Scheduler cập nhật `OVERDUE`; khoản phạt được tạo theo ngày nhận thực tế khi check-in.
+5. `RETURNED`, `DAMAGED` và `LOST` là trạng thái kết thúc; lịch sử và khoản phạt liên quan được giữ lại.
 
 ## ⚠ Xử lý lỗi
 
@@ -1112,22 +1049,13 @@ Response DTO:
 
 ## 📍 Tổng quan
 
-Module **Reservation/Hold** quản lý yêu cầu đặt giữ những sách hiện đang không có sẵn.
+Module **Reservation/Hold** quản lý yêu cầu mượn trước khi giao sách. Sách còn bản sẽ được giữ cho yêu cầu `AVAILABLE`; nếu hết bản, yêu cầu nằm ở `PENDING` trong hàng chờ. `BookLoan` chỉ được tạo khi ADMIN hoàn tất giao sách.
 
-Module triển khai hàng đợi tự động, quy tắc hết hạn, theo dõi hoàn tất và quản lý khoảng thời gian đến nhận sách.
+Vòng đời gồm phân bổ tồn kho, hàng chờ, thời hạn nhận 72 giờ, hủy/hết hạn, ADMIN giao sách và thông báo. Sách đã chuyển `AVAILABLE` được giữ một bản riêng; không được coi `availableCopies` còn lại là số bản dành cho yêu cầu đó.
 
-Hỗ trợ:
+### Điều kiện đăng ký mượn/đặt giữ
 
-- Hàng đợi nhiều user cho cùng một sách.
-- Tự động chuyển trạng thái trong vòng đời reservation.
-- Xử lý hết hạn dựa trên thời điểm sách có sẵn.
-- Tra cứu vị trí trong hàng đợi.
-- Tìm kiếm nâng cao và lọc lịch sử đầy đủ.
-- Phân tách quyền admin và user đã xác thực.
-
-### Điều kiện đặt giữ sách
-
-- USER phải có gói thành viên đang hiệu lực mới được tạo lượt đặt giữ.
+- USER phải có gói thành viên đang hiệu lực, còn hạn mức và không có sách quá hạn mới được tạo yêu cầu.
 - Backend kiểm tra lại gói còn hiệu lực khi ADMIN hoàn tất giao sách, vì gói có thể hết hạn trong lúc USER chờ đến lượt.
 - Nếu USER chưa có gói hiệu lực, giao diện hướng đến trang đăng ký gói thành viên.
 
@@ -1141,139 +1069,49 @@ Hỗ trợ:
 | `status` | ReservationStatus | Default: `PENDING` | PENDING/AVAILABLE/FULFILLED/EXPIRED/CANCELLED |
 | `reservedAt` | LocalDateTime | Required | Thời điểm tạo reservation |
 | `availableAt` | LocalDateTime | Nullable | Thời điểm sách sẵn sàng để nhận |
-| `availableUntil` | LocalDateTime | Nullable | Hạn cuối nhận sách, thường 48–72 giờ |
-| `fulfilledAt` | LocalDateTime | Nullable | Thời điểm checkout hoàn tất reservation |
+| `availableUntil` | LocalDateTime | Nullable | Hạn cuối nhận sách; hiện là 72 giờ sau khi chuyển `AVAILABLE` |
+| `fulfilledAt` | LocalDateTime | Nullable | Thời điểm ADMIN giao sách và chuyển reservation thành `FULFILLED` |
 | `cancelledAt` | LocalDateTime | Nullable | Thời điểm bị hủy hoặc hết hạn |
 | `queuePosition` | Integer | Nullable | Vị trí user trong hàng đợi |
-| `notificationSent` | Boolean | Default false | Đã gửi email thông báo nhận sách hay chưa |
+| `notificationSent` | Boolean | Default false | Cờ lưu trên bảng; sự kiện thông báo được quản lý qua hệ thống thông báo/outbox |
 | `notes` | String TEXT | Optional | Lý do hủy hoặc ghi chú admin |
 | `createdAt` | Timestamp | Auto | Thời điểm tạo |
 | `updatedAt` | Timestamp | Auto | Thời điểm cập nhật |
 
-### 🔥 Utility method đặc biệt
-
-| Method | Trả về | Mục đích |
-| --- | --- | --- |
-| `isActive()` | true nếu PENDING hoặc AVAILABLE | Chỉ hiển thị reservation hợp lệ |
-| `canBeCancelled()` | Cùng logic trên | Điều khiển nút hủy trên UI |
-| `hasExpired()` | Kiểm tra bằng `availableUntil` | Dùng cho background job tự động hết hạn |
-
 ## 🚦 Vòng đời Reservation
 
 ```text
-User yêu cầu đặt sách → PENDING
-Sách được trả → AVAILABLE (gửi email)
-User đến nhận → FULFILLED
-User không đến nhận đúng hạn → EXPIRED
-User tự hủy → CANCELLED
+USER tạo yêu cầu
+→ còn bản: giữ một bản, chuyển AVAILABLE, mở hạn nhận 72 giờ
+→ hết bản: chuyển PENDING và xếp hàng
+→ có bản được hoàn/hủy/hết hạn: hệ thống giữ bản cho người kế tiếp, chuyển AVAILABLE
+→ ADMIN giao sách: FULFILLED và tạo BookLoan CHECKED_OUT
+→ USER hủy hoặc không đến nhận: CANCELLED/EXPIRED, hoàn bản và xét người kế tiếp
 ```
 
-Hàng đợi tự động dịch chuyển khi user đầu tiên hoàn tất hoặc hủy reservation.
+Scheduler hết hạn quét mặc định mỗi 60 giây theo batch 100. Khi check-in `RETURNED`, Backend cộng một bản rồi xét hàng chờ. `DAMAGED`/`LOST` không tăng tồn kho. Các sự kiện reservation được phát qua hệ thống thông báo; email phụ thuộc cài đặt của người nhận và email outbox.
 
-### Trạng thái triển khai BE-2 (31/10/2026)
+## 🎮 REST Controller hiện hành — `/api/reservations`
 
-- Khi sách được trả bình thường, lượt `PENDING` đầu tiên chuyển sang `AVAILABLE` trong **72 giờ**.
-- Scheduler mặc định quét mỗi **60 giây**, tối đa **100** lượt mỗi lô; lượt hết hạn chuyển sang `EXPIRED` và nhường cho người kế tiếp.
-- Hủy hoặc giao thành công cũng sắp lại và chuyển hàng đợi; chỉ lượt `AVAILABLE` đứng đầu, còn hạn mới được giao.
-- Mượn thường không được lấy bản đang dành cho lượt `AVAILABLE`.
-- V1 chưa gửi email/chuông; `notificationSent` vẫn để `false`.
+| Method | Endpoint | Quyền/ý nghĩa |
+| --- | --- | --- |
+| `POST` | `/api/reservations` | USER đăng ký mượn/đặt giữ cho tài khoản đang đăng nhập |
+| `POST` | `/api/reservations/user/{userId}` | ADMIN tạo yêu cầu thay cho USER |
+| `DELETE` | `/api/reservations/{id}` | Chủ yêu cầu hoặc ADMIN hủy yêu cầu còn hoạt động |
+| `POST` | `/api/reservations/{id}/fulfill` | ADMIN giao yêu cầu `AVAILABLE` còn hạn; tạo loan |
+| `GET` | `/api/reservations/my` | USER xem lịch sử, hỗ trợ `status`, `activeOnly`, phân trang và sắp xếp |
+| `POST` | `/api/reservations/search` | ADMIN tìm kiếm bằng `ReservationSearchRequest` |
 
-## 🎮 REST Controller — `/api/reservations`
+USER phải có gói thành viên đang hiệu lực, còn hạn mức và không có lượt quá hạn mới được tạo yêu cầu. Hệ thống hiện không cung cấp các route `GET /{id}`, `GET /`, `/my/search` hoặc `/{id}/queue-position`; không tích hợp client mới với những đường dẫn này.
 
-### 1️⃣ Tạo reservation – user đã đăng nhập
-
-`POST /api/reservations`
-
-Body: `ReservationRequest`  
-Returns: `ReservationDTO`
-
-Dùng khi user đang đăng nhập muốn đặt giữ sách.
-
-### 2️⃣ Admin tạo reservation cho user cụ thể
-
-`POST /api/reservations/user/{userId}`
-
-Cho phép ADMIN tạo lượt đặt giữ thay cho USER; USER vẫn phải có gói thành viên đang hiệu lực.
-
-### 3️⃣ Hủy reservation
-
-`DELETE /api/reservations/{id}`
-
-- Chỉ hủy nếu trạng thái là `PENDING` hoặc `AVAILABLE`.
-- Service tự động cập nhật hàng đợi.
-
-### 4️⃣ Hoàn tất reservation – checkout
-
-`POST /api/reservations/{id}/fulfill`
-
-Chuyển reservation sang **FULFILLED** và loại khỏi hàng đợi.
-
-### 5️⃣ Lấy reservation theo ID
-
-`GET /api/reservations/{id}`
-
-Trả về DTO chi tiết hoặc 404 nếu không tồn tại.
-
-## 🔍 Truy vấn theo user
-
-### 6️⃣ Lấy reservation của tôi – lọc + phân trang
-
-`GET /api/reservations/my`
-
-```text
-status=PENDING|AVAILABLE|FULFILLED|CANCELLED|EXPIRED
-activeOnly=true/false
-page=0&size=20
-sortBy=reservedAt&sortDirection=DESC
-```
-
-Response: `PageResponse<ReservationDTO>`.
-
-### 7️⃣ Tìm kiếm nâng cao bằng request body – user
-
-`POST /api/reservations/my/search`
-
-Nhận `ReservationSearchRequest`; hỗ trợ lọc đầy đủ, sắp xếp và truy vấn theo khoảng thời gian.
-
-## 🔎 Truy vấn cấp Admin
-
-### 8️⃣ Tìm tất cả reservation bằng query parameter
-
-`GET /api/reservations`
-
-```text
-userId, bookId, status, activeOnly
-page, size, sortBy, sortDirection
-```
-
-### 9️⃣ Tìm kiếm nâng cao bằng POST body
-
-`POST /api/reservations/search`
-
-Phù hợp với bộ lọc trên dashboard.
-
-### 🔢 Kiểm tra vị trí hàng đợi
-
-`GET /api/reservations/{id}/queue-position`
-
-```json
-{
-  "queuePosition": 2,
-  "message": "There are 1 person(s) ahead of you"
-}
-```
-
-Hệ thống tự động trả thông báo theo ngữ cảnh.
+**Quy tắc tồn kho:** khi reservation chuyển `AVAILABLE`, số bản được giữ đã trừ khỏi `books.available_copies`. Giao thành công không trừ lần hai; hủy/hết hạn hoàn bản rồi mới kích hoạt hàng chờ tiếp theo. Gọi fulfill lặp trên reservation đã `FULFILLED` trả lại kết quả hiện tại và không tạo loan thứ hai.
 
 ## 📊 Hiệu năng và cấu trúc index
 
 | Index | Lợi ích |
 | --- | --- |
-| `idx_user_id` | Lấy lịch sử theo user nhanh |
-| `idx_book_id` | Tra cứu hàng đợi và user tiếp theo nhanh |
-| `idx_status` | Lọc tức thời theo pending/active |
-| `idx_reserved_at` | Sắp xếp theo timeline |
-| `idx_available_until` | Quét batch các reservation hết hạn bằng cron |
+| `idx_reservations_user_book_status` | Kiểm tra yêu cầu trùng theo user, sách và trạng thái |
+| `idx_reservations_book_status_queue` | Lấy hàng chờ theo sách, trạng thái và thời điểm đăng ký |
 
 ## 🚀 Điểm mạnh của module
 

@@ -58,12 +58,11 @@ const ProfilePage = () => {
     <Box sx={{ maxWidth: 960, mx: "auto", pb: 6 }}>
       <PageHeader
         title="Hồ sơ tài khoản"
-        subtitle="Xem thông tin chi tiết bạn đọc, quản lý bảo mật và phiên đăng nhập hệ thống thư viện."
         icon={PersonRoundedIcon}
       />
 
       <Stack spacing={3}>
-        {user?.verified && <EmailVerificationNotice showVerified />}
+        <EmailVerificationNotice showVerified />
         {/* BANNER THÔNG TIN NGƯỜI DÙNG */}
         <Paper
           elevation={0}

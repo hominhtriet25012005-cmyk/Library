@@ -81,8 +81,7 @@ export const canAdminCancel = (entry) =>
 
 export const canAdminFulfill = (entry) =>
   entry?.status === "AVAILABLE" &&
-  entry.queuePosition === 1 &&
-  entry.isBookAvailable === true &&
+  Boolean(entry.availableUntil) &&
   entry.expired !== true;
 
 export const createAdminReservationsApi = (client) => ({
@@ -109,7 +108,7 @@ export const createAdminReservationsApi = (client) => ({
     const reservation = checkedReservation(entry);
     if (!canAdminFulfill(reservation)) {
       throw new Error(
-        "Chỉ có thể giao lượt đặt giữ đang sẵn sàng nhận, đứng đầu hàng đợi, còn sách và chưa hết hạn.",
+        "Chỉ có thể giao yêu cầu sẵn sàng nhận còn thời hạn.",
       );
     }
     return checkedReservation(

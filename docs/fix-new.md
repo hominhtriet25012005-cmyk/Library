@@ -7,14 +7,14 @@ Trạng thái: **FN-0–FN-6 đã triển khai. FN-4–FN-6 chưa chạy test/bu
 
 Tổng hợp các điểm cần xử lý sau khi review Backend và Frontend, sắp xếp theo phụ thuộc để sửa nghiệp vụ/API trước, rồi mới đồng bộ giao diện và nghiệm thu.
 
-Tài liệu này theo dõi các việc sửa tiếp theo; không thay thế đặc tả hệ thống ở `Library_Management_System_VI.md`, kế hoạch Database ở `dbdatabase.md`, hay hồ sơ trả sách ở `fix-returnbook.md`.
+Tài liệu này theo dõi các việc sửa tiếp theo; không thay thế đặc tả hệ thống ở `Library_Management_System_VI.md`, kế hoạch Database ở `dbdatabase.md`, hay contract mượn–trả hiện hành tại `fix-loan-return.md`.
 
 ## 2. Hiện trạng liên quan
 
-- Luồng trả sách hai bước RB-1–RB-6 đã được triển khai; theo `fix-returnbook.md`, RB-7 còn chờ xác nhận lần khởi động Backend mới với `ddl-auto=validate` và nghiệm thu MySQL end-to-end trên database thử nghiệm riêng.
+- Luồng RB đã được tiếp nối bằng LR-1–LR-6. Tài liệu `fix-loan-return.md` là nơi ghi contract mới và kết quả LR-7; Backend test compile và E2E trên MySQL vẫn còn mục chờ.
 - Các hạng mục FIX-NEW dưới đây là follow-up từ review Backend–Frontend, chưa được xem là đã sửa chỉ vì các giai đoạn RB đã hoàn tất.
 - Dự án dùng **MySQL** và một file SQL chuẩn duy nhất: `database/library_db1.sql`; không dùng Flyway hoặc Liquibase. Nếu phát sinh thay đổi schema, cập nhật file chuẩn và nêu rõ SQL/tác động trước khi áp dụng lên MySQL live.
-- Chính sách trả sách và tiền phạt đã chốt được giữ theo [`fix-returnbook.md`](fix-returnbook.md): quá hạn `min(số ngày trễ × 5.000đ, giá tham chiếu)`; hư hỏng nhẹ 25%, hư hỏng nặng 75%; mất sách 100% giá tham chiếu + 20.000đ phí xử lý.
+- Chính sách trả sách và tiền phạt đã chốt được giữ theo [`fix-loan-return.md`](fix-loan-return.md): quá hạn `min(số ngày trễ × 5.000đ, giá tham chiếu)`; hư hỏng nhẹ 25%, hư hỏng nặng 75%; mất sách 100% giá tham chiếu + 20.000đ phí xử lý.
 - Baseline được đọc từ working tree nhánh `backend-fix` ngày 10/11/2026. Nhiều file Backend, Frontend và tài liệu đang có thay đổi chưa commit; không ghi đè hoặc dọn các thay đổi đó trong FN-0.
 - Đây là rà soát tĩnh theo code/tài liệu. Không chạy test, không build và không kết nối/ghi MySQL trong FN-0. Kết quả test RB-7 được nhắc ở tài liệu nguồn là kết quả lịch sử, không phải lần chạy mới trên working tree hiện tại.
 
@@ -36,7 +36,7 @@ Tài liệu này theo dõi các việc sửa tiếp theo; không thay thế đ�
 ### FN-0 — Chốt quy tắc và baseline
 
 - [x] Đối chiếu các phát hiện quan trọng với code Backend, Frontend và schema SQL hiện có.
-- [x] Ghi nhận chính sách tiền phạt đã chốt trong `fix-returnbook.md`.
+- [x] Ghi nhận chính sách tiền phạt đã chốt trong `fix-loan-return.md`.
 - [x] Ghi nhận kết quả test/build RB-7 như bằng chứng lịch sử và các mục RB-7 còn mở; không xem chúng là xác minh mới.
 - [x] Chốt mức gia hạn tối đa mỗi lần.
 - [x] Chốt ngày hợp lệ khi ADMIN tiếp nhận sau khi USER gửi yêu cầu trả.
@@ -59,8 +59,8 @@ Tài liệu này theo dõi các việc sửa tiếp theo; không thay thế đ�
 
 ### 4.2. Trạng thái kiểm chứng
 
-- Schema nguồn có metadata RB-1 và unique index fine; theo `fix-returnbook.md`, live MySQL đã được backup, cập nhật và kiểm tra ngày 10/11/2026.
-- `fix-returnbook.md` ghi RB-7 có 199 test Backend, 104 test Frontend và production build đạt; vẫn còn xác nhận startup mới với `ddl-auto=validate` và MySQL E2E trên DB `_test` riêng.
+- Schema nguồn có metadata RB-1 và unique index fine; hồ sơ trước đó ghi MySQL live đã được backup, cập nhật và kiểm tra ngày 10/11/2026. LR-7 hiện đã đối chiếu read-only bảng `book_loans`/`reservations` trên live.
+- Baseline FN-0 ghi nhận 199 test Backend, 104 test Frontend và production build đạt ở lần kiểm tra lịch sử. Kết quả LR-7 mới nhất: Backend main build đạt nhưng test compile bị chặn bởi `BookCoverStorageServiceTests`; Frontend 112/112 và production build đạt; E2E MySQL chưa chạy.
 - FN-0 không chạy lại các lệnh trên. Do working tree đang có nhiều thay đổi chưa commit, phải xác minh lại trước khi kết luận test cũ vẫn áp dụng cho trạng thái hiện tại.
 
 ### 4.3. Quyết định đã chốt trước FN-1
@@ -156,7 +156,7 @@ FN-4/FN-5 có thể thực hiện song song sau khi hợp đồng API và quy t�
 
 | Ngày | Giai đoạn | Cập nhật |
 |---|---|---|
-| 10/11/2026 | Tạo tài liệu | Tổng hợp lộ trình follow-up từ review Backend–Frontend; chưa sửa code. RB-7 vẫn có các mục nghiệm thu runtime/MySQL ghi tại `fix-returnbook.md`. |
+| 10/11/2026 | Tạo tài liệu | Tổng hợp lộ trình follow-up từ review Backend–Frontend; chưa sửa code. Hồ sơ mượn–trả hiện hành và trạng thái LR-7 được ghi tại `fix-loan-return.md`. |
 | 10/11/2026 | FN-0 | Đối chiếu code/API/SQL hiện tại; xác nhận các phát hiện B1–B8 và chốt giới hạn gia hạn, ngày nhận sách, chỉ tạo phạt qua check-in. Không chạy test/build và không sửa code/schema. |
 | 10/11/2026 | FN-1 | Gỡ API/controller/service/request tạo phạt thủ công; chặn `POST /api/fines` kể cả ADMIN; giữ phạt chỉ phát sinh trong transaction check-in; thêm phản hồi `409` tiếng Việt cho vi phạm unique; bổ sung test đồng thời/rollback và đồng bộ test MySQL cũ sang luồng check-in. Test trọng tâm `24/24`, toàn bộ Backend `202/202` đạt. Không đổi schema. |
 | 11/11/2026 | FN-2 | Đặt giữ dùng truy vấn khoản mượn đang hoạt động gồm `CHECKED_OUT` và `OVERDUE`; gia hạn giới hạn theo `min(14, hạn mức gói)`; ngày ADMIN nhận sách tuân thủ mốc yêu cầu trả hoặc ngày mượn khi nhận trực tiếp. Test tập trung `23/23`, toàn bộ Backend `208/208` đạt. Không đổi schema/Frontend. |

@@ -40,14 +40,19 @@ public class ReservationLifecycleService {
 
         Book book = lockBook(bookId);
 
-        return activateNextPendingForLockedBook(book, now);
+        Optional<Reservation> first = Optional.empty();
+        Optional<Reservation> activated;
+        do {
+            activated = activateNextPendingForLockedBook(book, now);
+            if (first.isEmpty()) first = activated;
+        } while (activated.isPresent());
+        return first;
     }
 
     private Optional<Reservation> activateNextPendingForLockedBook(Book book, LocalDateTime now) {
         List<Reservation> activeQueue = reservationRepository.findActiveQueue(book.getId());
         reorderQueue(activeQueue);
-        if (activeQueue.stream().anyMatch(item -> item.getStatus() == ReservationStatus.AVAILABLE)
-                || book.getAvailableCopies() == null || book.getAvailableCopies() <= 0) {
+        if (book.getAvailableCopies() == null || book.getAvailableCopies() <= 0) {
 
             return Optional.empty();
         }
@@ -61,6 +66,8 @@ public class ReservationLifecycleService {
         }
 
         Reservation reservation = nextPending.get();
+        book.setAvailableCopies(book.getAvailableCopies() - 1);
+        bookRepository.save(book);
         reservation.setStatus(ReservationStatus.AVAILABLE);
         reservation.setAvailableAt(now);
         reservation.setAvailableUntil(now.plusHours(PICKUP_WINDOW_HOURS));
@@ -114,6 +121,8 @@ public class ReservationLifecycleService {
                     continue;
                 }
 
+                book.setAvailableCopies(book.getAvailableCopies() + 1);
+                bookRepository.save(book);
                 reservation.setStatus(ReservationStatus.EXPIRED);
                 reservation.setCancelledAt(now);
                 reservation.setQueuePosition(null);

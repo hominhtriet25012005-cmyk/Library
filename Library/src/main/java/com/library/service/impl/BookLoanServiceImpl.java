@@ -129,11 +129,14 @@ public class BookLoanServiceImpl implements BookLoanService {
 
     @Override
     public BookLoanDTO checkoutBookForUser(Long userId, CheckoutRequest checkoutRequest) throws Exception {
-        return checkoutBookForUser(userId, checkoutRequest, false);
+        throw new BookException("Vui lòng tạo yêu cầu mượn; ADMIN chỉ giao sách từ yêu cầu sẵn sàng nhận.");
     }
 
     @Override
     public BookLoanDTO checkoutReservedBookForUser(Long userId, CheckoutRequest checkoutRequest) throws Exception {
+        if (userService.getCurrentUser().getRole() != com.library.domain.UserRole.ROLE_ADMIN) {
+            throw new org.springframework.security.access.AccessDeniedException("Chỉ ADMIN được xác nhận giao sách.");
+        }
         return checkoutBookForUser(userId, checkoutRequest, true);
     }
 
@@ -160,10 +163,26 @@ public class BookLoanServiceImpl implements BookLoanService {
         //  3. Xác thực rằng cuốn sách tồn tại và có sẵn.
         Book book = lockedBook(checkoutRequest.getBookId());
 
+        if (reservationFulfillment) {
+            var heldRequests = entityManager.createQuery(
+                    "select r from Reservation r where r.user.id = :userId and r.book.id = :bookId "
+                            + "and r.status = :status and r.availableUntil > :now",
+                    com.library.model.Reservation.class)
+                    .setParameter("userId", userId)
+                    .setParameter("bookId", book.getId())
+                    .setParameter("status", com.library.domain.ReservationStatus.AVAILABLE)
+                    .setParameter("now", LocalDateTime.now())
+                    .setLockMode(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+                    .getResultList();
+            if (heldRequests.size() != 1) {
+                throw new BookException("Cần đúng một yêu cầu sẵn sàng nhận còn hiệu lực để giao sách.");
+            }
+        }
+
         if (!book.getActive()) {
             throw new BookException("Sách không ở trạng thái hoạt động.");
         }
-        if (book.getAvailableCopies() <= 0) {
+        if (!reservationFulfillment && book.getAvailableCopies() <= 0) {
             throw new BookException("Sách không có sẵn.");
         }
         if (!reservationFulfillment
@@ -207,8 +226,10 @@ public class BookLoanServiceImpl implements BookLoanService {
                 .build();
 
         //  8. Cập nhật số lượng bản sách hiện có
-        book.setAvailableCopies(book.getAvailableCopies() - 1);
-        bookRepository.save(book);
+        if (!reservationFulfillment) {
+            book.setAvailableCopies(book.getAvailableCopies() - 1);
+            bookRepository.save(book);
+        }
 
         // 9. Lưu khoản vay sách
         BookLoan savedBookLoan = bookLoanRepository.save(bookLoan);
@@ -233,7 +254,6 @@ public class BookLoanServiceImpl implements BookLoanService {
 
         // Retry sau khi giao dịch đầu đã hoàn tất chỉ đọc lại kết quả, không tăng kho lần hai.
         if (bookLoan.getCheckedInAt() != null && !bookLoan.isActive()) {
-            publishCheckinNotification(bookLoan);
             return bookLoanMapper.toDTO(bookLoan);
         }
         if (!bookLoan.isActive()) {
@@ -259,7 +279,6 @@ public class BookLoanServiceImpl implements BookLoanService {
             throw new BookException("Ghi chú kiểm tra là bắt buộc khi sách bị hư hỏng hoặc mất.");
         }
         validateDamageLevel(condition, checkinRequest.getDamageLevel());
-        int recordedOverdueDays = bookLoan.getOverdueDays() == null ? 0 : bookLoan.getOverdueDays();
         int actualOverdueDays = calculateOverdueDate(bookLoan.getDueDate(), returnDate);
 
         CheckinFinePreviewResponse finePreview = calculateFinePreview(
@@ -276,17 +295,21 @@ public class BookLoanServiceImpl implements BookLoanService {
         bookLoan.setCheckedInBy(admin);
         bookLoan.setInspectionNote(inspectionNote);
 
-        // Giữ lại overdueDays như một phần lịch sử khoản vay không thay đổi sau khi quá trình mượn trả hoàn tất.
-        bookLoan.setOverdueDays(Math.max(recordedOverdueDays, actualOverdueDays));
+        // Final history must use the same received date as the assessed overdue fine.
+        bookLoan.setOverdueDays(actualOverdueDays);
         bookLoan.setIsOverdue(false);
 
         if (condition == BookLoanStatus.RETURNED) {
             Book book = lockedBook(bookLoan.getBook().getId());
-            if (book.getAvailableCopies() >= book.getTotalCopies()) {
+            if (book.getAvailableCopies() == null || book.getTotalCopies() == null
+                    || book.getAvailableCopies() < 0
+                    || book.getAvailableCopies() >= book.getTotalCopies()) {
                 throw new BookException("Số bản sách trong kho không khớp; vui lòng kiểm tra tồn kho trước khi trả.");
             }
             book.setAvailableCopies(book.getAvailableCopies() + 1);
-            bookRepository.save(book);
+            // Activation refreshes the locked book; flush first so it sees the returned copy.
+            // This flush remains inside the check-in transaction and rolls back on failure.
+            bookRepository.saveAndFlush(book);
             reservationLifecycleService.activateNextPendingForBook(book.getId(), checkinAt);
         }
 
@@ -519,7 +542,6 @@ public class BookLoanServiceImpl implements BookLoanService {
 
         // Bấm lặp trả về chính yêu cầu đầu tiên, không đổi thời điểm hoặc ghi chú.
         if (bookLoan.isReturnPending()) {
-            publishReturnRequestNotification(bookLoan);
             return bookLoanMapper.toDTO(bookLoan);
         }
 
@@ -669,7 +691,7 @@ public class BookLoanServiceImpl implements BookLoanService {
     }
 
     private int updateOverdueBookLoan(int batchSize) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
         Pageable pageable = PageRequest.of(0, batchSize);
         long afterId = 0;
         int updateCount = 0;
@@ -708,6 +730,11 @@ public class BookLoanServiceImpl implements BookLoanService {
             if (batch.size() < batchSize) break;
         }
         return updateCount;
+    }
+
+    /** Internal scheduler entry point; not exposed by any HTTP controller. */
+    public int updateOverdueBookLoansAutomatically() {
+        return updateOverdueBookLoan(1000);
     }
 
     private Pageable createPageable(Integer page,

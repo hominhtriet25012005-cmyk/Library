@@ -19,7 +19,7 @@ import { loansApi } from "../../../api/loans.js";
 import { reservationsApi } from "../../../api/reservations.js";
 import { canCreateReservation } from "../MyReservations/reservationRules.js";
 
-const ReservationAction = ({ book }) => {
+const ReservationAction = ({ book, onSuccess }) => {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
@@ -31,6 +31,7 @@ const ReservationAction = ({ book }) => {
     membershipCheck?.bookId === book?.id ? membershipCheck : null;
   const membershipStatus = currentMembershipCheck?.status ?? "checking";
   const membershipError = currentMembershipCheck?.error ?? "";
+  const hasCopies = Number(book?.availableCopies) > 0;
 
   useEffect(() => {
     if (!canReserveBook) return undefined;
@@ -75,7 +76,7 @@ const ReservationAction = ({ book }) => {
     return (
       <Alert severity="info" sx={{ borderRadius: 2 }}>
         <Box>
-          Bạn cần có gói thành viên đang hoạt động để đặt giữ sách.
+          Bạn cần có gói thành viên đang hoạt động để đăng ký mượn sách.
           <Button
             component={Link}
             to="/user/subscriptions"
@@ -106,9 +107,10 @@ const ReservationAction = ({ book }) => {
     setBusy(true);
     setError("");
     try {
-      await reservationsApi.create(book.id, notes.trim());
-      setCompleted(true);
+      const reservation = await reservationsApi.create(book.id, notes.trim());
+      setCompleted(reservation);
       setOpen(false);
+      onSuccess?.();
     } catch (failure) {
       if (
         failure.status === 400 &&
@@ -128,14 +130,18 @@ const ReservationAction = ({ book }) => {
     <Box>
       {completed ? (
         <Alert severity="success" sx={{ borderRadius: 2 }}>
-          Đã tạo đặt giữ thành công!{" "}
+          {completed?.status === "AVAILABLE"
+            ? "Đã đăng ký mượn. Sách đang chờ ADMIN xác nhận giao. "
+            : `Đã vào hàng chờ${completed?.queuePosition ? ` vị trí #${completed.queuePosition}` : ""}. `}
           <Button
             component={Link}
             to="/user/my-reservations"
             size="small"
             sx={{ fontWeight: 750, textTransform: "none", ml: 1 }}
           >
-            Xem vị trí hàng đợi →
+            {completed?.status === "AVAILABLE"
+              ? "Xem yêu cầu mượn →"
+              : "Xem vị trí hàng đợi →"}
           </Button>
         </Alert>
       ) : (
@@ -156,7 +162,7 @@ const ReservationAction = ({ book }) => {
             boxShadow: "0 2px 8px rgba(23,105,255,0.25)",
           }}
         >
-          Đặt giữ sách (Xếp hàng)
+          {hasCopies ? "Đăng ký mượn sách" : "Đặt giữ sách (Xếp hàng)"}
         </Button>
       )}
 
@@ -177,7 +183,7 @@ const ReservationAction = ({ book }) => {
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 750, color: "#1b2e27" }}>
-            Đặt giữ cuốn sách này
+            {hasCopies ? "Đăng ký mượn sách" : "Đặt giữ cuốn sách này"}
           </Typography>
           <IconButton
             size="small"
@@ -212,8 +218,9 @@ const ReservationAction = ({ book }) => {
               severity="info"
               sx={{ borderRadius: 2, fontSize: "0.8125rem" }}
             >
-              Sách hiện đã hết bản sao sẵn có. Khi bạn xác nhận, hệ thống sẽ tự
-              động xếp bạn vào danh sách chờ nhận sách khi có độc giả hoàn trả.
+              {hasCopies
+                ? "Yêu cầu của bạn sẽ chờ ADMIN xác nhận giao sách. Ngày mượn và hạn trả chỉ bắt đầu khi ADMIN giao sách."
+                : "Sách hiện đã hết bản sẵn có. Khi xác nhận, hệ thống sẽ xếp bạn vào hàng chờ và báo khi đến lượt nhận."}
             </Alert>
 
             <TextField
@@ -254,7 +261,7 @@ const ReservationAction = ({ book }) => {
               px: 2.5,
             }}
           >
-            {busy ? "Đang xử lý…" : "Xác nhận đặt giữ"}
+            {busy ? "Đang xử lý…" : hasCopies ? "Gửi yêu cầu mượn" : "Xác nhận đặt giữ"}
           </Button>
         </DialogActions>
       </Dialog>

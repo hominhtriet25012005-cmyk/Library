@@ -3,19 +3,18 @@ import test from "node:test";
 import { createLoansApi, loadLoanPages } from "../src/api/loans.js";
 import { canRenewLoan, canReturnLoan, checkoutDaysForPlan, effectiveLoanStatus, filterLoans, renewalDays } from "../src/pages/library/MyLoans/loanRules.js";
 
-test("API khoản mượn dùng đúng endpoint và payload", async () => {
+test("API khoản mượn không còn checkout trực tiếp và dùng đúng endpoint còn lại", async () => {
   const calls = [];
   const api = createLoansApi({
     get: async (path) => { calls.push(["GET", path]); return { content: [], totalPages: 1 }; },
     post: async (path, body) => { calls.push(["POST", path, body]); return { id: 7 }; },
   });
   await api.list(2, 20);
-  await api.checkout(12, 10, "Ghi chú");
+  assert.equal(api.checkout, undefined);
   await api.requestReturn(7, "Đã để sách tại quầy.");
   await api.renew(7, 5);
   assert.deepEqual(calls, [
     ["GET", "/api/book-loans/my?page=2&size=20"],
-    ["POST", "/api/book-loans/checkout", { bookId: 12, checkoutDays: 10, notes: "Ghi chú" }],
     ["POST", "/api/book-loans/7/return-request", { note: "Đã để sách tại quầy." }],
     ["POST", "/api/book-loans/renew", { bookLoanId: 7, extensionDays: 5 }],
   ]);

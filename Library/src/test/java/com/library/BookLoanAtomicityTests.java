@@ -210,7 +210,8 @@ class BookLoanAtomicityTests {
         assertEquals(2,renewals.intValue());
     }
 
-    @Test void overdueKeysetQueryExcludesReturnedLoansAndContinuesAfterLastId() {
+    @Test void overdueKeysetQueryExcludesTerminalLoanHistoryAndContinuesAfterLastId() {
+        List<BookLoan> terminalLoans = new ArrayList<>();
         tx.executeWithoutResult(status -> {
             User borrower=em.find(User.class,userId);
             Book book=em.find(Book.class,bookId);
@@ -219,10 +220,17 @@ class BookLoanAtomicityTests {
                     .status(BookLoanStatus.CHECKED_OUT).checkoutDate(java.time.LocalDate.now().minusDays(10))
                     .dueDate(java.time.LocalDate.now().minusDays(3)).build());
             }
-            em.persist(BookLoan.builder().user(borrower).book(book).type(BookLoanType.CHECKOUT)
-                .status(BookLoanStatus.RETURNED).checkoutDate(java.time.LocalDate.now().minusDays(10))
-                .dueDate(java.time.LocalDate.now().minusDays(3)).returnDate(java.time.LocalDate.now()).build());
+            for (BookLoanStatus terminalStatus : List.of(
+                    BookLoanStatus.RETURNED, BookLoanStatus.DAMAGED, BookLoanStatus.LOST)) {
+                BookLoan terminalLoan = BookLoan.builder().user(borrower).book(book).type(BookLoanType.CHECKOUT)
+                    .status(terminalStatus).checkoutDate(java.time.LocalDate.now().minusDays(10))
+                    .dueDate(java.time.LocalDate.now().minusDays(3)).returnDate(java.time.LocalDate.now()).build();
+                em.persist(terminalLoan);
+                terminalLoans.add(terminalLoan);
+            }
+            em.flush();
         });
+        List<Long> terminalLoanIds = terminalLoans.stream().map(BookLoan::getId).toList();
         var first=loans.findOverdueBookLoansAfterId(java.time.LocalDate.now(),0,
             org.springframework.data.domain.PageRequest.of(0,2));
         assertEquals(2,first.size());
@@ -230,6 +238,9 @@ class BookLoanAtomicityTests {
             org.springframework.data.domain.PageRequest.of(0,2));
         assertEquals(1,second.size());
         assertTrue(second.get(0).getId()>first.get(1).getId());
+        assertTrue(terminalLoanIds.stream().noneMatch(id ->
+            first.stream().anyMatch(loan -> loan.getId().equals(id))
+                || second.stream().anyMatch(loan -> loan.getId().equals(id))));
         tx.executeWithoutResult(status -> em.find(User.class,userId).setRole(UserRole.ROLE_ADMIN));
         var subject=service(loans);
         assertEquals(3,subject.updateOverdueBookLoan());
@@ -238,6 +249,9 @@ class BookLoanAtomicityTests {
             "select count(bl) from BookLoan bl where bl.status = :state",Long.class)
             .setParameter("state",BookLoanStatus.OVERDUE).getSingleResult());
         assertEquals(3L,overdueCount);
+        assertEquals(List.of(BookLoanStatus.RETURNED, BookLoanStatus.DAMAGED, BookLoanStatus.LOST),
+            tx.execute(status -> terminalLoanIds.stream()
+                .map(id -> em.find(BookLoan.class, id).getStatus()).toList()));
     }
 
     @Test void adminCanRenewAndReturnAnotherUsersLoanButOrdinaryUserCannot() throws Exception {

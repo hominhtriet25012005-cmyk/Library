@@ -66,11 +66,6 @@ const WishlistContent = ({
       {/* Header */}
       <PageHeader
         title="Sách yêu thích của tôi"
-        subtitle={
-          preview
-            ? "Bản xem thử với dữ liệu mẫu, không làm thay đổi danh sách yêu thích thật."
-            : "Những cuốn sách bạn đã lưu lại để tra cứu và mượn đọc sau này."
-        }
         icon={FavoriteRoundedIcon}
         badge={entries?.length ? `${entries.length} cuốn đã lưu` : undefined}
       />

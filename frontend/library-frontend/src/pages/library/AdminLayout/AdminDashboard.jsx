@@ -412,7 +412,7 @@ const AdminDashboard = () => {
       {/* HÀNG 1: 4 THẺ THỐNG KÊ CỐT LÕI (Tổng số đầu sách · Tổng lượt mượn · Tổng người dùng · Tổng doanh thu)*/}
       <StatCardGrid columns={4} sx={{ mb: 2.5 }}>
         <StatCard
-          title="Tổng số đầu sách"
+          title="Tổng số sách"
           value={
             bookState.data?.totalActiveBooks?.toLocaleString("vi-VN") ?? null
           }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Alert,
   Box,
@@ -63,6 +64,20 @@ const emptyFilter = {
   sortDirection: "DESC",
 };
 
+const isReservationStatus = (status) =>
+  Object.prototype.hasOwnProperty.call(statusNames, status);
+
+const reservationFilterFromStatus = (status) => ({
+  ...emptyFilter,
+  ...(isReservationStatus(status)
+    ? {
+        status,
+        activeOnly: ["PENDING", "AVAILABLE"].includes(status),
+        sortDirection: "ASC",
+      }
+    : {}),
+});
+
 const Detail = ({ label, value }) => (
   <Box>
     <Typography
@@ -87,8 +102,13 @@ const Detail = ({ label, value }) => (
 );
 
 const AdminReservationsPage = () => {
-  const [draft, setDraft] = useState(emptyFilter);
-  const [filter, setFilter] = useState(emptyFilter);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [draft, setDraft] = useState(() =>
+    reservationFilterFromStatus(searchParams.get("status")),
+  );
+  const [filter, setFilter] = useState(() =>
+    reservationFilterFromStatus(searchParams.get("status")),
+  );
   const [page, setPage] = useState(0);
   const [reload, setReload] = useState(0);
   const [result, setResult] = useState(null);
@@ -100,6 +120,19 @@ const AdminReservationsPage = () => {
   const [form, setForm] = useState({ userId: "", bookId: "", notes: "" });
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+
+  useEffect(() => {
+    const requestedStatus = searchParams.get("status");
+    if (!isReservationStatus(requestedStatus)) return;
+    if (filter.status === requestedStatus) return;
+    const next = reservationFilterFromStatus(requestedStatus);
+    setDraft(next);
+    setFilter(next);
+    setPage(0);
+    setResult(null);
+    setLoading(true);
+    setLoadError("");
+  }, [searchParams, filter.status]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -132,6 +165,11 @@ const AdminReservationsPage = () => {
     setLoading(true);
     setLoadError("");
     setNotice("");
+    const nextSearchParams = new URLSearchParams(searchParams);
+    if (isReservationStatus(next.status))
+      nextSearchParams.set("status", next.status);
+    else nextSearchParams.delete("status");
+    setSearchParams(nextSearchParams, { replace: true });
   };
 
   const showQueue = (bookId) =>

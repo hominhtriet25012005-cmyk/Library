@@ -9,7 +9,7 @@ export default function EmailVerificationNotice({ showVerified = false }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [sentAt, setSentAt] = useState(0);
-  if (!user) return null;
+  if (!user || user.role === "ROLE_ADMIN") return null;
   if (user.verified) return showVerified ? <Alert severity="success">Email đã được xác minh.</Alert> : null;
 
   const perform = async (resend) => {
@@ -39,9 +39,9 @@ export default function EmailVerificationNotice({ showVerified = false }) {
     <Alert severity="info">
       Email {user.email} chưa được xác minh. Bạn vẫn sử dụng thư viện bình thường;
       hãy xác minh để nhận thông báo qua email.
-      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1 }}>
         <Button disabled={busy} onClick={() => perform(true)}>Gửi email xác minh</Button>
-        <Button disabled={busy} onClick={() => perform(false)}>Tôi đã xác minh — cập nhật</Button>
+        <Button disabled={busy} onClick={() => perform(false)}>Kiểm tra trạng thái</Button>
       </Stack>
     </Alert>
     {message && <Alert severity="info">{message}</Alert>}

@@ -133,11 +133,6 @@ const Dashboard = ({ preview = false }) => {
       {/* Header */}
       <PageHeader
         title="Tổng quan bạn đọc"
-        subtitle={
-          preview
-            ? "Bản xem trước giao diện độc giả với dữ liệu mẫu trực quan."
-            : "Theo dõi tình hình mượn sách, lịch hẹn nhận sách và công nợ tài khoản."
-        }
         icon={AutoStoriesRoundedIcon}
         action={{
           label: "Khám phá sách",

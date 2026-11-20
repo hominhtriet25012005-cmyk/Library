@@ -29,6 +29,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
 import DoneAllRoundedIcon from "@mui/icons-material/DoneAllRounded";
+import MarkEmailUnreadRoundedIcon from "@mui/icons-material/MarkEmailUnreadRounded";
 
 import { useAuth } from "../../../auth/useAuth";
 import { drawerWidth } from "./layout";
@@ -42,6 +43,8 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { user } = useAuth();
+  const needsEmailVerification = !preview && Boolean(user?.id)
+    && user.role !== "ROLE_ADMIN" && user.verified === false;
 
   const [searchQuery, setSearchQuery] = useState(
     () => new URLSearchParams(location.search).get("q") || "",
@@ -237,6 +240,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
           <Tooltip title="Thông báo" arrow>
             <IconButton
               onClick={handleOpenNotifications}
+              aria-label={needsEmailVerification ? "Thông báo — email chưa được xác minh" : "Thông báo"}
               sx={{
                 width: 38,
                 height: 38,
@@ -249,7 +253,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
               }}
             >
               <Badge
-                badgeContent={unreadCount}
+                badgeContent={unreadCount || (needsEmailVerification ? "!" : 0)}
                 color="error"
                 variant="standard"
               >
@@ -413,6 +417,30 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
         <Divider />
 
         <List disablePadding sx={{ maxHeight: 360, overflowY: "auto" }}>
+          {needsEmailVerification && (
+            <ListItemButton
+              onClick={() => {
+                handleCloseNotifications();
+                navigate("/user/profile");
+              }}
+              sx={{ p: 2, gap: 1.5, alignItems: "flex-start", bgcolor: "action.hover",
+                borderBottom: "1px solid", borderColor: "divider" }}
+            >
+              <MarkEmailUnreadRoundedIcon color="primary" sx={{ mt: 0.5 }} />
+              <Box sx={{ minWidth: 0 }}>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Email chưa được xác minh
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Xác minh để nhận email nhắc hạn và xác nhận thanh toán.
+                  Bạn vẫn sử dụng thư viện bình thường.
+                </Typography>
+                <Typography variant="caption" color="primary" sx={{ display: "block", mt: 0.5 }}>
+                  Mở Hồ sơ để xác minh email
+                </Typography>
+              </Box>
+            </ListItemButton>
+          )}
           {notificationError ? (
             <Typography
               color="error"
@@ -429,7 +457,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
             >
               Đang tải thông báo…
             </Typography>
-          ) : notifications.length === 0 ? (
+          ) : notifications.length === 0 ? (needsEmailVerification ? null : (
             <Typography
               color="text.secondary"
               variant="body2"
@@ -437,7 +465,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
             >
               Bạn chưa có thông báo nào.
             </Typography>
-          ) : (
+          )) : (
             notifications.map((item) => (
               <ListItemButton
                 key={item.id}

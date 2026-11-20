@@ -1,4 +1,3 @@
-import "./App.css";
 import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router";
 import { Navigate } from "react-router-dom";
@@ -8,7 +7,6 @@ import PublicLayout from "./pages/public/PublicLayout/PublicLayout";
 import PageLoader from "./components/PageLoader";
 import { WishlistProvider } from "./pages/library/Wishlist/WishlistProvider";
 import { RequireRole } from "./auth/RequireRole";
-import { adminNavigationSections } from "./pages/library/AdminLayout/adminNavigation";
 import { ForbiddenPage, LandingPage, NotFoundPage } from "./pages/RoutePages";
 
 // Public Pages (Lazy Chunks)
@@ -82,7 +80,6 @@ const AdminPaymentsPage = lazy(
 const AdminReviewsPage = lazy(
   () => import("./pages/library/AdminLayout/AdminReviewsPage"),
 );
-const AdminStagePage = lazy(() => import("./pages/library/AdminLayout/AdminStagePage"));
 
 function App() {
   return (
@@ -146,30 +143,6 @@ function App() {
             <Route path="fines" element={<AdminFinesPage />} />
             <Route path="payments" element={<AdminPaymentsPage />} />
             <Route path="reviews" element={<AdminReviewsPage />} />
-            {adminNavigationSections
-              .flatMap((section) => section.items)
-              .filter(
-                (item) =>
-                  ![
-                    "/admin/dashboard",
-                    "/admin/books",
-                    "/admin/genres",
-                    "/admin/users",
-                    "/admin/loans",
-                    "/admin/reservations",
-                    "/admin/reviews",
-                    "/admin/subscriptions",
-                    "/admin/fines",
-                    "/admin/payments",
-                  ].includes(item.path),
-              )
-              .map((item) => (
-                <Route
-                  key={item.path}
-                  path={item.path.slice("/admin/".length)}
-                  element={<AdminStagePage page={item} />}
-                />
-              ))}
             <Route
               path="subscriptions"
               element={<Navigate to="/admin/subscriptions/plans" replace />}

@@ -158,11 +158,6 @@ const MyLoans = ({ preview = false }) => {
       {/* Header */}
       <PageHeader
         title="Sách mượn của tôi"
-        subtitle={
-          preview
-            ? "Bản xem thử với dữ liệu mẫu, không làm thay đổi các khoản mượn thật."
-            : "Theo dõi các cuốn sách bạn đang mượn, hạn trả và lịch sử hoàn tất."
-        }
         icon={LibraryBooksRoundedIcon}
         badge={!preview ? `${loans.length} lượt mượn` : undefined}
       />

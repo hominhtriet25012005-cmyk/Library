@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Alert,
   Box,
@@ -31,11 +31,12 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import UpdateRoundedIcon from "@mui/icons-material/UpdateRounded";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import RestartAltRoundedIcon from "@mui/icons-material/RestartAltRounded";
+import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
+import AssignmentReturnedRoundedIcon from "@mui/icons-material/AssignmentReturnedRounded";
+import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 
 import {
   adminLoansApi,
@@ -43,11 +44,14 @@ import {
   canRenewLoan,
   needsCheckinDescription,
 } from "../../../api/adminLoans";
+import { adminReservationsApi } from "../../../api/adminReservations";
 import {
   PageHeader,
   SearchFilterBar,
   StatusChip,
   TablePaginationBar,
+  StatCard,
+  StatCardGrid,
 } from "../../../components/common";
 import {
   formatCurrencyVND,
@@ -89,6 +93,9 @@ const minimumReceivedDate = (loan) => {
 const hasPendingReturnRequest = (loan) =>
   Boolean(loan?.returnRequestedAt && !loan?.checkedInAt);
 
+const canReceiveRequestedLoan = (loan) =>
+  canCheckinLoan(loan) && hasPendingReturnRequest(loan);
+
 const canRenewInAdmin = (loan) =>
   canRenewLoan(loan) && !hasPendingReturnRequest(loan);
 
@@ -125,6 +132,7 @@ const Detail = ({ label, value }) => (
 );
 
 const AdminLoansPage = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentTab, setCurrentTab] = useState(() =>
     searchParams.get("tab") === "returnRequests" ? "returnRequests" : "all",
@@ -146,9 +154,6 @@ const AdminLoansPage = () => {
   const [selected, setSelected] = useState(null);
   const [operation, setOperation] = useState(null);
   const [form, setForm] = useState({
-    userId: "",
-    bookId: "",
-    checkoutDays: "",
     notes: "",
     condition: "RETURNED",
     damageLevel: "",
@@ -186,6 +191,7 @@ const AdminLoansPage = () => {
           lostRes,
           damagedRes,
           returnRequestsRes,
+          readyReservationsRes,
         ] = await Promise.allSettled([
           adminLoansApi.search(
             { mode: "all", page: 0, size: 1 },
@@ -213,6 +219,10 @@ const AdminLoansPage = () => {
           ),
           adminLoansApi.returnRequests(
             { page: 0, size: 1 },
+            { signal: controller.signal },
+          ),
+          adminReservationsApi.search(
+            { status: "AVAILABLE", page: 0, size: 1 },
             { signal: controller.signal },
           ),
         ]);
@@ -244,6 +254,10 @@ const AdminLoansPage = () => {
             returnRequests:
               returnRequestsRes.status === "fulfilled"
                 ? returnRequestsRes.value.totalElements
+                : null,
+            readyReservations:
+              readyReservationsRes.status === "fulfilled"
+                ? readyReservationsRes.value.totalElements
                 : null,
           });
         }
@@ -391,9 +405,6 @@ const AdminLoansPage = () => {
     setFinePreviewLoading(type === "checkin");
     setFinePreviewError("");
     setForm({
-      userId: "",
-      bookId: "",
-      checkoutDays: "",
       notes: "",
       condition: "RETURNED",
       damageLevel: "",
@@ -430,10 +441,7 @@ const AdminLoansPage = () => {
     setNotice("");
     try {
       let updated;
-      if (operation.type === "checkout") {
-        updated = await adminLoansApi.checkout(form);
-        setNotice(`Đã cấp sách và tạo lượt mượn #${updated.id}.`);
-      } else if (operation.type === "checkin") {
+      if (operation.type === "checkin") {
         updated = await adminLoansApi.checkin(operation.loan.id, {
           condition: form.condition,
           damageLevel: form.damageLevel,
@@ -448,9 +456,6 @@ const AdminLoansPage = () => {
           form.extensionDays,
         );
         setNotice(`Đã gia hạn lượt mượn #${updated.id}.`);
-      } else {
-        const response = await adminLoansApi.updateOverdue();
-        setNotice(response.message || "Đã cập nhật các lượt mượn quá hạn.");
       }
       if (updated) setSelected(updated);
       setOperation(null);
@@ -477,25 +482,42 @@ const AdminLoansPage = () => {
     >
       <PageHeader
         title="Quản lý mượn – trả sách"
-        action={
-          <Stack direction="row" spacing={1.5}>
-            <Button
-              variant="contained"
-              startIcon={<AddRoundedIcon />}
-              onClick={() => openAction("checkout")}
-            >
-              Cấp sách
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<UpdateRoundedIcon />}
-              onClick={() => openAction("overdue")}
-            >
-              Cập nhật quá hạn
-            </Button>
-          </Stack>
-        }
       />
+
+      <StatCardGrid columns={4}>
+        <StatCard
+          title="Chờ giao sách"
+          value={counts.readyReservations ?? "—"}
+          icon={MenuBookRoundedIcon}
+          color="warning"
+          loading={counts.readyReservations === undefined}
+          onClick={() => navigate("/admin/reservations?status=AVAILABLE")}
+        />
+        <StatCard
+          title="Đang mượn"
+          value={counts.CHECKED_OUT ?? "—"}
+          icon={MenuBookRoundedIcon}
+          color="primary"
+          loading={counts.CHECKED_OUT === undefined}
+          onClick={() => handleTabChange("CHECKED_OUT")}
+        />
+        <StatCard
+          title="Chờ xác nhận trả"
+          value={counts.returnRequests ?? "—"}
+          icon={AssignmentReturnedRoundedIcon}
+          color="info"
+          loading={counts.returnRequests === undefined}
+          onClick={() => handleTabChange("returnRequests")}
+        />
+        <StatCard
+          title="Quá hạn"
+          value={counts.overdue ?? "—"}
+          icon={WarningAmberRoundedIcon}
+          color="error"
+          loading={counts.overdue === undefined}
+          onClick={() => handleTabChange("overdue")}
+        />
+      </StatCardGrid>
 
       {/* Thanh tìm kiếm & bộ lọc chuẩn hóa */}
       {currentTab !== "returnRequests" && (
@@ -505,9 +527,7 @@ const AdminLoansPage = () => {
           onSearchSubmit={handleSearchSubmit}
           showSearchButton={false}
           searchPlaceholder={
-            searchType === "user"
-              ? "Nhập ID người dùng (VD: 2)..."
-              : "Nhập ID sách (VD: 15)..."
+            searchType === "user" ? "Nhập ID người dùng " : "Nhập ID sách "
           }
           actions={
             <Stack direction="row" spacing={1} alignItems="center">
@@ -900,7 +920,7 @@ const AdminLoansPage = () => {
                         </IconButton>
                       </Tooltip>
 
-                      {canCheckinLoan(loan) && (
+                      {canReceiveRequestedLoan(loan) && (
                         <Button
                           size="small"
                           variant="contained"
@@ -916,10 +936,7 @@ const AdminLoansPage = () => {
                             textTransform: "none",
                           }}
                         >
-                          {currentTab === "returnRequests" ||
-                          hasPendingReturnRequest(loan)
-                            ? "Kiểm tra & nhận"
-                            : "Tiếp nhận sách"}
+                          Kiểm tra & nhận
                         </Button>
                       )}
 
@@ -1100,7 +1117,7 @@ const AdminLoansPage = () => {
               Gia hạn
             </Button>
           )}
-          {canCheckinLoan(selected) && (
+          {canReceiveRequestedLoan(selected) && (
             <Button
               variant="contained"
               color="success"
@@ -1113,7 +1130,7 @@ const AdminLoansPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Modal Thao tác (Cấp sách / Trả sách / Gia hạn / Cập nhật quá hạn) */}
+      {/* Modal thao tác trên lượt mượn đã tồn tại */}
       <Dialog
         open={Boolean(operation)}
         onClose={closeAction}
@@ -1135,13 +1152,9 @@ const AdminLoansPage = () => {
             variant="h6"
             sx={{ fontWeight: 750, color: "text.primary" }}
           >
-            {operation?.type === "checkout"
-              ? "Cấp sách cho độc giả"
-              : operation?.type === "checkin"
-                ? `Ghi nhận trả sách · Lượt #${operation.loan.id}`
-                : operation?.type === "renew"
-                  ? `Gia hạn lượt mượn · Lượt #${operation.loan.id}`
-                  : "Cập nhật các lượt mượn quá hạn"}
+            {operation?.type === "checkin"
+              ? `Ghi nhận trả sách · Lượt #${operation.loan.id}`
+              : `Gia hạn lượt mượn · Lượt #${operation.loan.id}`}
           </Typography>
           <IconButton size="small" onClick={closeAction} disabled={busy}>
             <CloseRoundedIcon fontSize="small" />
@@ -1150,51 +1163,6 @@ const AdminLoansPage = () => {
 
         <DialogContent sx={{ px: 3, py: 2 }}>
           <Stack spacing={2} sx={{ pt: 1 }}>
-            {operation?.type === "checkout" && (
-              <>
-                <Typography variant="body2" color="text.secondary">
-                  Nhập mã ID độc giả và ID sách. Hệ thống sẽ tự động kiểm tra
-                  tồn kho và hạn mức mượn của gói hội viên khi xác nhận.
-                </Typography>
-                <TextField
-                  label="ID người dùng "
-                  type="number"
-                  required
-                  value={form.userId}
-                  onChange={(event) =>
-                    setForm({ ...form, userId: event.target.value })
-                  }
-                />
-                <TextField
-                  label="ID sách "
-                  type="number"
-                  required
-                  value={form.bookId}
-                  onChange={(event) =>
-                    setForm({ ...form, bookId: event.target.value })
-                  }
-                />
-                <TextField
-                  label="Số ngày mượn"
-                  type="number"
-                  required
-                  value={form.checkoutDays}
-                  onChange={(event) =>
-                    setForm({ ...form, checkoutDays: event.target.value })
-                  }
-                />
-                <TextField
-                  label="Ghi chú (không bắt buộc)"
-                  multiline
-                  maxRows={3}
-                  value={form.notes}
-                  onChange={(event) =>
-                    setForm({ ...form, notes: event.target.value })
-                  }
-                />
-              </>
-            )}
-
             {operation?.type === "checkin" && (
               <>
                 <Typography variant="body2" color="text.secondary">
@@ -1417,20 +1385,6 @@ const AdminLoansPage = () => {
                     setForm({ ...form, extensionDays: event.target.value })
                   }
                 />
-              </>
-            )}
-
-            {operation?.type === "overdue" && (
-              <>
-                <Typography variant="body2" color="text.secondary">
-                  Hệ thống sẽ quét toàn bộ các lượt mượn chưa trả đã qua hạn và
-                  cập nhật trạng thái sang "Quá hạn" cùng số ngày quá hạn thực
-                  tế.
-                </Typography>
-                <Alert severity="info" sx={{ borderRadius: 2 }}>
-                  Thao tác này chỉ cập nhật trạng thái quá hạn trên hệ thống và
-                  không tự động trừ tiền phạt.
-                </Alert>
               </>
             )}
 

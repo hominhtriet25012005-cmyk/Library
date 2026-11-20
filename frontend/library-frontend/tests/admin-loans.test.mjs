@@ -33,32 +33,32 @@ test("từ chối trang tra cứu lỗi thay vì hiển thị danh sách giả",
   await assert.rejects(admin.search({}), /Dữ liệu lượt mượn không hợp lệ/);
 });
 
-test("cấp/trả/gia hạn chỉ gửi payload hợp lệ đến API thật", async () => {
+test("ADMIN không còn API cấp sách hoặc cập nhật quá hạn thủ công", async () => {
   const calls = [];
   const admin = createAdminLoansApi({ post: async (path, body) => {
     calls.push({ path, body });
-    return path.endsWith("update-overdue") ? { status: true } : { id: 7, status: "CHECKED_OUT" };
+    return { id: 7, status: path.endsWith("checkin") ? "LOST" : "CHECKED_OUT" };
   } });
-  await admin.checkout({ userId: "3", bookId: "5", checkoutDays: "7", notes: "" });
-  await admin.checkin(7, "LOST", "Sách bị thất lạc khi người dùng di chuyển.");
+  assert.equal(admin.checkout, undefined);
+  assert.equal(admin.updateOverdue, undefined);
+  await admin.checkin(7, {
+    condition: "LOST",
+    receivedDate: "2026-11-20",
+    inspectionNote: "Sách bị thất lạc khi người dùng di chuyển.",
+  });
   await admin.renew(7, "2");
-  await admin.updateOverdue();
   assert.deepEqual(calls, [
-    { path: "/api/book-loans/checkout/user/3", body: { bookId: 5, checkoutDays: 7, notes: "" } },
     { path: "/api/book-loans/checkin", body: {
       bookLoanId: 7,
       condition: "LOST",
-      notes: "Sách bị thất lạc khi người dùng di chuyển.",
+      receivedDate: "2026-11-20",
+      inspectionNote: "Sách bị thất lạc khi người dùng di chuyển.",
     } },
     { path: "/api/book-loans/renew", body: { bookLoanId: 7, extensionDays: 2 } },
-    { path: "/api/book-loans/admin/update-overdue", body: {} },
   ]);
-  await assert.rejects(admin.checkout({ userId: 1, bookId: 2, checkoutDays: 0 }), /Số ngày mượn/);
   await assert.rejects(admin.checkin(7, "CHECKED_OUT"), /Tình trạng trả/);
   await assert.rejects(admin.renew(7, 0), /Số ngày gia hạn/);
-  assert.equal(calls.length, 4);
-  const failedBatch = createAdminLoansApi({ post: async () => ({ status: false }) });
-  await assert.rejects(failedBatch.updateOverdue(), /Không thể xác nhận/);
+  assert.equal(calls.length, 2);
 });
 
 test("ghi chú trả sách không được vượt quá 500 ký tự", async () => {

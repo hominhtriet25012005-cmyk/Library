@@ -5,7 +5,6 @@ import UserSidebar from "./UserSidebar";
 import Navbar from "./Navbar";
 import { drawerWidth } from "./layout";
 import PageLoader from "../../../components/PageLoader";
-import EmailVerificationNotice from "../Auth/EmailVerificationNotice";
 
 const UserLayout = ({ preview = false }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -41,7 +40,6 @@ const UserLayout = ({ preview = false }) => {
       >
         <Toolbar />
         <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 3, md: 3.5 } }}>
-          {!preview && <EmailVerificationNotice />}
           <Suspense fallback={<PageLoader />}>
             <Outlet />
           </Suspense>

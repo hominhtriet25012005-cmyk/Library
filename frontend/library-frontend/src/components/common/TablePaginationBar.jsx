@@ -16,22 +16,25 @@ import NavigateNextRoundedIcon from "@mui/icons-material/NavigateNextRounded";
 export const TablePaginationBar = ({
   page = 0,
   totalPages = 1,
-  totalElements = 0,
-  pageSize = 10,
   onPageChange,
   loading = false,
-  itemLabel = "bản ghi",
   showPageNumbers = true,
   sx = {},
 }) => {
-  const from = totalElements === 0 ? 0 : page * pageSize + 1;
-  const to = Math.min((page + 1) * pageSize, totalElements);
   const safeTotalPages = Math.max(totalPages || 1, 1);
   const changePage = (nextPage) => {
-    if (loading || !Number.isInteger(nextPage) || nextPage < 0 ||
-        nextPage >= safeTotalPages || nextPage === page) return;
+    if (
+      loading ||
+      !Number.isInteger(nextPage) ||
+      nextPage < 0 ||
+      nextPage >= safeTotalPages ||
+      nextPage === page
+    )
+      return;
     onPageChange(nextPage);
   };
+
+  if (safeTotalPages <= 1) return null;
 
   return (
     <Box
@@ -39,30 +42,15 @@ export const TablePaginationBar = ({
         display: "flex",
         flexDirection: { xs: "column", sm: "row" },
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: { xs: "center", sm: "flex-end" },
         gap: 2,
         mt: 2.5,
         px: 1,
         ...sx,
       }}
     >
-      <Typography variant="body2" color="text.secondary">
-        {totalElements > 0 ? (
-          <>
-            Hiển thị{" "}
-            <strong>
-              {from}–{to}
-            </strong>{" "}
-            trên <strong>{totalElements.toLocaleString("vi-VN")}</strong>{" "}
-            {itemLabel}
-          </>
-        ) : (
-          `0 ${itemLabel}`
-        )}
-      </Typography>
-
       <Stack direction="row" spacing={1} alignItems="center">
-        {showPageNumbers && safeTotalPages > 1 ? (
+        {showPageNumbers ? (
           <Pagination
             size="small"
             color="primary"

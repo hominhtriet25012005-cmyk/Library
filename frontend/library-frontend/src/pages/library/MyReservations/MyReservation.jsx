@@ -1,12 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Paper,
-  Tab,
-  Tabs,
-} from "@mui/material";
+import { Alert, Box, Button, Paper, Tab, Tabs } from "@mui/material";
 import Book from "@mui/icons-material/BookRounded";
 import CalendarToday from "@mui/icons-material/CalendarTodayRounded";
 import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
@@ -94,11 +87,6 @@ const MyReservation = ({ preview = false }) => {
       {/* Header */}
       <PageHeader
         title="Sách đặt giữ "
-        subtitle={
-          preview
-            ? "Bản xem thử với dữ liệu mẫu, không làm thay đổi các đặt giữ thật."
-            : "Theo dõi vị trí hàng đợi và lịch hẹn nhận sách khi sách được hoàn trả tại thư viện."
-        }
         icon={EventAvailableRoundedIcon}
         badge={!preview ? `${entries.length} lượt đặt giữ` : undefined}
       />

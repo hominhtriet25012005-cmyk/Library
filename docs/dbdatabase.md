@@ -153,7 +153,7 @@ Database không còn blocker schema cho V1. Thứ tự Backend tiếp theo:
 
 Kiểm chứng mới tại BE-1: `BookLoanCheckinHistoryTests` đạt 5/5 và `BookLoanOverdueBatchTests` đạt 1/1. BE-5 đã sửa mapping `publication_year` theo JDBC `SMALLINT`, nên `BookLoanAtomicityTests` và các test H2 liên quan đã chạy lại thành công. Ca MySQL chỉ được phép chạy trên database có hậu tố `_test`, không chạy trên `library_db1`.
 
-**Phạm vi BE-1 là mốc lịch sử, được mở rộng bởi RB-1–RB-6:** USER gửi yêu cầu trả; ADMIN kiểm tra và hoàn tất check-in. `RETURNED` mới cộng tồn kho và có thể kích hoạt hàng chờ; `DAMAGED`/`LOST` không cộng tồn kho. Backend tự tạo phạt quá hạn/hư hỏng/mất trong transaction check-in theo chính sách đã chốt. Xem [`docs/fix-returnbook.md`](fix-returnbook.md) để biết API, schema, quy tắc và trạng thái nghiệm thu.
+**Phạm vi BE-1 là mốc lịch sử, được mở rộng bởi RB và LR:** USER gửi yêu cầu trả; ADMIN kiểm tra và hoàn tất check-in. `RETURNED` mới cộng tồn kho và có thể kích hoạt hàng chờ; `DAMAGED`/`LOST` không cộng tồn kho. Backend tự tạo phạt quá hạn/hư hỏng/mất trong transaction check-in theo chính sách đã chốt. Xem [`docs/fix-loan-return.md`](fix-loan-return.md) để biết contract mượn–trả và kết quả LR-7 mới nhất.
 
 ### BE-2 — Vòng đời đặt giữ — **đã hoàn tất 31/10/2026**
 

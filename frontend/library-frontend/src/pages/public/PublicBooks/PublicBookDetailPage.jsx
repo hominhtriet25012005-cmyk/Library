@@ -47,7 +47,6 @@ import {
   formatPublicationInfo,
 } from "../../../utils/formatters";
 import { cleanReviewText } from "../../library/Book/reviewRules";
-import CheckoutAction from "../../library/Book/CheckoutAction";
 import ReservationAction from "../../library/Book/ReservationAction";
 import PublicLayout from "../PublicLayout/PublicLayout";
 import { publicFonts, publicPalette } from "../PublicLayout/publicTheme";
@@ -339,11 +338,10 @@ export const PublicBookDetailPage = () => {
               "& button": { width: "100%" },
             }}
           >
-            <CheckoutAction
+            <ReservationAction
               book={book}
               onSuccess={() => setRefreshCount((value) => value + 1)}
             />
-            <ReservationAction book={book} />
           </Box>
         )}
 

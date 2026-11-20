@@ -840,14 +840,6 @@ export const AdminSubscriptionPlansPage = () => {
         </Table>
       </TableContainer>
 
-      <Typography
-        variant="caption"
-        sx={{ mt: 1.5, display: "block", color: "text.secondary" }}
-      >
-        Hiển thị {visible.length}/{plans?.length ?? 0} gói. Thông tin gói đã lưu
-        được bảo toàn cho các đăng ký cũ.
-      </Typography>
-
       {(creating || editing) && (
         <PlanDialog
           open

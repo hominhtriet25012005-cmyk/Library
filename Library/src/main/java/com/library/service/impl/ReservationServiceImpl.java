@@ -132,14 +132,17 @@ public class ReservationServiceImpl implements ReservationService {
             throw new ReservationException("Bạn đã đặt giữ cuốn sách này.");
         }
 
-        // 4. Check if book is already available
-        if (book.getAvailableCopies() > 0) {
-            throw new ReservationException("Sách hiện đang có sẵn, bạn không cần đặt giữ.");
-        }
-
         // A reservation is a queued borrowing request; only eligible borrowers may join the queue.
         try {
-            subscriptionService.getUsersActiveSubscription(userId);
+            var membership = subscriptionService.getUsersActiveSubscription(userId);
+            long occupied = bookLoanRepository.countActiveBookLoansByUser(userId)
+                    + reservationRepository.countActiveReservationsByUser(userId);
+            if (membership.getMaxBooksAllowed() == null || occupied >= membership.getMaxBooksAllowed()) {
+                throw new ReservationException("Bạn đã đạt hạn mức sách đang mượn và yêu cầu đang hoạt động của gói.");
+            }
+            if (bookLoanRepository.countOverdueBookLoansByUser(userId, java.time.LocalDate.now()) > 0) {
+                throw new ReservationException("Vui lòng trả sách quá hạn trước khi đăng ký mượn.");
+            }
         } catch (SubscriptionException noActiveMembership) {
             throw new ReservationException(
                     "Bạn cần có gói thành viên đang hoạt động để đặt giữ sách.");
@@ -179,6 +182,7 @@ public class ReservationServiceImpl implements ReservationService {
                 savedReservation.getId(),
                 null);
 
+        reservationLifecycleService.activateNextPendingForBook(book.getId(), LocalDateTime.now());
         return reservationMapper.toDTO(savedReservation);
     }
 
@@ -196,6 +200,11 @@ public class ReservationServiceImpl implements ReservationService {
             );
         }
 
+        if (reservation.getStatus() == ReservationStatus.AVAILABLE) {
+            Book heldBook = reservation.getBook();
+            heldBook.setAvailableCopies(heldBook.getAvailableCopies() + 1);
+            bookRepository.saveAndFlush(heldBook);
+        }
         reservation.setStatus(ReservationStatus.CANCELLED);
         LocalDateTime cancelledAt = LocalDateTime.now();
         reservation.setCancelledAt(cancelledAt);
@@ -225,22 +234,14 @@ public class ReservationServiceImpl implements ReservationService {
         User admin = userService.getCurrentUser();
         Reservation reservation = ownedReservation(reservationId);
 
+        if (reservation.getStatus() == ReservationStatus.FULFILLED) {
+            return reservationMapper.toDTO(reservation);
+        }
         if (reservation.getStatus() != ReservationStatus.AVAILABLE) {
             throw new ReservationException("Lượt đặt giữ hiện chưa sẵn sàng để nhận sách.");
         }
-        if (reservation.hasExpired()) {
+        if (reservation.getAvailableUntil() == null || reservation.hasExpired()) {
             throw new ReservationException("Thời hạn nhận sách của lượt đặt giữ đã hết.");
-        }
-
-        if (reservation.getBook().getAvailableCopies() <= 0) {
-            throw new ReservationException(
-                    "Sách hiện không còn bản sẵn để nhận lượt đặt giữ."
-            );
-        }
-
-        List<Reservation> queue = reservationRepository.findActiveQueue(reservation.getBook().getId());
-        if (queue.isEmpty() || !queue.get(0).getId().equals(reservation.getId())) {
-            throw new ReservationException("Chỉ có thể hoàn tất lượt đặt giữ đầu tiên trong hàng chờ.");
         }
 
         CheckoutRequest request = new CheckoutRequest();
@@ -254,6 +255,7 @@ public class ReservationServiceImpl implements ReservationService {
         request.setCheckoutDays(Math.min(14, maxDays));
         request.setNotes("Assign Booked by Admin");
 
+        // The copy was removed from available inventory when this request became AVAILABLE.
         bookLoanService.checkoutReservedBookForUser(
                 reservation.getUser().getId(),
                 request

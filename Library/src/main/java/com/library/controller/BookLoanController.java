@@ -28,9 +28,8 @@ public class BookLoanController {
     public ResponseEntity<?> checkoutBook(
 
             @Valid @RequestBody CheckoutRequest checkoutRequest) throws Exception {
-        BookLoanDTO bookLoan = bookLoanService.checkoutBook(checkoutRequest);
-
-        return new ResponseEntity<>(bookLoan, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.GONE).body(new ApiResponse(
+                "Đăng ký mượn qua /api/reservations; lượt mượn bắt đầu khi ADMIN giao sách.", false));
     }
 
     @PostMapping("/checkout/user/{userId}")
@@ -39,10 +38,8 @@ public class BookLoanController {
             @PathVariable Long userId,
             @Valid @RequestBody CheckoutRequest checkoutRequest) throws Exception {
 
-        BookLoanDTO bookLoan = bookLoanService
-                .checkoutBookForUser(userId, checkoutRequest);
-
-        return new ResponseEntity<>(bookLoan, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.GONE).body(new ApiResponse(
+                "ADMIN xác nhận giao sách qua /api/reservations/{id}/fulfill.", false));
     }
 
     @PostMapping("/checkin")

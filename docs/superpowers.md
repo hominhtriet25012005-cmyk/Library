@@ -87,7 +87,7 @@ Tài liệu audit không thay thế đặc tả nghiệp vụ gốc và không t
 1. Nghiệp vụ đã chốt trong `docs/Library_Management_System_VI.md` và các quyết định mới hơn được người dùng xác nhận.
 2. Schema chuẩn trong `database/library_db1.sql` cùng `database/README.md`.
 3. Source hiện tại trong `Library/` và `frontend/library-frontend/`.
-4. Các context chuyên đề: `dbdatabase.md`, `fix-returnbook.md`, `fix-new.md`, `PAYOS.md`.
+4. Các context chuyên đề: `dbdatabase.md`, `fix-loan-return.md`, `fix-new.md`, `PAYOS.md`.
 5. Các tài liệu kết quả cũ chỉ là bằng chứng lịch sử và phải được xác minh lại trước khi tái sử dụng kết luận.
 
 ## 4. Kế hoạch và tiến độ tổng thể
@@ -458,7 +458,7 @@ Frontend nhận hai khóa môi trường đã tham chiếu trong source:
 | Đặc tả nghiệp vụ chính | `docs/Library_Management_System_VI.md` |
 | Schema canonical | `database/library_db1.sql`, `database/README.md` |
 | Database/backend context | `docs/dbdatabase.md`, `docs/DB0_*`–`DB3_*`, `docs/BE0_*`–`BE5_*` |
-| Trả sách và tiền phạt | `docs/fix-returnbook.md` |
+| Mượn–trả sách, tồn kho, API và nghiệm thu LR | `docs/fix-loan-return.md` |
 | Follow-up Backend/Frontend | `docs/fix-new.md` |
 | payOS | `docs/PAYOS.md` |
 | Lịch sử review cũ | `docs/STEP6*`, `docs/STEP7_FINAL_REVIEW.md`, `docs/AD9_ADMIN_ACCEPTANCE.md` |
@@ -1103,7 +1103,7 @@ Trạng thái: **ĐÃ AUDIT TĨNH**; test/runtime vẫn **CHỜ AUD-6**
 
 `Spec -> UI/Route -> API -> Controller/Security -> Service/Transaction -> Repository/MySQL -> Test -> UI feedback`.
 
-Nguồn được đối chiếu gồm đặc tả canonical, `fix-returnbook.md`, `fix-new.md`, `PAYOS.md`, schema
+Nguồn được đối chiếu gồm đặc tả canonical, `fix-loan-return.md`, `fix-new.md`, `PAYOS.md`, schema
 `library_db1.sql`, controller/service/repository/entity hiện tại, các trang/API adapter Frontend và inventory
 test Backend/Frontend. Kết quả không kế thừa trạng thái “pass” trong tài liệu lịch sử nếu chưa chạy lại.
 

@@ -123,10 +123,7 @@ export const UserSettingsPage = () => {
   return (
     <Box sx={{ maxWidth: 720, mx: "auto", pb: 6 }}>
       {/* HEADER GỌN GÀNG */}
-      <PageHeader
-        title="Cài đặt"
-        subtitle="Quản lý tùy chọn thông báo mượn trả và trải nghiệm đọc sách của bạn"
-      />
+      <PageHeader title="Cài đặt" />
 
       {/* THẺ CÀI ĐẶT DUY NHẤT (APPLE / NOTION STYLE) */}
       <Paper
@@ -260,13 +257,19 @@ export const UserSettingsPage = () => {
                   color="text.secondary"
                   sx={{ fontSize: "0.825rem", mt: 0.25 }}
                 >
-                Nhận email trước hạn 3 ngày và vào ngày phải trả sách
+                  Nhận email trước hạn 3 ngày và vào ngày phải trả sách
                 </Typography>
               </Box>
               <Switch
                 checked={Boolean(preferences?.emailDueReminder)}
-                disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
-                onChange={() => void handleToggle("notifications", "dueReminder")}
+                disabled={
+                  preferencesLoading ||
+                  preferencesSaving ||
+                  Boolean(preferencesError)
+                }
+                onChange={() =>
+                  void handleToggle("notifications", "dueReminder")
+                }
                 color="primary"
               />
             </Stack>
@@ -295,12 +298,17 @@ export const UserSettingsPage = () => {
                   color="text.secondary"
                   sx={{ fontSize: "0.825rem", mt: 0.25 }}
                 >
-                  Nhận cập nhật khi lượt đặt giữ sẵn sàng, sắp hết hạn hoặc kết thúc
+                  Nhận cập nhật khi lượt đặt giữ sẵn sàng, sắp hết hạn hoặc kết
+                  thúc
                 </Typography>
               </Box>
               <Switch
                 checked={Boolean(preferences?.emailReservationUpdates)}
-                disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
+                disabled={
+                  preferencesLoading ||
+                  preferencesSaving ||
+                  Boolean(preferencesError)
+                }
                 onChange={() =>
                   handleToggle("notifications", "reservationAlert")
                 }
@@ -338,7 +346,11 @@ export const UserSettingsPage = () => {
               </Box>
               <Switch
                 checked={Boolean(preferences?.emailOverdueAlert)}
-                disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
+                disabled={
+                  preferencesLoading ||
+                  preferencesSaving ||
+                  Boolean(preferencesError)
+                }
                 onChange={() => handleToggle("notifications", "overdueAlert")}
                 color="primary"
               />
@@ -373,8 +385,14 @@ export const UserSettingsPage = () => {
               </Box>
               <Switch
                 checked={Boolean(preferences?.emailMembershipUpdates)}
-                disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
-                onChange={() => void handleToggle("notifications", "membershipUpdates")}
+                disabled={
+                  preferencesLoading ||
+                  preferencesSaving ||
+                  Boolean(preferencesError)
+                }
+                onChange={() =>
+                  void handleToggle("notifications", "membershipUpdates")
+                }
                 color="primary"
               />
             </Stack>
@@ -390,14 +408,24 @@ export const UserSettingsPage = () => {
                 <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                   Thông báo chung từ thư viện
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.825rem", mt: 0.25 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.825rem", mt: 0.25 }}
+                >
                   Nhận email khi ADMIN đăng thông báo chung và chọn gửi email
                 </Typography>
               </Box>
               <Switch
                 checked={Boolean(preferences?.emailGeneralAnnouncements)}
-                disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
-                onChange={() => void handleToggle("notifications", "generalAnnouncements")}
+                disabled={
+                  preferencesLoading ||
+                  preferencesSaving ||
+                  Boolean(preferencesError)
+                }
+                onChange={() =>
+                  void handleToggle("notifications", "generalAnnouncements")
+                }
                 color="primary"
               />
             </Stack>
@@ -414,14 +442,24 @@ export const UserSettingsPage = () => {
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                       Yêu cầu trả sách cần xử lý
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.825rem", mt: 0.25 }}>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.825rem", mt: 0.25 }}
+                    >
                       Nhận email công việc khi bạn đọc gửi yêu cầu trả sách
                     </Typography>
                   </Box>
                   <Switch
                     checked={Boolean(preferences?.emailAdminReturnRequests)}
-                    disabled={preferencesLoading || preferencesSaving || Boolean(preferencesError)}
-                    onChange={() => void handleToggle("notifications", "adminReturnRequests")}
+                    disabled={
+                      preferencesLoading ||
+                      preferencesSaving ||
+                      Boolean(preferencesError)
+                    }
+                    onChange={() =>
+                      void handleToggle("notifications", "adminReturnRequests")
+                    }
                     color="primary"
                   />
                 </Stack>
@@ -461,9 +499,10 @@ export const UserSettingsPage = () => {
                   color="text.secondary"
                   sx={{ fontSize: "0.825rem", mt: 0.25 }}
                 >
-                  Chọn ẩn danh mặc định cho bài đánh giá mới trên trình duyệt này.
-                  Bạn có thể đổi lựa chọn khi viết hoặc sửa từng bài. Bài đã đăng không tự thay đổi;
-                  quản trị viên vẫn xem được tác giả để kiểm duyệt.
+                  Chọn ẩn danh mặc định cho bài đánh giá mới trên trình duyệt
+                  này. Bạn có thể đổi lựa chọn khi viết hoặc sửa từng bài. Bài
+                  đã đăng không tự thay đổi; quản trị viên vẫn xem được tác giả
+                  để kiểm duyệt.
                 </Typography>
               </Box>
               <Switch

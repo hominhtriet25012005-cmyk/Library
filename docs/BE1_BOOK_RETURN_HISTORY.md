@@ -44,5 +44,5 @@ hiện tại.
   trong cùng transaction.
 - Chính sách hiện hành: quá hạn `min(số ngày trễ × 5.000đ, giá tham chiếu)`; hư hỏng nhẹ 25%,
   hư hỏng nặng 75%; mất sách 100% giá tham chiếu + 20.000đ phí xử lý.
-- Chi tiết trạng thái code/schema, API, giao diện và nghiệm thu được theo dõi tại
-  [`docs/fix-returnbook.md`](fix-returnbook.md).
+- Chi tiết trạng thái code/schema, API, giao diện và nghiệm thu hiện hành được theo dõi tại
+  [`docs/fix-loan-return.md`](fix-loan-return.md).

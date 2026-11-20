@@ -32,9 +32,9 @@ test("lấy đủ trang lịch sử và từ chối phản hồi không hợp l�
   await assert.rejects(loadReservationPages(async () => ({ content: null, totalPages: 1 })));
 });
 
-test("tạo chỉ khi sách hoạt động và đã hết bản; backend vẫn kiểm tra giới hạn/trùng", () => {
+test("đăng ký mượn hoặc đặt giữ cho sách hoạt động dù còn hay hết bản", () => {
   assert.equal(canCreateReservation({ active: true, availableCopies: 0 }), true);
-  assert.equal(canCreateReservation({ active: true, availableCopies: 2 }), false);
+  assert.equal(canCreateReservation({ active: true, availableCopies: 2 }), true);
   assert.equal(canCreateReservation({ active: false, availableCopies: 0 }), false);
 });
 

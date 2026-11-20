@@ -1,7 +1,8 @@
 const activeStatuses = ["PENDING", "AVAILABLE"];
 
 export const canCreateReservation = (book) =>
-  book?.active === true && book.availableCopies === 0;
+  book?.active === true && book.availableCopies != null
+  && Number.isFinite(Number(book.availableCopies));
 
 export const canCancelReservation = (reservation) =>
   activeStatuses.includes(reservation.status) &&

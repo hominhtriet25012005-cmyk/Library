@@ -158,20 +158,6 @@ export const createAdminLoansApi = (client) => ({
       ),
     );
   },
-  checkout: async ({ userId, bookId, checkoutDays, notes = "" }) => {
-    const borrower = positiveInteger(userId, "ID người dùng");
-    const book = positiveInteger(bookId, "ID sách");
-    const days = positiveInteger(checkoutDays, "Số ngày mượn");
-    if (notes.length > 500)
-      throw new Error("Ghi chú không được quá 500 ký tự.");
-    return checkedLoan(
-      await client.post(`/api/book-loans/checkout/user/${borrower}`, {
-        bookId: book,
-        checkoutDays: days,
-        notes,
-      }),
-    );
-  },
   checkin: async (id, conditionOrDetails = "RETURNED", notes = "") => {
     const bookLoanId = positiveInteger(id, "ID lượt mượn");
     const usesLegacyArguments =
@@ -236,15 +222,6 @@ export const createAdminLoansApi = (client) => ({
         extensionDays: days,
       }),
     );
-  },
-  updateOverdue: async () => {
-    const result = await client.post(
-      "/api/book-loans/admin/update-overdue",
-      {},
-    );
-    if (result?.status !== true)
-      throw new Error("Không thể xác nhận kết quả cập nhật quá hạn.");
-    return result;
   },
 });
 

@@ -34,7 +34,6 @@ import {
 } from "../../../utils/formatters";
 import WishlistButton from "../Wishlist/WishlistButton";
 import WishlistStatus from "../Wishlist/WishlistStatus";
-import CheckoutAction from "./CheckoutAction.jsx";
 import ReservationAction from "./ReservationAction.jsx";
 import BookReviewsSection from "./BookReviewsSection.jsx";
 
@@ -289,15 +288,16 @@ const BookDetailContent = ({ id }) => {
                         "&:hover": { bgcolor: "#d97706" },
                       }}
                     >
-                      Bạn đã đặt giữ sách này
+                      {activeReservation.status === "AVAILABLE"
+                        ? "Sách sẵn sàng, chờ ADMIN xác nhận giao"
+                        : "Bạn đang ở hàng chờ cuốn sách này"}
                     </Button>
                   ) : (
                     <>
-                      <CheckoutAction
+                      <ReservationAction
                         book={book}
                         onSuccess={() => setRefresh((value) => value + 1)}
                       />
-                      <ReservationAction book={book} />
                     </>
                   )}
                   <WishlistButton bookId={book.id} />
@@ -496,13 +496,17 @@ const BookDetailContent = ({ id }) => {
                           variant="body2"
                           sx={{ fontWeight: 800, color: "#92400e" }}
                         >
-                          Bạn đã đặt giữ cuốn sách này
+                          {activeReservation.status === "AVAILABLE"
+                            ? "Yêu cầu mượn đã sẵn sàng"
+                            : "Bạn đang chờ cuốn sách này"}
                         </Typography>
                         <Typography
                           variant="caption"
                           sx={{ color: "#b45309", display: "block" }}
                         >
-                          Trạng thái: Đang xếp hàng chờ nhận sách tại thư viện.
+                          {activeReservation.status === "AVAILABLE"
+                            ? `Sẵn sàng nhận trước ${formatDateVN(activeReservation.availableUntil)}; lượt mượn bắt đầu khi ADMIN giao sách.`
+                            : `Đang ở vị trí hàng chờ #${activeReservation.queuePosition ?? "—"}.`}
                         </Typography>
                       </Box>
                     </Box>
@@ -523,7 +527,9 @@ const BookDetailContent = ({ id }) => {
                         },
                       }}
                     >
-                      Xem vị trí hàng đợi →
+                      {activeReservation.status === "AVAILABLE"
+                        ? "Xem thông tin nhận sách →"
+                        : "Xem vị trí hàng đợi →"}
                     </Button>
                   </Box>
                 )}

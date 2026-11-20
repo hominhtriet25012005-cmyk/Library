@@ -12,6 +12,8 @@ import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactory;
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
 import org.springframework.transaction.interceptor.TransactionInterceptor;
+import java.util.ArrayList;
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.AdditionalAnswers.delegatesTo;
@@ -77,6 +79,47 @@ class ReservationAtomicityTests {
         assertEquals(1, outcomes.stream().filter(Boolean::booleanValue).count());
         assertEquals(1L, fixture.tx.execute(s -> reservations.count()).longValue());
     }
+
+    @Test void expiryQueryNeverSelectsCompletedReservationHistory() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.of(2026, 11, 20, 12, 0);
+        List<Reservation> completed = new ArrayList<>();
+        fixture.tx.executeWithoutResult(status -> {
+            User user = fixture.em.find(User.class, fixture.userId);
+            Book book = fixture.em.find(Book.class, fixture.bookId);
+            for (ReservationStatus terminalStatus : List.of(
+                    ReservationStatus.FULFILLED, ReservationStatus.CANCELLED, ReservationStatus.EXPIRED)) {
+                Reservation historical = Reservation.builder()
+                        .user(user).book(book).status(terminalStatus)
+                        .reservedAt(now.minusDays(5))
+                        .availableAt(now.minusDays(4)).availableUntil(now.minusDays(1))
+                        .fulfilledAt(terminalStatus == ReservationStatus.FULFILLED ? now.minusDays(3) : null)
+                        .cancelledAt(terminalStatus == ReservationStatus.CANCELLED
+                                || terminalStatus == ReservationStatus.EXPIRED ? now.minusDays(2) : null)
+                        .notificationSent(true).build();
+                fixture.em.persist(historical);
+                completed.add(historical);
+            }
+            Reservation expiredAvailable = Reservation.builder()
+                    .user(user).book(book).status(ReservationStatus.AVAILABLE)
+                    .reservedAt(now.minusDays(4)).availableAt(now.minusDays(3))
+                    .availableUntil(now.minusHours(1)).notificationSent(true).build();
+            fixture.em.persist(expiredAvailable);
+            fixture.em.flush();
+            completed.add(expiredAvailable);
+        });
+        List<Long> completedIds = completed.stream().map(Reservation::getId).toList();
+
+        List<Long> expiryCandidates = reservations.findExpiredAvailableIds(
+                now, org.springframework.data.domain.PageRequest.of(0, 10));
+
+        assertEquals(1, expiryCandidates.size());
+        assertEquals(completedIds.get(3), expiryCandidates.get(0));
+        assertEquals(List.of(ReservationStatus.FULFILLED, ReservationStatus.CANCELLED,
+                        ReservationStatus.EXPIRED),
+                fixture.tx.execute(status -> completedIds.subList(0, 3).stream()
+                        .map(id -> fixture.em.find(Reservation.class, id).getStatus()).toList()));
+    }
+
     boolean attemptReserve(ReservationServiceImpl service) throws Exception {
         try { reserve(service); return true; } catch (ReservationException expected) { return false; }
     }

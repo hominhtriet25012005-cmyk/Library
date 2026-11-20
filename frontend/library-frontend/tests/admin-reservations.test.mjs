@@ -43,7 +43,7 @@ test("ADMIN tạo, hủy, xác nhận nhận sách qua đúng endpoint và paylo
   await admin.create({ userId: "3", bookId: "5", notes: "Đặt tại quầy" });
   await admin.cancel(8);
   await admin.fulfill({ id: 8, status: "AVAILABLE", queuePosition: 1,
-    isBookAvailable: true, expired: false });
+    availableUntil: "2026-11-21T09:00:00", isBookAvailable: true, expired: false });
   assert.deepEqual(calls, [
     ["POST", "/api/reservations/user/3", { bookId: 5, notes: "Đặt tại quầy" }],
     ["DELETE", "/api/reservations/8"],
@@ -70,13 +70,13 @@ test("ADMIN không gửi API giao sách khi lượt đặt giữ chưa AVAILABLE
   assert.equal(calls.length, 0);
 });
 
-test("chỉ xác nhận người đầu hàng, sách sẵn và đặt giữ chưa hết hạn", () => {
+test("chỉ giao đặt giữ AVAILABLE còn hạn nhận", () => {
   const first = { status: "PENDING", queuePosition: 1, isBookAvailable: true,
-    expired: false, canBeCancelled: true };
+    availableUntil: "2026-11-21T09:00:00", expired: false, canBeCancelled: true };
   assert.equal(canAdminFulfill(first), false);
   assert.equal(canAdminFulfill({ ...first, status: "AVAILABLE" }), true);
-  assert.equal(canAdminFulfill({ ...first, status: "AVAILABLE", queuePosition: 2 }), false);
-  assert.equal(canAdminFulfill({ ...first, status: "AVAILABLE", isBookAvailable: false }), false);
+  assert.equal(canAdminFulfill({ ...first, status: "AVAILABLE", queuePosition: 2 }), true);
+  assert.equal(canAdminFulfill({ ...first, status: "AVAILABLE", isBookAvailable: false }), true);
   assert.equal(canAdminFulfill({ ...first, status: "AVAILABLE", expired: true }), false);
   assert.equal(canAdminFulfill({ ...first, status: "CANCELLED" }), false);
   assert.equal(canAdminCancel(first), true);

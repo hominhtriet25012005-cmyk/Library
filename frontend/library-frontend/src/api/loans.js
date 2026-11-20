@@ -3,8 +3,6 @@ import { api } from "./client.js";
 export const createLoansApi = (client) => ({
   list: (page = 0, size = 20, options) =>
     client.get(`/api/book-loans/my?page=${page}&size=${size}`, options),
-  checkout: (bookId, checkoutDays, notes = "") =>
-    client.post("/api/book-loans/checkout", { bookId, checkoutDays, notes }),
   requestReturn: (bookLoanId, note = "") =>
     client.post(`/api/book-loans/${bookLoanId}/return-request`, {
       note: String(note ?? "").trim(),

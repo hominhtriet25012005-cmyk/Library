@@ -229,7 +229,7 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
                 fontWeight: 600,
               }}
             >
-              Hủy đặt giữ
+              Hủy yêu cầu
             </Button>
           )}
         </Box>
