@@ -7,6 +7,12 @@ import {
   Divider,
   Paper,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Typography,
 } from "@mui/material";
 import { Link as RouterLink, useLocation } from "react-router-dom";
@@ -741,6 +747,44 @@ export const AboutPage = () => {
                 </Stack>
               ))}
             </Stack>
+          </Paper>
+
+          <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, borderRadius: "16px", border: `1px solid ${publicPalette.border}`, mb: 4 }}>
+            <Typography component="h3" variant="h5" sx={{ fontFamily: publicFonts.serif, mb: 2 }}>
+              Mức phạt và bồi thường
+            </Typography>
+            <Typography variant="body2" sx={{ color: publicPalette.textSecondary, mb: 2, lineHeight: 1.7 }}>
+              Mức bồi thường được tính theo giá tham chiếu của cuốn sách, không phải giá gói thành viên.
+              Thư viện xác nhận tình trạng sách và khoản phải thanh toán khi xử lý trả sách hoặc báo mất.
+            </Typography>
+            <TableContainer>
+              <Table aria-label="Mức phạt và bồi thường kinh sách" size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 700 }}>Trường hợp</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Mức áp dụng</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {[
+                    ["Trả sách quá hạn", "5.000 đồng/ngày; tiền phạt quá hạn tối đa bằng giá tham chiếu của sách."],
+                    ["Hư hỏng nhẹ", "25% giá tham chiếu của sách."],
+                    ["Hư hỏng nặng", "75% giá tham chiếu của sách."],
+                    ["Mất sách", "100% giá tham chiếu của sách + 20.000 đồng phí xử lý."],
+                  ].map(([label, amount]) => (
+                    <TableRow key={label}>
+                      <TableCell component="th" scope="row">{label}</TableCell>
+                      <TableCell>{amount}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <Typography variant="body2" sx={{ mt: 2, color: publicPalette.textSecondary, lineHeight: 1.7 }}>
+              Nếu sách chưa có giá tham chiếu hợp lệ, mức tham chiếu dự phòng là 100.000 đồng và cần quản trị viên xác nhận.
+              Nếu đồng thời quá hạn và hư hỏng hoặc mất sách, tiền phạt quá hạn được cộng với khoản bồi thường tương ứng.
+              Giới hạn tiền phạt quá hạn chỉ áp dụng cho phần quá hạn.
+            </Typography>
           </Paper>
 
           {/* 8. CTA: Khám phá kho kinh sách */}

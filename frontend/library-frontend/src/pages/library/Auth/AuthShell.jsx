@@ -7,8 +7,7 @@ const AuthShell = ({ title, subtitle, children, maxWidth = 480 }) => (
     component="main"
     sx={{
       minHeight: "100vh",
-      bgcolor: () =>
-        "#FAF8F3",
+      bgcolor: () => "#FAF8F3",
       background: () =>
         "radial-gradient(circle at 50% 15%, #ffffff 0%, #FAF8F3 60%, #F3EFE6 100%)",
       display: "flex",
@@ -117,12 +116,6 @@ const AuthShell = ({ title, subtitle, children, maxWidth = 480 }) => (
       {/* Nội dung Form */}
       {children}
     </Paper>
-
-    <Box sx={{ mt: 3, textAlign: "center" }}>
-      <Typography variant="caption" sx={{ color: "text.secondary" }}>
-        © 2026 Thư viện số · Hệ thống quản lý thư viện hiện đại
-      </Typography>
-    </Box>
   </Box>
 );
 

@@ -197,7 +197,6 @@ export const PublicBookDetailPage = () => {
   }, [reviews]);
 
   const availableCopies = Number(book?.availableCopies ?? 0);
-  const totalCopies = Number(book?.totalCopies ?? 0);
   const isAvailable = availableCopies > 0;
   const statusStyle = isAvailable
     ? publicPalette.status.available
@@ -598,8 +597,8 @@ export const PublicBookDetailPage = () => {
                       }
                       label={
                         isAvailable
-                          ? `Còn sách (${availableCopies}/${totalCopies} bản sẵn sàng)`
-                          : "Tạm hết sách · Có thể đăng ký đặt giữ"
+                          ? "Có thể gửi yêu cầu mượn"
+                          : "Bạn có thể đặt giữ để nhận sách khi có bản sẵn"
                       }
                       sx={{
                         bgcolor: statusStyle.bg,

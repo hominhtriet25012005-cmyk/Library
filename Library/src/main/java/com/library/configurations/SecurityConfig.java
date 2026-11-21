@@ -87,6 +87,7 @@ public class SecurityConfig {
                 cfg.setAllowedOrigins(
                         Arrays.asList(
                                 "http://localhost:5173",
+                                "https://support-trace-canister.ngrok-free.dev",
                                 "https://library.com"
                         )
                 );

@@ -1148,7 +1148,9 @@ const AdminLoansPage = () => {
           >
             {operation?.type === "checkin"
               ? `Ghi nhận trả sách · Lượt #${operation.loan.id}`
-              : `Gia hạn lượt mượn · Lượt #${operation.loan.id}`}
+              : operation?.type === "renew"
+                ? `Gia hạn lượt mượn · Lượt #${operation.loan.id}`
+                : "Thao tác lượt mượn"}
           </Typography>
           <IconButton size="small" onClick={closeAction} disabled={busy}>
             <CloseRoundedIcon fontSize="small" />

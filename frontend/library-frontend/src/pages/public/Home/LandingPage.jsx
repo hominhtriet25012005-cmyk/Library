@@ -10,7 +10,11 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import {
+  Link as RouterLink,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
@@ -373,11 +377,6 @@ const ScriptureShelfIllustration = () => (
 
 const HomeBookCard = ({ book, onViewDetails }) => {
   const [coverFailed, setCoverFailed] = useState(false);
-  const availableCopies = Number(book.availableCopies ?? 0);
-  const isAvailable = availableCopies > 0;
-  const statusStyle = isAvailable
-    ? publicPalette.status.available
-    : publicPalette.status.unavailable;
 
   return (
     <Paper
@@ -440,22 +439,6 @@ const HomeBookCard = ({ book, onViewDetails }) => {
             </Typography>
           </Stack>
         )}
-
-        <Chip
-          size="small"
-          label={isAvailable ? "Còn sách" : "Tạm hết sách"}
-          sx={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            bgcolor: statusStyle.bg,
-            color: statusStyle.text,
-            border: `1px solid ${statusStyle.border}`,
-            fontWeight: 700,
-            fontSize: "0.73rem",
-            borderRadius: "8px",
-          }}
-        />
       </Box>
 
       {/* Nội dung thẻ */}
@@ -561,6 +544,7 @@ const HomeBookCard = ({ book, onViewDetails }) => {
 
 export const LandingPage = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
 
   const [genres, setGenres] = useState([]);
@@ -630,6 +614,25 @@ export const LandingPage = () => {
     loadCatalogPreview(controller.signal);
     return () => controller.abort();
   }, [loadCatalogPreview]);
+
+  useEffect(() => {
+    if (
+      location.hash !== "#huong-dan-muon" ||
+      booksLoading ||
+      genresLoading
+    ) {
+      return;
+    }
+
+    const target = document.getElementById("huong-dan-muon");
+    if (!target) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [location.hash, location.key, booksLoading, genresLoading]);
 
   const handleScrollToGuide = () => {
     const element = document.getElementById("huong-dan-muon");
@@ -1257,6 +1260,19 @@ export const LandingPage = () => {
                 </Typography>
               </Paper>
             ))}
+          </Box>
+          <Box sx={{ mt: 3 }}>
+            <Typography variant="body2" sx={{ color: publicPalette.textSecondary, lineHeight: 1.7 }}>
+              Bạn đọc vui lòng trả sách đúng hạn, giữ gìn kinh sách và thực hiện trách nhiệm bồi thường khi sách bị hư hỏng hoặc mất.
+            </Typography>
+            <Button
+              component={RouterLink}
+              to="/about#quy-dinh-chung"
+              endIcon={<ArrowForwardRoundedIcon />}
+              sx={{ mt: 1, textTransform: "none" }}
+            >
+              Xem quy định và mức bồi thường
+            </Button>
           </Box>
         </Container>
       </Box>

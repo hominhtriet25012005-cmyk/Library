@@ -9,13 +9,6 @@ import { publicPalette } from "../PublicLayout/publicTheme";
 export const PublicBookCard = ({ book }) => {
   const [coverFailed, setCoverFailed] = useState(false);
 
-  const availableCopies = Number(book?.availableCopies ?? 0);
-  const totalCopies = Number(book?.totalCopies ?? 0);
-  const isAvailable = availableCopies > 0;
-  const statusStyle = isAvailable
-    ? publicPalette.status.available
-    : publicPalette.status.unavailable;
-
   const publicationYearLabel =
     book?.publicationYear ||
     (typeof book?.publicationDate === "string" &&
@@ -93,28 +86,7 @@ export const PublicBookCard = ({ book }) => {
           </Stack>
         )}
 
-        {/* 5. Tình trạng lấy từ API */}
-        <Chip
-          size="small"
-          label={
-            isAvailable
-              ? totalCopies > 0
-                ? `Còn sách (${availableCopies}/${totalCopies})`
-                : "Còn sách"
-              : "Tạm hết sách"
-          }
-          sx={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            bgcolor: statusStyle.bg,
-            color: statusStyle.text,
-            border: `1px solid ${statusStyle.border}`,
-            fontWeight: 700,
-            fontSize: "0.73rem",
-            borderRadius: "8px",
-          }}
-        />
+
       </Box>
 
       {/* Nội dung thẻ */}

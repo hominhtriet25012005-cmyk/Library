@@ -159,7 +159,7 @@ const PublicFooter = () => {
             </Stack>
           </Box>
 
-          {/* CỘT 4: THÔNG TIN LIÊN HỆ XÁC THỰC / ĐANG CẬP NHẬT */}
+          {/* CỘT 4: THÔNG TIN LIÊN HỆ */}
           <Box>
             <Typography
               variant="subtitle2"
@@ -181,9 +181,8 @@ const PublicFooter = () => {
                   component="strong"
                   sx={{ color: publicPalette.textPrimary, fontWeight: 600 }}
                 >
-                  Địa điểm:{" "}
+                  Địa chỉ:{" 495 Võ Văn Tần Phường Bàn Cờ, TP.HCM "}
                 </Box>
-                Đang cập nhật
               </Typography>
               <Typography
                 variant="body2"
@@ -193,31 +192,18 @@ const PublicFooter = () => {
                   component="strong"
                   sx={{ color: publicPalette.textPrimary, fontWeight: 600 }}
                 >
-                  Điện thoại / Email:{" "}
+                  Điện thoại:{" 1900 3636 "}
                 </Box>
-                Đang cập nhật
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: publicPalette.textSecondary, fontSize: "0.88rem" }}
-              >
+
                 <Box
                   component="strong"
-                  sx={{ color: publicPalette.textPrimary, fontWeight: 600 }}
-                >
-                  Hỗ trợ trực tuyến:{" "}
-                </Box>
-                <Box
-                  component={RouterLink}
-                  to="/contact"
                   sx={{
-                    color: publicPalette.primary,
+                    color: publicPalette.textPrimary,
                     fontWeight: 600,
-                    textDecoration: "underline",
-                    textUnderlineOffset: "3px",
+                    display: "block",
                   }}
                 >
-                  Gửi câu hỏi tại trang Liên hệ
+                  Email:{" pharm@gmail.com "}
                 </Box>
               </Typography>
             </Stack>
@@ -239,7 +225,7 @@ const PublicFooter = () => {
             variant="caption"
             sx={{ color: publicPalette.textSecondary, fontSize: "0.82rem" }}
           >
-            © 2026 Thư viện Kinh sách Phật giáo — Đồ án tốt nghiệp.
+            © 2026 Thư viện Kinh sách Phật giáo
           </Typography>
           <Typography
             variant="caption"

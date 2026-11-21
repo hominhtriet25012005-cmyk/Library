@@ -38,22 +38,11 @@ const SORT_OPTIONS = [
   { value: "publicationYear-DESC", label: "Năm xuất bản (Mới nhất)" },
 ];
 
-const AVAILABILITY_OPTIONS = [
-  { value: "ALL", label: "Tất cả ấn phẩm" },
-  { value: "AVAILABLE", label: "Còn sách tại thư viện" },
-  { value: "CHECKED_OUT", label: "Tạm hết sách" },
-];
-
 const parseSortParam = (raw) => {
   const found = SORT_OPTIONS.find((item) => item.value === raw);
   const target = found ? found.value : "createdAt-DESC";
   const [sortBy, sortDirection] = target.split("-");
   return { sortValue: target, sortBy, sortDirection };
-};
-
-const parseAvailabilityParam = (raw) => {
-  const valid = AVAILABILITY_OPTIONS.some((item) => item.value === raw);
-  return valid ? raw : "ALL";
 };
 
 const parseGenreParam = (raw) => {
@@ -73,7 +62,6 @@ export const PublicBooksPage = () => {
   // Đọc trạng thái bộ lọc trực tiếp từ URL query string để chia sẻ đường dẫn
   const queryText = searchParams.get("q") ?? "";
   const selectedGenreId = parseGenreParam(searchParams.get("genreId"));
-  const availability = parseAvailabilityParam(searchParams.get("availability"));
   const { sortValue, sortBy, sortDirection } = parseSortParam(
     searchParams.get("sort"),
   );
@@ -99,7 +87,6 @@ export const PublicBooksPage = () => {
           value === null ||
           value === undefined ||
           value === "" ||
-          (key === "availability" && value === "ALL") ||
           (key === "sort" && value === "createdAt-DESC") ||
           (key === "page" && Number(value) <= 1)
         ) {
@@ -158,7 +145,6 @@ export const PublicBooksPage = () => {
         {
           searchTerm: queryText,
           genreId: selectedGenreId,
-          availability,
           page: currentPage,
           size: PAGE_SIZE,
           sortBy,
@@ -189,7 +175,6 @@ export const PublicBooksPage = () => {
   }, [
     queryText,
     selectedGenreId,
-    availability,
     currentPage,
     sortBy,
     sortDirection,
@@ -199,7 +184,6 @@ export const PublicBooksPage = () => {
   const hasActiveFilters = Boolean(
     queryText.trim() ||
     selectedGenreId !== null ||
-    availability !== "ALL" ||
     sortValue !== "createdAt-DESC",
   );
 
@@ -377,45 +361,6 @@ export const PublicBooksPage = () => {
 
       <Divider sx={{ borderColor: publicPalette.border }} />
 
-      {/* Lọc theo Tình trạng còn sách */}
-      <Box>
-        <Typography
-          variant="subtitle2"
-          sx={{
-            fontWeight: 700,
-            color: publicPalette.textPrimary,
-            mb: 1.25,
-            fontSize: "0.92rem",
-          }}
-        >
-          Tình trạng còn sách
-        </Typography>
-        <FormControl fullWidth size="small">
-          <Select
-            value={availability}
-            onChange={(event) => {
-              updateFilterParams({
-                availability: event.target.value,
-                page: 1,
-              });
-              if (inDrawer) setMobileFilterOpen(false);
-            }}
-            sx={{
-              borderRadius: "10px",
-              bgcolor: publicPalette.background,
-            }}
-          >
-            {AVAILABILITY_OPTIONS.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {option.label}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-
-      <Divider sx={{ borderColor: publicPalette.border }} />
-
       {/* Nút Xóa bộ lọc */}
       <Button
         variant="outlined"
@@ -496,8 +441,6 @@ export const PublicBooksPage = () => {
               borderRadius: "14px",
               borderColor: publicPalette.border,
               bgcolor: publicPalette.surface,
-              position: "sticky",
-              top: 88,
             }}
           >
             {renderFilterSidebarContent(false)}
@@ -566,35 +509,14 @@ export const PublicBooksPage = () => {
                   />
                 )}
 
-                {availability !== "ALL" && (
-                  <Chip
-                    label={
-                      availability === "AVAILABLE"
-                        ? "Chỉ sách hiện còn"
-                        : "Sách tạm hết"
-                    }
-                    onDelete={() =>
-                      updateFilterParams({ availability: "ALL", page: 1 })
-                    }
-                    size="small"
-                    sx={{
-                      bgcolor: publicPalette.accentLight,
-                      color: publicPalette.accentDark,
-                      fontWeight: 600,
-                    }}
-                  />
+                {!queryText && selectedGenreId === null && (
+                  <Typography
+                    variant="body2"
+                    sx={{ color: publicPalette.textSecondary }}
+                  >
+                    Hiển thị toàn bộ danh mục kinh sách công khai
+                  </Typography>
                 )}
-
-                {!queryText &&
-                  selectedGenreId === null &&
-                  availability === "ALL" && (
-                    <Typography
-                      variant="body2"
-                      sx={{ color: publicPalette.textSecondary }}
-                    >
-                      Hiển thị toàn bộ danh mục kinh sách công khai
-                    </Typography>
-                  )}
               </Stack>
 
               <Stack direction="row" spacing={1.25} alignItems="center">

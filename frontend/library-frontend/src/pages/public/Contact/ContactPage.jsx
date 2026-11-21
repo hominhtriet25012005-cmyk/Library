@@ -221,14 +221,6 @@ export const ContactPage = () => {
               >
                 Kênh thông tin chính thức
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: publicPalette.textSecondary, lineHeight: 1.7 }}
-              >
-                Thư viện chỉ công bố các thông tin liên hệ đã được xác thực từ
-                đơn vị vận hành. Các mục chưa ban hành chính thức được hiển thị
-                ở trạng thái cập nhật.
-              </Typography>
 
               <Paper
                 variant="outlined"
@@ -258,7 +250,7 @@ export const ContactPage = () => {
                       variant="body2"
                       sx={{ color: publicPalette.textSecondary }}
                     >
-                      Đang cập nhật
+                      495 Võ Văn Tần Phường Bàn Cờ, TP.HCM
                     </Typography>
                   </Box>
                 </Stack>
@@ -292,7 +284,7 @@ export const ContactPage = () => {
                       variant="body2"
                       sx={{ color: publicPalette.textSecondary }}
                     >
-                      Đang cập nhật
+                      pharm@gmail.com
                     </Typography>
                   </Box>
                 </Stack>
@@ -326,8 +318,7 @@ export const ContactPage = () => {
                       variant="body2"
                       sx={{ color: publicPalette.textSecondary }}
                     >
-                      Tra cứu danh mục trực tuyến hoạt động 24/7 · Giờ phục vụ
-                      tại quầy: Đang cập nhật
+                      T2 - CN: 8h00 - 22h00
                     </Typography>
                   </Box>
                 </Stack>
@@ -358,13 +349,6 @@ export const ContactPage = () => {
                 }}
               >
                 Gửi câu hỏi hoặc góp ý
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: publicPalette.textSecondary, mb: 3 }}
-              >
-                Điền đầy đủ các thông tin bên dưới để chuẩn bị nội dung liên hệ
-                chính xác gửi tới bộ phận phụ trách thư viện.
               </Typography>
 
               <Stack spacing={2.25}>

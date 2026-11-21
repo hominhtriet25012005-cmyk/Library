@@ -30,7 +30,7 @@ const PublicLayout = ({ children }) => {
       }
     }
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [insideParentLayout, location.pathname, location.hash]);
+  }, [insideParentLayout, location.pathname, location.hash, location.key]);
 
   if (insideParentLayout) {
     return children ?? <Outlet />;
