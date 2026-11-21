@@ -1,6 +1,8 @@
 # DATABASE & BACKEND — TRẠNG THÁI CHUẨN
 
-Cập nhật lần cuối: **05/11/2026**.
+Cập nhật trạng thái Database: **21/11/2026**. Các giai đoạn Backend bên dưới giữ nguyên mốc lịch sử của chúng.
+
+> **Hiện trạng Database mới nhất:** MySQL live `library_db1` có đủ 17 bảng. Hai CHECK của `subscription_plans` và CHECK mục tiêu của `payments` đã có trong schema chuẩn nhưng chưa được áp dụng lên live; dữ liệu được kiểm tra gần nhất chưa vi phạm. Không chạy DDL/DML live trong lần cập nhật tài liệu này. Xem [Database README](../database/README.md), [từ điển 17 bảng](../database/DATA_DICTIONARY_VI.md) và [hướng dẫn migration](../database/migrations/README.md).
 
 Tài liệu này là sổ theo dõi ngắn gọn cho phần Database và các việc Backend phụ thuộc Database. Nội dung tại đây thay thế cách đánh số và nhận định đã lỗi thời trong hai bản review cũ. Trước khi sửa Database hoặc Backend, phải đọc file này và đối chiếu code hiện tại.
 
@@ -35,7 +37,9 @@ File này **không phải migration runner**. Khi database đang chạy cần AL
 
 Không nhét các ALTER lịch sử nối tiếp vào file schema chính. Biên bản và backup lưu lại lịch sử thay đổi.
 
-## 3. Trạng thái các giai đoạn Database
+## 3. Trạng thái các giai đoạn Database tại mốc tài liệu cũ
+
+Bảng dưới đây là biên bản tiến độ DB-0…DB-7 được tổng hợp trước ngày 21/11/2026. Không dùng số lượng bảng hay câu “không còn blocker schema” trong mốc cũ để thay cho trạng thái hiện tại ở đầu tài liệu.
 
 | Giai đoạn | Trạng thái | Kết quả đã chốt |
 | --- | --- | --- |
@@ -128,7 +132,7 @@ Không ghi giá trị secret vào tài liệu này. Hướng dẫn và bằng ch
 
 ## 6. Backlog Backend sau khi Database đã ổn
 
-Database không còn blocker schema cho V1. Thứ tự Backend tiếp theo:
+Phần backlog Backend dưới đây là nội dung theo dõi tại mốc trước ngày 21/11/2026; trạng thái Database mới nhất được ghi ở đầu tài liệu. Thứ tự Backend tiếp theo tại thời điểm lập tài liệu là:
 
 ### BE-0 — Bảo mật cấu hình và JWT — **xong**
 

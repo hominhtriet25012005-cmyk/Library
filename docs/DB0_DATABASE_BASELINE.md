@@ -1,5 +1,7 @@
 # DB-0 — Baseline và sao lưu Database
 
+> **Ảnh chụp lịch sử ngày 30/10/2026.** Tài liệu này ghi lại trạng thái 12 bảng tại DB-0, không phải số bảng hiện tại. Xem [hướng dẫn Database hiện tại](../database/README.md) và [từ điển 17 bảng](../database/DATA_DICTIONARY_VI.md).
+
 Ngày kiểm tra: 30/10/2026  
 Database: `library_db1`  
 Hệ quản trị: MySQL 9.2.0  

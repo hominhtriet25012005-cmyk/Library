@@ -1,5 +1,7 @@
 # DB-1 — Chuẩn hóa schema chính và khởi tạo ADMIN
 
+> **Biên bản lịch sử của giai đoạn DB-1.** Số lượng bảng trong tài liệu phản ánh thời điểm triển khai giai đoạn này; schema hiện tại có 17 bảng. Xem [Database README](../database/README.md) và [từ điển dữ liệu](../database/DATA_DICTIONARY_VI.md).
+
 Ngày hoàn thành: 31/10/2026
 
 ## 1. Kết quả

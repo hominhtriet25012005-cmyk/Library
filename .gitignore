@@ -34,7 +34,20 @@ Library/.mvn/frontend/
 # Local Postman workspace metadata; the export under postman/ is canonical
 .postman/
 
-# Only the canonical schema and its explanation belong in version control
+# Schema, dictionary, current migration guidance, and historical migration source.
+# Backups remain excluded because they contain runtime data.
 database/*
 !database/library_db1.sql
 !database/README.md
+!database/DATA_DICTIONARY_VI.md
+!database/migrations/
+database/migrations/*
+!database/migrations/*.sql
+!database/migrations/README.md
+!database/archive/
+database/archive/*
+!database/archive/README.md
+!database/archive/legacy/
+database/archive/legacy/*
+!database/archive/legacy/*.sql
+!database/archive/legacy/*.java

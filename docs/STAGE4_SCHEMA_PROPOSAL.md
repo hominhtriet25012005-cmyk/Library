@@ -1,7 +1,9 @@
 # Giai đoạn 4 — Đề xuất đồng bộ Backend và Database
 
+> **Tài liệu đề xuất lịch sử, đã lưu trữ.** Không dùng SQL cũ để tạo/nâng cấp Database hiện tại. Schema mới nhất có 17 bảng; xem [Database README](../database/README.md).
+
 Trạng thái: bản đề xuất ngày 04/10/2026, CHƯA chạy SQL, CHƯA sửa Backend trong giai đoạn 4.
-Database chính: library_db1. SQL đi kèm: ../database/stage4_schema_proposal.sql.
+Database chính: library_db1. SQL đi kèm đã lưu tại `../database/archive/legacy/stage4_schema_proposal.sql`.
 Kế hoạch theo nhóm 3A–3D và giai đoạn 4 trong chat là tiến độ hiện hành;
 BACKEND_FIX_PLAN.md là bản kế hoạch cũ, chưa cập nhật đầy đủ các giai đoạn này.
 

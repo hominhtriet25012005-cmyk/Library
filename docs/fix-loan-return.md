@@ -229,7 +229,7 @@ SELECT status, COUNT(*) AS total FROM reservations GROUP BY status ORDER BY stat
 
 **Đã sửa code; chờ USER kiểm thử/nghiệm thu.** Theo yêu cầu lần triển khai này, không viết/chạy test. Hạn mức tính cả lượt mượn đang hoạt động và yêu cầu đang hoạt động. Phân bổ theo thứ tự hàng chờ, có thể giữ nhiều bản cho nhiều yêu cầu khi kho đủ.
 
-**Trạng thái chuyển đổi MySQL live:** đối chiếu LR-7 thấy marker `LR1_RESERVED_COPIES` đã được ghi trong `lr_schema_migrations` lúc `2026-11-20 16:16:04`. Không chạy lại script trên database này; marker ngăn áp dụng giảm tồn kho lần hai. Với database khác, chỉ dùng `database/lr1-reservation-inventory.sql` sau khi sao lưu và kiểm tra dữ liệu hiện có.
+**Trạng thái chuyển đổi MySQL live:** đối chiếu LR-7 thấy marker `LR1_RESERVED_COPIES` đã được ghi trong `lr_schema_migrations` lúc `2026-11-20 16:16:04`. Không chạy lại script trên database này; marker ngăn áp dụng giảm tồn kho lần hai. Với database khác, chỉ dùng [`database/migrations/lr1-reservation-inventory.sql`](../database/migrations/lr1-reservation-inventory.sql) sau khi sao lưu và kiểm tra dữ liệu hiện có.
 
 **Điều chỉnh phụ thuộc:** bước giao sách hiện tại chuyển bản đã giữ sang checkout trong cùng transaction để tổng tồn kho không bị trừ lần hai; cho phép giao bất kỳ yêu cầu `AVAILABLE` hợp lệ vì mỗi yêu cầu đã có bản riêng. Những hạng mục khác của LR-2 vẫn chờ triển khai.
 

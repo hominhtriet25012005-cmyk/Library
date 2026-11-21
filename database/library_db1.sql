@@ -1,12 +1,18 @@
 -- Lược đồ MySQL chuẩn cho library_db1.
 -- Đây là nguồn thông tin duy nhất và chính xác để tạo lược đồ cơ sở dữ liệu.
--- Các thông tin như người dùng hệ thống, thông tin đăng nhập của quản trị viên (ADMIN) và dữ liệu ứng dụng cố ý không được đưa vào đây.
+-- Không đưa tài khoản, mật khẩu ADMIN hoặc dữ liệu nghiệp vụ vào file này.
+-- File này mô tả cấu trúc chuẩn cho một Database mới; CREATE TABLE IF NOT EXISTS
+-- không tự bổ sung cột hoặc ràng buộc vào những bảng đã tồn tại.
 CREATE DATABASE IF NOT EXISTS library_db1
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_0900_ai_ci;
 
 USE library_db1;
 
+-- ============================================================
+-- NHÓM 1: TÀI KHOẢN, XÁC THỰC VÀ THÔNG BÁO
+-- ============================================================
+-- Lưu thông tin đăng nhập, vai trò và trạng thái xác minh của USER/ADMIN.
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -40,6 +46,7 @@ CREATE TABLE IF NOT EXISTS users (
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Lưu mã xác minh email dưới dạng mã băm; mỗi mã có hạn sử dụng và trạng thái.
 CREATE TABLE IF NOT EXISTS email_verification_tokens (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -81,6 +88,7 @@ CREATE TABLE IF NOT EXISTS email_verification_tokens (
         CHECK (consumed_at IS NULL OR revoked_at IS NULL)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Lưu lựa chọn nhận email của từng tài khoản; mỗi tài khoản có tối đa một bộ tùy chọn.
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
     user_id BIGINT PRIMARY KEY,
 
@@ -106,6 +114,7 @@ CREATE TABLE IF NOT EXISTS user_notification_preferences (
         REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Lưu thông báo trong Website, người nhận, nguồn phát sinh và trạng thái đã đọc.
 CREATE TABLE IF NOT EXISTS notifications (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -197,6 +206,7 @@ CREATE TABLE IF NOT EXISTS notifications (
         CHECK (read_at IS NULL OR read_at >= created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Hàng đợi email gửi nền; lưu người nhận, nội dung, số lần thử và kết quả gửi.
 CREATE TABLE IF NOT EXISTS email_outbox (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -316,6 +326,10 @@ CREATE TABLE IF NOT EXISTS email_outbox (
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- ============================================================
+-- NHÓM 2: DANH MỤC VÀ KHO SÁCH
+-- ============================================================
+-- Danh mục sách dạng cây; một thể loại có thể thuộc thể loại cha.
 CREATE TABLE IF NOT EXISTS genres (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -356,6 +370,7 @@ CREATE TABLE IF NOT EXISTS genres (
         CHECK (code REGEXP '^[A-Z_]+$')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Thông tin đầu sách và số bản trong kho; available_copies là số bản hiện có thể mượn.
 CREATE TABLE IF NOT EXISTS books (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -420,6 +435,10 @@ CREATE TABLE IF NOT EXISTS books (
         CHECK (publication_year IS NULL OR publication_date IS NULL)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- ============================================================
+-- NHÓM 3: GÓI THÀNH VIÊN
+-- ============================================================
+-- Các gói thành viên đang được quản trị viên cấu hình và mở bán.
 CREATE TABLE IF NOT EXISTS subscription_plans (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -501,6 +520,7 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Lịch sử đăng ký của người dùng; thông tin gói và hạn mức được chụp lại tại thời điểm mua.
 CREATE TABLE IF NOT EXISTS subscriptions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -566,6 +586,10 @@ CREATE TABLE IF NOT EXISTS subscriptions (
         CHECK (end_date >= start_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- ============================================================
+-- NHÓM 4: MƯỢN, TRẢ, ĐẶT GIỮ VÀ TIỀN PHẠT
+-- ============================================================
+-- Lịch sử mượn, yêu cầu trả, ngày ADMIN nhận sách và kết quả kiểm tra sách.
 CREATE TABLE IF NOT EXISTS book_loans (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -676,6 +700,7 @@ CREATE TABLE IF NOT EXISTS book_loans (
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Khoản phạt gắn với lượt mượn; lưu số tiền, số đã trả, miễn giảm và người xử lý.
 CREATE TABLE IF NOT EXISTS fines (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -750,6 +775,7 @@ CREATE TABLE IF NOT EXISTS fines (
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- Hàng chờ đặt giữ đầu sách, gồm thời điểm sẵn sàng nhận và thời hạn giữ sách.
 CREATE TABLE IF NOT EXISTS reservations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -823,6 +849,10 @@ CREATE TABLE IF NOT EXISTS reservations (
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- ============================================================
+-- NHÓM 5: SÁCH YÊU THÍCH VÀ ĐÁNH GIÁ
+-- ============================================================
+-- Danh sách sách yêu thích của người dùng; mỗi người chỉ lưu một lần cho mỗi đầu sách.
 CREATE TABLE IF NOT EXISTS wishlists (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -846,9 +876,7 @@ CREATE TABLE IF NOT EXISTS wishlists (
         UNIQUE (user_id, book_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Existing databases: apply once, only if is_anonymous is absent (CREATE IF NOT EXISTS does not add columns):
--- ALTER TABLE book_reviews ADD COLUMN is_anonymous BOOLEAN NOT NULL DEFAULT FALSE;
--- Previous browser-only anonymous preferences cannot be recovered from the database.
+-- Đánh giá sao và nhận xét sách; is_anonymous chỉ ẩn danh tính trên giao diện công khai.
 CREATE TABLE IF NOT EXISTS book_reviews (
     id BIGINT NOT NULL AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
@@ -871,6 +899,10 @@ CREATE TABLE IF NOT EXISTS book_reviews (
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- ============================================================
+-- NHÓM 6: ĐẶT LẠI MẬT KHẨU VÀ THANH TOÁN
+-- ============================================================
+-- Mã dùng một lần để đặt lại mật khẩu tài khoản.
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id BIGINT NOT NULL AUTO_INCREMENT,
     token VARCHAR(255) NOT NULL,
@@ -881,26 +913,7 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     CONSTRAINT fk_password_reset_tokens_user FOREIGN KEY (user_id) REFERENCES users(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Payment target contract: MEMBERSHIP -> subscription only; FINE -> fine + loan only.
--- Existing databases: CREATE IF NOT EXISTS will not retrofit the CHECK below.
--- Before adding it, inspect existing violations (do not delete payment history):
--- SELECT id, payment_type, subscription_id, fine_id, book_loan_id
--- FROM library_db1.payments
--- WHERE NOT (
---   (payment_type = 'MEMBERSHIP' AND subscription_id IS NOT NULL
---      AND fine_id IS NULL AND book_loan_id IS NULL)
---   OR (payment_type = 'FINE' AND subscription_id IS NULL
---      AND fine_id IS NOT NULL AND book_loan_id IS NOT NULL)
--- );
--- Once violations have been resolved, add ONLY IF the constraint is absent:
--- ALTER TABLE library_db1.payments ADD CONSTRAINT chk_payments_target CHECK (
---   (payment_type = 'MEMBERSHIP' AND subscription_id IS NOT NULL
---      AND fine_id IS NULL AND book_loan_id IS NULL)
---   OR (payment_type = 'FINE' AND subscription_id IS NULL
---      AND fine_id IS NOT NULL AND book_loan_id IS NOT NULL)
--- );
--- This CHECK enforces target shape. Cross-table ownership and fine/loan identity
--- remain checked by the payment services; individual FKs enforce existence.
+-- Giao dịch PayOS; CHECK chk_payments_target ràng buộc mục tiêu theo loại thanh toán.
 CREATE TABLE IF NOT EXISTS payments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
@@ -1021,45 +1034,12 @@ CREATE TABLE IF NOT EXISTS payments (
         )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-ALTER TABLE library_db1.book_reviews
-ADD COLUMN is_anonymous BOOLEAN NOT NULL DEFAULT FALSE;
-
--- Apply with Backend stopped, before starting the LR-1 code. Back up first.
--- Existing AVAILABLE requests used to leave their copy in available_copies.
-USE library_db1;
+-- ============================================================
+-- NHÓM 7: THEO DÕI MIGRATION
+-- ============================================================
+-- Lưu dấu các lần chuyển đổi cấu trúc/dữ liệu đã áp dụng; không phải dữ liệu nghiệp vụ.
 CREATE TABLE IF NOT EXISTS lr_schema_migrations (
     version VARCHAR(100) PRIMARY KEY,
     applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-DELIMITER $$
-CREATE PROCEDURE apply_lr1_inventory()
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-    START TRANSACTION;
-    IF NOT EXISTS (SELECT 1 FROM lr_schema_migrations WHERE version = 'LR1_RESERVED_COPIES') THEN
-        IF EXISTS (
-            SELECT 1 FROM books b JOIN (
-                SELECT book_id, COUNT(*) AS held FROM reservations
-                WHERE status = 'AVAILABLE' GROUP BY book_id
-            ) r ON r.book_id = b.id WHERE b.available_copies < r.held
-        ) THEN
-            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient copies for existing AVAILABLE requests; reconcile before migration';
-        END IF;
-        UPDATE books b JOIN (
-            SELECT book_id, COUNT(*) AS held FROM reservations
-            WHERE status = 'AVAILABLE' GROUP BY book_id
-        ) r ON r.book_id = b.id
-        SET b.available_copies = b.available_copies - r.held;
-        INSERT INTO lr_schema_migrations(version) VALUES ('LR1_RESERVED_COPIES');
-    END IF;
-    COMMIT;
-END$$
-DELIMITER ;
-CALL apply_lr1_inventory();
-DROP PROCEDURE apply_lr1_inventory;
-
 

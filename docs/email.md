@@ -1,5 +1,7 @@
 # Lộ trình hệ thống thông báo và email
 
+> Cấu trúc Database hiện tại có 17 bảng. Bốn bảng thông báo/email trong NT-1 đã được đối chiếu trên MySQL live; trạng thái và các ràng buộc Database còn chờ được ghi tại [Database README](../database/README.md).
+
 > Tài liệu theo dõi phạm vi, quyết định và tiến độ triển khai hệ thống thông báo cho Library Management System. Đây là kế hoạch; chưa phải xác nhận rằng các chức năng dưới đây đã được triển khai.
 
 **Mục tiêu:** Xây dựng hộp thông báo trong website cho USER và ADMIN, đồng thời gửi email tiếng Việt cho các sự kiện nghiệp vụ quan trọng.

@@ -299,7 +299,7 @@ ALTER TABLE library_db1.payments
 
 ### File và backup nhóm 3
 
-- [Runner giới hạn nhóm 3, từ chối chạy lại](../database/B0Group3Migration.java).
+- [Runner giới hạn nhóm 3, từ chối chạy lại](../database/archive/legacy/B0Group3Migration.java).
 - [Backup payments trước ALTER](../database/backups/b0_group3_20261004_194149_935/payments.before.sql).
 - [SQL thực thi](../database/backups/b0_group3_20261004_194149_935/applied.sql).
 - [DDL sau ALTER](../database/backups/b0_group3_20261004_194149_935/payments.after.sql).
@@ -338,7 +338,7 @@ Các phần nhóm 1/2 bên dưới là lịch sử nghiệm thu; các dòng nói
 
 - Source sửa: `src/main/java/com/library/modal/BookReview.java`, `PasswordResetToken.java`.
 - Test mới: `src/test/java/com/library/ReviewTokenMappingIT.java` — validate/SELECT MySQL, không ghi dữ liệu.
-- [SQL chỉ nhóm 2](../database/b0_group2.sql), [runner có preflight](../database/B0Group2Migration.java).
+- [SQL chỉ nhóm 2](../database/archive/legacy/b0_group2.sql), [runner có preflight](../database/archive/legacy/B0Group2Migration.java).
 - [Backup schema trước thay đổi](../database/backups/b0_group2_20261004_192657_407/schema.before.sql).
 - [SQL đã áp dụng](../database/backups/b0_group2_20261004_192657_407/applied.sql).
 - DDL thực tế sau tạo: [book_reviews](../database/backups/b0_group2_20261004_192657_407/book_reviews.after.sql), [password_reset_tokens](../database/backups/b0_group2_20261004_192657_407/password_reset_tokens.after.sql).
@@ -413,7 +413,7 @@ Thư mục: `../database/backups/b0_group1_20261004_191811_241/`.
 - [SQL ALTER đã áp dụng](../database/backups/b0_group1_20261004_191811_241/applied.sql)
 - [Schema sau thay đổi](../database/backups/b0_group1_20261004_191811_241/subscription_plans.after.sql)
 - [SHA-256 bản sao lưu](../database/backups/b0_group1_20261004_191811_241/backup.sha256)
-- [Tiện ích thực thi có kiểm tra tiền điều kiện](../database/B0Group1Migration.java)
+- [Tiện ích thực thi có kiểm tra tiền điều kiện](../database/archive/legacy/B0Group1Migration.java)
 
 SHA-256 đã kiểm tra độc lập bằng Get-FileHash:
 
@@ -421,7 +421,7 @@ SHA-256 đã kiểm tra độc lập bằng Get-FileHash:
 18a4589b5b953db4bfc0751bcb7dabbf3bd29cfcf64c260b88e2db7f53af6742
 ```
 
-**Không chạy lại ALTER hoặc toàn file `stage4_schema_proposal.sql`.** Nhóm plan đã áp dụng, chạy lại sẽ trùng cột. Tiện ích migration chủ động từ chối schema không còn đúng trạng thái ban đầu. Các file này ở thư mục cha của Git project Library; cần lưu giữ cùng workspace khi sao lưu/bàn giao, không mặc định commit Library sẽ bao gồm chúng.
+**Không chạy lại ALTER hoặc toàn file `stage4_schema_proposal.sql`.** Nhóm plan đã áp dụng, chạy lại sẽ trùng cột. Tiện ích migration chủ động từ chối schema không còn đúng trạng thái ban đầu. Các script/tiện ích cũ hiện được lưu tại `database/archive/legacy/` để tra cứu; không dùng chúng để dựng hoặc nâng cấp Database hiện tại. Schema chuẩn và tình trạng live mới nhất nằm trong `database/README.md`.
 
 MySQL DDL có implicit commit; không thể hoàn tác ALTER bằng ROLLBACK. File backup dùng để lập phương án phục hồi có kiểm soát, không phải script tự động rollback trên bảng đang tồn tại. Không tự DROP bảng/cột nếu có vấn đề.
 

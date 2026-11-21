@@ -1,5 +1,7 @@
 # DB-3 — Unique key thanh toán và composite index
 
+> **Biên bản lịch sử của giai đoạn DB-3.** Xem trạng thái schema hiện tại và các migration còn chờ trong [Database README](../database/README.md).
+
 Ngày triển khai: 31/10/2026.
 
 ## 1. Phạm vi

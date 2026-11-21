@@ -36,7 +36,7 @@ mvn -o -Dmaven.repo.local=C:\Users\APC\.m2\repository -Dtest=Step6ApiMySqlIT -Ds
 - **104 tests, 0 failures, 0 errors, 0 skipped**; không chỉ chọn năm test constraint như lượt cuối 6H.
 - Spring context, MySQL connection và Hibernate `ddl-auto=validate` khởi tạo thành công trong test này.
 - Test dùng MockMvc + security filter + MySQL thật, transaction rollback; payOS tắt và email mock. Không được gọi đây là 104 test HTTP qua socket hoặc giao dịch ngân hàng thật.
-- Sau test: công cụ `database/SchemaReadOnlyCheck.java` kết nối đúng `library_db1`, MySQL 9.2.0, read_only=1; **12 bảng đều 0 dòng**. Không còn fixture của bộ test. AUTO_INCREMENT có thể tăng dù rollback, không reset lại.
+- Sau test: công cụ `database/archive/legacy/SchemaReadOnlyCheck.java` kết nối đúng `library_db1`, MySQL 9.2.0, read_only=1; **12 bảng đều 0 dòng tại thời điểm đó**. Không còn fixture của bộ test. AUTO_INCREMENT có thể tăng dù rollback, không reset lại.
 - `git diff --check` không báo lỗi whitespace; có cảnh báo chuyển LF/CRLF ở PayOSController.
 
 Kết quả lịch sử gần nhất từ 6H, không phải tất cả được chạy lại trong đợt này:

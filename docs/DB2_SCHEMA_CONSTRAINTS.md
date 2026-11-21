@@ -1,5 +1,7 @@
 # DB-2 — ISBN tùy chọn và ràng buộc nghiệp vụ
 
+> **Biên bản lịch sử của giai đoạn DB-2.** Xem trạng thái schema hiện tại, số lượng bảng và các migration còn chờ trong [Database README](../database/README.md).
+
 Ngày hoàn thành: 31/10/2026
 
 ## 1. Kết quả

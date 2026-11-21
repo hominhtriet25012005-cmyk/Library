@@ -400,6 +400,8 @@ source audit. `.env.local` tồn tại, được ignore và không được Git 
 
 ### 11.5. Database inventory
 
+> Kiểm kê 12 bảng dưới đây là ảnh chụp AUD-0 ở thời điểm audit ban đầu. Hiện schema chuẩn và MySQL live đã có 17 bảng; xem [Database README](../database/README.md) và [từ điển dữ liệu](../database/DATA_DICTIONARY_VI.md) để biết danh sách hiện tại.
+
 Schema chính có 12 bảng:
 
 1. `users`;
