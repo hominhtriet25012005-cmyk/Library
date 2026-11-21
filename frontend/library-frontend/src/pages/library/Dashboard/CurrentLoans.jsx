@@ -4,7 +4,7 @@ import { effectiveLoanStatus } from "../MyLoans/loanRules.js";
 import { EmptyState } from "../../../components/common";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 
-const CurrentLoans = ({ loans = [], preview = false }) => {
+const CurrentLoans = ({ loans = [] }) => {
   const activeLoans = (loans || []).filter((loan) =>
     ["CHECKED_OUT", "OVERDUE"].includes(effectiveLoanStatus(loan)),
   );
@@ -30,7 +30,7 @@ const CurrentLoans = ({ loans = [], preview = false }) => {
       {activeLoans.length > 0 ? (
         <Stack spacing={2}>
           {activeLoans.map((loan) => (
-            <CurrentLoanCard key={loan.id} loan={loan} preview={preview} />
+            <CurrentLoanCard key={loan.id} loan={loan} />
           ))}
         </Stack>
       ) : (
@@ -39,7 +39,7 @@ const CurrentLoans = ({ loans = [], preview = false }) => {
           title="Bạn chưa mượn cuốn sách nào"
           description="Khám phá ngay hàng ngàn đầu sách hấp dẫn trong kho thư viện của chúng tôi."
           actionText="Tìm kiếm sách"
-          actionTo={preview ? "/demo/books" : "/user/books"}
+          actionTo="/user/books"
         />
       )}
     </Box>

@@ -36,6 +36,25 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    public Page<PaymentDTO> searchPayments(Pageable pageable, String search, PaymentType type, PaymentStatus status) {
+        return paymentRepository.findAll((org.springframework.data.jpa.domain.Specification<com.library.model.Payment>) (root, query, cb) -> {
+            var predicates = new java.util.ArrayList<jakarta.persistence.criteria.Predicate>();
+            if (type != null) predicates.add(cb.equal(root.get("paymentType"), type));
+            if (status != null) predicates.add(cb.equal(root.get("status"), status));
+            if (search != null && !search.isBlank()) {
+                String term = search.trim().toLowerCase(java.util.Locale.ROOT);
+                var user = root.join("user");
+                predicates.add(cb.or(
+                    cb.gt(cb.locate(((org.hibernate.query.criteria.JpaExpression<Long>) root.<Long>get("id")).cast(String.class), term), 0),
+                    cb.gt(cb.locate(cb.lower(user.get("fullName")), term), 0),
+                    cb.gt(cb.locate(cb.lower(user.get("email")), term), 0),
+                    cb.gt(cb.locate(cb.lower(root.get("gatewayOrderId")), term), 0)));
+            }
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        }, pageable).map(paymentMapper::toDTO);
+    }
+
+    @Override
     public Page<PaymentDTO> getAllPayments(Pageable pageable) {
         return paymentRepository.findAll(pageable).map(paymentMapper::toDTO);
     }

@@ -44,8 +44,8 @@ const BookCard = ({ book, onViewDetails }) => {
           sx={{
             position: "relative",
             height: 240,
-            bgcolor: (theme) =>
-              theme.palette.mode === "dark" ? "#17243a" : "#f1f5f9",
+            bgcolor: () =>
+              "#f1f5f9",
             overflow: "hidden",
             display: "flex",
             alignItems: "center",
@@ -146,8 +146,8 @@ const BookCard = ({ book, onViewDetails }) => {
               px: 1.25,
               mb: 1.5,
               borderRadius: 1.5,
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark" ? "#17243a" : "#f8fafc",
+              bgcolor: () =>
+                "#f8fafc",
               border: "1px dashed",
               borderColor: "divider",
             }}

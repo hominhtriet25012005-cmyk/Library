@@ -15,12 +15,10 @@ const colorMap = {
 
 const resolveColor = (theme, color) => {
   if (color === "default") {
-    return theme.palette.mode === "dark"
-      ? theme.palette.grey[300]
-      : theme.palette.grey[600];
+    return theme.palette.grey[600];
   }
   if (color === "navy" || color === "secondary") {
-    return theme.palette.mode === "dark" ? "#d4bc8b" : colorMap.navy;
+    return colorMap.navy;
   }
   if (theme.palette[color]?.main) return theme.palette[color].main;
   if (!color) return theme.palette.primary.main;
@@ -88,23 +86,17 @@ export const StatCard = ({
         transition: "all 0.2s ease-in-out",
         cursor: isClickable ? "pointer" : "default",
         boxShadow:
-          theme.palette.mode === "dark"
-            ? "0 1px 3px rgba(0, 0, 0, 0.28)"
-            : "0 1px 3px rgba(15, 23, 42, 0.04)",
+          "0 1px 3px rgba(15, 23, 42, 0.04)",
         "&:hover": isClickable
           ? {
               transform: "translateY(-2px)",
               boxShadow:
-                theme.palette.mode === "dark"
-                  ? "0 4px 12px rgba(0, 0, 0, 0.36)"
-                  : "0 4px 12px rgba(15, 23, 42, 0.08)",
+                "0 4px 12px rgba(15, 23, 42, 0.08)",
               borderColor: actualColor,
             }
           : {
               boxShadow:
-                theme.palette.mode === "dark"
-                  ? "0 2px 8px rgba(0, 0, 0, 0.32)"
-                  : "0 2px 8px rgba(15, 23, 42, 0.06)",
+                "0 2px 8px rgba(15, 23, 42, 0.06)",
             },
         ...sx,
       }}

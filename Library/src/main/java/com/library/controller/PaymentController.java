@@ -36,7 +36,10 @@ public class PaymentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "DESC") String sortDir) {
+            @RequestParam(defaultValue = "DESC") String sortDir,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) com.library.domain.PaymentType type,
+            @RequestParam(required = false) com.library.domain.PaymentStatus status) {
 
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE || !PAYMENT_SORT_FIELDS.contains(sortBy)
                 || (!sortDir.equalsIgnoreCase("ASC") && !sortDir.equalsIgnoreCase("DESC"))) {
@@ -49,7 +52,7 @@ public class PaymentController {
                 : Sort.by(sortBy).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        Page<PaymentDTO> payments = paymentService.getAllPayments(pageable);
+        Page<PaymentDTO> payments = paymentService.searchPayments(pageable, search, type, status);
 
         return ResponseEntity.ok(payments);
     }

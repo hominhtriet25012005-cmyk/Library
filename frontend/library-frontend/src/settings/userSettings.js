@@ -1,6 +1,5 @@
 export const DEFAULT_USER_SETTINGS = Object.freeze({
   appearance: Object.freeze({
-    theme: "light",
     defaultBookView: "grid",
     booksPerPage: 12,
   }),
@@ -29,12 +28,16 @@ export const normalizeUserSettings = (raw) => {
     };
   }
 
+  const rawAppearance =
+    raw.appearance && typeof raw.appearance === "object"
+      ? { ...raw.appearance }
+      : {};
+  delete rawAppearance.theme;
+
   return {
     appearance: {
       ...DEFAULT_USER_SETTINGS.appearance,
-      ...(raw.appearance && typeof raw.appearance === "object"
-        ? raw.appearance
-        : {}),
+      ...rawAppearance,
     },
     privacy: {
       ...DEFAULT_USER_SETTINGS.privacy,

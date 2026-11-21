@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useAdminSummary } from "../../../api/useAdminSummary";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -108,7 +109,7 @@ const AdminPaymentsPage = () => {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
 
-  // Bộ lọc cục bộ trên trang hiện tại
+  // Lọc trên Backend trước khi phân trang
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -116,7 +117,7 @@ const AdminPaymentsPage = () => {
   useEffect(() => {
     const controller = new AbortController();
     adminFinanceApi
-      .payments({ page }, { signal: controller.signal })
+      .payments({ page, search: searchTerm, type: typeFilter, status: statusFilter }, { signal: controller.signal })
       .then((data) => {
         if (controller.signal.aborted) return;
         if (page > 0 && page >= data.totalPages) {
@@ -134,7 +135,7 @@ const AdminPaymentsPage = () => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [page, reload]);
+  }, [page, reload, searchTerm, typeFilter, statusFilter]);
 
   useEffect(() => {
     if (!selected) return undefined;
@@ -200,49 +201,15 @@ const AdminPaymentsPage = () => {
     }
   };
 
-  // Thống kê nhanh trên dữ liệu trang hiện tại
-  const statistics = useMemo(() => {
-    const list = result?.content || [];
-    const successList = list.filter((p) => p.status === "SUCCESS");
-    const pendingList = list.filter(
-      (p) => p.status === "PENDING" || p.status === "PROCESSING",
-    );
-    const totalSuccessAmount = successList.reduce(
-      (sum, p) => sum + (Number(p.amount) || 0),
-      0,
-    );
+  // Thống kê toàn hệ thống
+  const summary = useAdminSummary(result);
+  const statistics = summary.data?.payments ?? {"totalCount":"—","successCount":"—","pendingCount":"—","totalSuccessAmount":"—"};
 
-    return {
-      totalOnPage: list.length,
-      successCount: successList.length,
-      pendingCount: pendingList.length,
-      totalSuccessAmount,
-    };
-  }, [result]);
-
-  // Lọc hiển thị cục bộ
-  const filteredList = useMemo(() => {
-    let list = result?.content || [];
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase().trim();
-      list = list.filter(
-        (p) =>
-          String(p.id).includes(q) ||
-          p.userName?.toLowerCase().includes(q) ||
-          p.userEmail?.toLowerCase().includes(q) ||
-          p.gatewayOrderId?.toLowerCase().includes(q),
-      );
-    }
-    if (typeFilter !== "ALL") {
-      list = list.filter((p) => p.paymentType === typeFilter);
-    }
-    if (statusFilter !== "ALL") {
-      list = list.filter((p) => p.status === statusFilter);
-    }
-    return list;
-  }, [result, searchTerm, typeFilter, statusFilter]);
+  // Dữ liệu đã được Backend lọc
+  const filteredList = result?.content || [];
 
   const handleResetFilters = () => {
+    setPage(0);
     setSearchTerm("");
     setTypeFilter("ALL");
     setStatusFilter("ALL");
@@ -310,29 +277,31 @@ const AdminPaymentsPage = () => {
       )}
 
       {/* Thẻ thống kê */}
+      <Typography variant="caption">Thống kê toàn hệ thống</Typography>
+      {summary.error && <Alert severity="error">{summary.error}</Alert>}
       <StatCardGrid columns={{ xs: 1, sm: 2, lg: 4 }} sx={{ mb: 3 }}>
         <StatCard
           title="Tổng giao dịch "
-          value={loading ? "—" : statistics.totalOnPage}
+          value={loading || !summary.data ? "—" : statistics.totalCount}
           icon={PaymentRoundedIcon}
           color="primary"
         />
         <StatCard
           title="Thành công "
-          value={loading ? "—" : statistics.successCount}
+          value={loading || !summary.data ? "—" : statistics.successCount}
           icon={CheckCircleRoundedIcon}
           color="success"
         />
         <StatCard
           title="Chờ xác nhận "
-          value={loading ? "—" : statistics.pendingCount}
+          value={loading || !summary.data ? "—" : statistics.pendingCount}
           icon={PendingActionsRoundedIcon}
           color="warning"
         />
         <StatCard
           title="Doanh thu thực thu "
           value={
-            loading ? "—" : formatCurrencyVND(statistics.totalSuccessAmount)
+            loading || !summary.data ? "—" : formatCurrencyVND(statistics.totalSuccessAmount)
           }
           icon={AccountBalanceWalletRoundedIcon}
           color="navy"
@@ -342,7 +311,7 @@ const AdminPaymentsPage = () => {
       {/* Bộ lọc tìm kiếm */}
       <SearchFilterBar
         searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={(value) => { setPage(0); setSearchTerm(value); }}
         onReset={handleResetFilters}
         searchPlaceholder="Tìm theo ID, người nộp, email, mã đơn..."
         searchLabel="Tra cứu giao dịch"
@@ -357,7 +326,7 @@ const AdminPaymentsPage = () => {
                 labelId="payment-type-filter-label"
                 label="Loại giao dịch"
                 value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
+                onChange={(e) => { setPage(0); setTypeFilter(e.target.value); }}
                 sx={{ borderRadius: "10px" }}
               >
                 <MenuItem value="ALL">Tất cả loại</MenuItem>
@@ -377,7 +346,7 @@ const AdminPaymentsPage = () => {
                 labelId="payment-status-filter-label"
                 label="Trạng thái"
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => { setPage(0); setStatusFilter(e.target.value); }}
                 sx={{ borderRadius: "10px" }}
               >
                 <MenuItem value="ALL">Tất cả trạng thái</MenuItem>
@@ -407,8 +376,8 @@ const AdminPaymentsPage = () => {
         <Table sx={{ minWidth: 900 }}>
           <TableHead
             sx={{
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+              bgcolor: () =>
+                "#f8fafc",
             }}
           >
             <TableRow>
@@ -565,15 +534,11 @@ const AdminPaymentsPage = () => {
                         onClick={() => openDetail(payment)}
                         sx={{
                           color: "primary.main",
-                          bgcolor: (theme) =>
-                            theme.palette.mode === "dark"
-                              ? "rgba(59,130,246,0.15)"
-                              : "rgba(23,105,255,0.06)",
+                          bgcolor: () =>
+                            "rgba(23,105,255,0.06)",
                           "&:hover": {
-                            bgcolor: (theme) =>
-                              theme.palette.mode === "dark"
-                                ? "rgba(59,130,246,0.25)"
-                                : "rgba(23,105,255,0.12)",
+                            bgcolor: () =>
+                              "rgba(23,105,255,0.12)",
                           },
                         }}
                       >
@@ -656,8 +621,8 @@ const AdminPaymentsPage = () => {
                 sx={{
                   p: 2.5,
                   borderRadius: 2.5,
-                  bgcolor: (theme) =>
-                    theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+                  bgcolor: () =>
+                    "#f8fafc",
                   borderColor: "divider",
                 }}
               >

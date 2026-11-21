@@ -4,7 +4,7 @@ import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { EmptyState, StatusChip } from "../../../components/common";
 
-const Reservation = ({ entries = [], preview = false }) => {
+const Reservation = ({ entries = [] }) => {
   const activeEntries = (entries || []).filter((item) =>
     ["PENDING", "AVAILABLE"].includes(item.status),
   );
@@ -24,7 +24,7 @@ const Reservation = ({ entries = [], preview = false }) => {
         </Typography>
         <Button
           component={Link}
-          to={preview ? "/demo/my-reservations" : "/user/my-reservations"}
+          to="/user/my-reservations"
           endIcon={<ArrowForwardRoundedIcon />}
           sx={{ textTransform: "none", fontWeight: 600, color: "#315B4C" }}
         >
@@ -72,7 +72,7 @@ const Reservation = ({ entries = [], preview = false }) => {
           title="Không có sách nào đang đặt giữ"
           description="Khi sách bạn yêu thích hết bản sao sẵn có, bạn có thể đặt giữ để xếp hàng nhận sách đầu tiên."
           actionText="Khám phá sách"
-          actionTo={preview ? "/demo/books" : "/user/books"}
+          actionTo="/user/books"
         />
       )}
     </Box>

@@ -30,7 +30,7 @@ import {
   hasPendingReturnRequest,
 } from "./loanRules.js";
 
-const LoanCard = ({ loan, preview = false, fines = [], onAction }) => {
+const LoanCard = ({ loan, fines = [], onAction }) => {
   const [expanded, setExpanded] = useState(false);
   const [coverFailed, setCoverFailed] = useState(false);
   const status = effectiveLoanStatus(loan);
@@ -66,8 +66,8 @@ const LoanCard = ({ loan, preview = false, fines = [], onAction }) => {
             width: 80,
             height: 110,
             borderRadius: 2,
-            bgcolor: (theme) =>
-              theme.palette.mode === "dark" ? "#17243a" : "#f1f5f9",
+            bgcolor: () =>
+              "#f1f5f9",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -151,8 +151,8 @@ const LoanCard = ({ loan, preview = false, fines = [], onAction }) => {
               gap: 1.5,
               p: 1.5,
               borderRadius: 2,
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark" ? "#17243a" : "#f8fafc",
+              bgcolor: () =>
+                "#f8fafc",
               border: "1px solid",
               borderColor: "divider",
             }}
@@ -354,7 +354,7 @@ const LoanCard = ({ loan, preview = false, fines = [], onAction }) => {
         </Button>
 
         <Box sx={{ display: "flex", gap: 1 }}>
-          {!preview && loan.bookId && (
+          {loan.bookId && (
             <Button
               component={Link}
               to={`/user/books/${loan.bookId}`}
@@ -369,7 +369,7 @@ const LoanCard = ({ loan, preview = false, fines = [], onAction }) => {
               Xem trang sách
             </Button>
           )}
-          {!preview && canRenewLoan(loan) && (
+          {canRenewLoan(loan) && (
             <Button
               onClick={() => onAction(loan, "renew")}
               variant="outlined"
@@ -385,7 +385,7 @@ const LoanCard = ({ loan, preview = false, fines = [], onAction }) => {
               Gia hạn
             </Button>
           )}
-          {!preview && canReturnLoan(loan) && (
+          {canReturnLoan(loan) && (
             <Button
               onClick={() => onAction(loan, "return")}
               variant="contained"

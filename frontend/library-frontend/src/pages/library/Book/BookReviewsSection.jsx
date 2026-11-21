@@ -58,7 +58,6 @@ const BookReviewsSection = ({ bookId }) => {
   const [formError, setFormError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [deletedThisSession, setDeletedThisSession] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -114,7 +113,6 @@ const BookReviewsSection = ({ bookId }) => {
     !eligibilityLoading &&
     !error &&
     !eligibilityError &&
-    !deletedThisSession &&
     canCreateReview(loans, bookId, reviews, user?.id);
 
   const totalPages = Math.ceil(reviews.length / pageSize);
@@ -187,7 +185,6 @@ const BookReviewsSection = ({ bookId }) => {
     setDeleteError("");
     try {
       await reviewsApi.remove(mine.id);
-      setDeletedThisSession(true);
       setMessage("Đã xóa bài đánh giá khỏi hệ thống.");
       setDeleteOpen(false);
       setPage(1);
@@ -369,7 +366,6 @@ const BookReviewsSection = ({ bookId }) => {
         !eligibilityError &&
         !mine &&
         !canCreate &&
-        !deletedThisSession &&
         !loading &&
         !error && (
           <Paper
@@ -504,11 +500,6 @@ const BookReviewsSection = ({ bookId }) => {
             ) : null}
           </Paper>
         )}
-      {deletedThisSession && (
-        <Alert severity="info" sx={{ mb: 2.5, borderRadius: 2 }}>
-          Bạn đã xóa bài đánh giá cho cuốn sách này.
-        </Alert>
-      )}
 
       {/* Danh sách bài đánh giá */}
       {loading ? (
@@ -751,7 +742,7 @@ const BookReviewsSection = ({ bookId }) => {
       <ConfirmDialog
         open={deleteOpen}
         title="Xóa đánh giá của bạn?"
-        message="Bài nhận xét này sẽ được gỡ khỏi danh sách hiển thị trên website thư viện. Bạn có chắc chắn muốn xóa không?"
+        message="Số sao và nội dung đánh giá sẽ bị xóa vĩnh viễn. Sau khi xóa, bạn có thể viết đánh giá mới cho cuốn sách này. Bạn có chắc chắn muốn xóa không?"
         confirmLabel="Xác nhận xóa"
         cancelLabel="Giữ lại"
         variant="danger"

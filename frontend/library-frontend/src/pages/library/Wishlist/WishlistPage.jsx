@@ -44,7 +44,6 @@ const WishlistContent = ({
   error,
   busyBookId,
   remove,
-  preview = false,
 }) => {
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil((entries?.length ?? 0) / pageSize);
@@ -70,11 +69,9 @@ const WishlistContent = ({
         badge={entries?.length ? `${entries.length} cuốn đã lưu` : undefined}
       />
 
-      {!preview && (
-        <Box sx={{ mb: 2.5 }}>
-          <WishlistStatus />
-        </Box>
-      )}
+      <Box sx={{ mb: 2.5 }}>
+        <WishlistStatus />
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }}>
@@ -88,7 +85,7 @@ const WishlistContent = ({
           title="Bạn chưa lưu cuốn sách nào"
           description="Khám phá ngay kho sách phong phú và nhấn lưu các cuốn sách bạn muốn đọc sau này."
           actionText="Khám phá danh mục sách"
-          actionTo={preview ? "/demo/books" : "/user/books"}
+          actionTo="/user/books"
         />
       ) : (
         <Box
@@ -219,7 +216,7 @@ const WishlistContent = ({
                     {book?.active ? (
                       <Button
                         component={Link}
-                        to={preview ? "/demo/books" : `/user/books/${book.id}`}
+                        to={`/user/books/${book.id}`}
                         variant="outlined"
                         size="small"
                         endIcon={<ArrowForwardRoundedIcon />}
@@ -229,28 +226,25 @@ const WishlistContent = ({
                           fontWeight: 600,
                         }}
                       >
-                        {preview ? "Xem danh mục" : "Xem chi tiết"}
+                        Xem chi tiết
                       </Button>
                     ) : (
                       <Chip label="Đã ngừng phát hành" size="small" />
                     )}
-
-                    {!preview && (
-                      <Button
-                        color="error"
-                        size="small"
-                        startIcon={<DeleteOutlineRoundedIcon />}
-                        disabled={busyBookId !== null || loading || !book?.id}
-                        onClick={() => remove(book.id).catch(() => {})}
-                        sx={{
-                          borderRadius: "8px",
-                          textTransform: "none",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {busyBookId === book?.id ? "Đang gỡ…" : "Bỏ lưu"}
-                      </Button>
-                    )}
+                    <Button
+                      color="error"
+                      size="small"
+                      startIcon={<DeleteOutlineRoundedIcon />}
+                      disabled={busyBookId !== null || loading || !book?.id}
+                      onClick={() => remove(book.id).catch(() => {})}
+                      sx={{
+                        borderRadius: "8px",
+                        textTransform: "none",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {busyBookId === book?.id ? "Đang gỡ…" : "Bỏ lưu"}
+                    </Button>
                   </Box>
                 </Box>
               </Paper>
@@ -284,29 +278,5 @@ const WishlistPage = () => {
   const wishlist = useWishlist();
   return <WishlistContent {...wishlist} />;
 };
-
-export const WishlistPreviewPage = () => (
-  <WishlistContent
-    preview
-    loading={false}
-    error=""
-    busyBookId={null}
-    entries={[
-      {
-        id: 1,
-        book: {
-          id: 12,
-          title: "Refactoring",
-          author: "Martin Fowler",
-          active: true,
-          coverImageUrl:
-            "http://res.cloudinary.com/dxoqwusir/image/upload/v1761368807/refactoring.jpg",
-        },
-        notes: "Đọc sau khi hoàn thành cuốn sách đang mượn.",
-        addedAt: "2025-12-23T12:30:55",
-      },
-    ]}
-  />
-);
 
 export default WishlistPage;

@@ -6,7 +6,7 @@ import { StatusChip } from "../../../components/common";
 import { formatDateVN } from "../../../utils/formatters";
 import { effectiveLoanStatus } from "../MyLoans/loanRules.js";
 
-const CurrentLoanCard = ({ loan, preview = false }) => {
+const CurrentLoanCard = ({ loan }) => {
   const status = effectiveLoanStatus(loan);
 
   return (
@@ -96,7 +96,7 @@ const CurrentLoanCard = ({ loan, preview = false }) => {
         <Button
           variant="outlined"
           component={Link}
-          to={preview ? "/demo/books" : `/user/books/${loan.bookId}`}
+          to={`/user/books/${loan.bookId}`}
           fullWidth
           sx={{
             borderRadius: "10px",

@@ -39,100 +39,7 @@ import {
   getUserSearchHistory,
 } from "../../../settings/userSettings";
 
-const genres = [
-  {
-    active: true,
-    bookCount: 2,
-    code: "PROGRAMMING",
-    id: 10,
-    name: "Lập trình",
-  },
-  {
-    active: true,
-    bookCount: 120,
-    code: "FICTION",
-    createdAt: "2025-10-10T10:40:08.725525",
-    description:
-      "Thể loại truyện hư cấu, tập trung vào nhân vật, cốt truyện và chủ đề.",
-    displayOrder: 1,
-    id: 1,
-    name: "Tiểu thuyết",
-    parentGenreId: null,
-    parentGenreName: null,
-    subGenres: null,
-    updatedAt: "2025-10-10T10:40:08.725525",
-  },
-  {
-    active: true,
-    bookCount: 30,
-    code: "MYSTERY",
-    createdAt: "2025-10-10T10:45:05.321987",
-    description:
-      "Thể loại xoay quanh việc phá án, khám phá bí mật và các tình tiết hồi hộp.",
-    displayOrder: 5,
-    id: 5,
-    name: "Trinh thám",
-    parentGenreId: null,
-    parentGenreName: null,
-    subGenres: null,
-    updatedAt: "2025-10-10T10:45:05.321987",
-  },
-];
-
-const books = [
-  {
-    active: true,
-    alreadyHaveLoan: null,
-    alreadyHaveReservation: null,
-    author: "Eric Evans",
-    availableCopies: 0,
-    coverImageUrl:
-      "http://res.cloudinary.com/dxoqwusir/image/upload/v1761368808/domain_driven_design.jpg",
-    createdAt: "2025-10-12T08:15:10.555666",
-    description:
-      "Cuốn sách nền tảng về áp dụng thiết kế hướng miền cho các hệ thống phần mềm phức tạp.",
-    genreCode: "PROGRAMMING",
-    genreId: 10,
-    genreName: "Lập trình",
-    id: 13,
-    isbn: "978-0-321-12521-7",
-    language: "English",
-    pages: 560,
-    price: 799,
-    publicationDate: "2003-08-30",
-    publisher: "Addison-Wesley",
-    title: "Domain-Driven Design",
-    totalCopies: 1,
-    updatedAt: "2025-12-24T17:05:40.777666",
-  },
-  {
-    active: true,
-    alreadyHaveLoan: null,
-    alreadyHaveReservation: null,
-    author: "Martin Fowler",
-    availableCopies: 2,
-    coverImageUrl:
-      "http://res.cloudinary.com/dxoqwusir/image/upload/v1761368807/refactoring.jpg",
-    createdAt: "2025-10-15T16:40:22.333444",
-    description:
-      "Hướng dẫn cải thiện mã nguồn hiện có bằng các kỹ thuật tái cấu trúc.",
-    genreCode: "PROGRAMMING",
-    genreId: 10,
-    genreName: "Lập trình",
-    id: 12,
-    isbn: "978-0-13-475759-9",
-    language: "English",
-    pages: 448,
-    price: 649,
-    publicationDate: "2018-11-20",
-    publisher: "Addison-Wesley",
-    title: "Refactoring",
-    totalCopies: 3,
-    updatedAt: "2025-12-23T12:30:55.999888",
-  },
-];
-
-const BookPageContent = ({ preview = false, urlQuery = "" }) => {
+const BookPageContent = ({ urlQuery = "" }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { settings } = useUserSettings();
@@ -150,7 +57,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
   const [page, setPage] = React.useState(0);
   const [catalog, setCatalog] = React.useState(null);
   const [loadedGenres, setLoadedGenres] = React.useState([]);
-  const [loading, setLoading] = React.useState(!preview);
+  const [loading, setLoading] = React.useState(true);
   const [catalogError, setCatalogError] = React.useState("");
   const [genreError, setGenreError] = React.useState("");
   const [retry, setRetry] = React.useState(0);
@@ -186,7 +93,6 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
   }, [userId]);
 
   React.useEffect(() => {
-    if (preview) return;
     const controller = new AbortController();
     booksApi
       .genres({ signal: controller.signal })
@@ -206,10 +112,9 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
           setGenreError(error.message);
       });
     return () => controller.abort();
-  }, [preview, retry]);
+  }, [retry]);
 
   React.useEffect(() => {
-    if (preview) return;
     const controller = new AbortController();
     const timer = setTimeout(
       () => {
@@ -251,7 +156,6 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
       controller.abort();
     };
   }, [
-    preview,
     searchTerm,
     selectedGenreId,
     availabilityFilter,
@@ -268,7 +172,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
     if (event === selectedGenreId && page === 0) return;
     setSelectedGenreId(event);
     setPage(0);
-    if (!preview) setLoading(true);
+    setLoading(true);
   };
 
   const handleSortChange = (value) => {
@@ -282,37 +186,14 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
     setSortBy(field);
     setSortDirection(direction.toUpperCase());
     setPage(0);
-    if (!preview) setLoading(true);
+    setLoading(true);
   };
 
   const getCurrentSortValue = () => {
     return `${sortBy}-${sortDirection.toLowerCase()}`;
   };
 
-  const visibleBooks = preview
-    ? books
-        .filter(
-          (book) => selectedGenreId == null || book.genreId === selectedGenreId,
-        )
-        .filter(
-          (book) =>
-            availabilityFilter === "ALL" ||
-            (availabilityFilter === "AVAILABLE" && book.availableCopies > 0) ||
-            (availabilityFilter === "CHECKED_OUT" &&
-              book.availableCopies === 0),
-        )
-        .filter((book) =>
-          [book.title, book.author, book.genreName].some((value) =>
-            value?.toLowerCase().includes(searchTerm.trim().toLowerCase()),
-          ),
-        )
-        .sort((a, b) => {
-          const comparison = String(a[sortBy] ?? "").localeCompare(
-            String(b[sortBy] ?? ""),
-          );
-          return sortDirection === "ASC" ? comparison : -comparison;
-        })
-    : (catalog?.content ?? []);
+  const visibleBooks = catalog?.content ?? [];
 
   return (
     <Box
@@ -357,7 +238,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
           >
             <GenreFilter
               onGenreSelect={handleGenreChange}
-              genres={preview ? genres : loadedGenres}
+              genres={loadedGenres}
               selectedGenreId={selectedGenreId}
             />
             {genreError && (
@@ -391,7 +272,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
                     return;
                   setAvailabilityFilter(e.target.value);
                   setPage(0);
-                  if (!preview) setLoading(true);
+                  setLoading(true);
                 }}
                 sx={{ borderRadius: "10px" }}
               >
@@ -441,7 +322,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
                   if (e.target.value === searchTerm && page === 0) return;
                   setSearchTerm(e.target.value);
                   setPage(0);
-                  if (!preview) setLoading(true);
+                  setLoading(true);
                 }}
                 slotProps={{
                   input: {
@@ -489,8 +370,8 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
                 direction="row"
                 spacing={0.5}
                 sx={{
-                  bgcolor: (theme) =>
-                    theme.palette.mode === "dark" ? "#17243a" : "#f1f5f9",
+                  bgcolor: () =>
+                    "#f1f5f9",
                   p: 0.5,
                   borderRadius: 2,
                   flexShrink: 0,
@@ -503,11 +384,9 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
                     onClick={() => setViewMode("grid")}
                     color={viewMode === "grid" ? "primary" : "default"}
                     sx={{
-                      bgcolor: (theme) =>
+                      bgcolor: () =>
                         viewMode === "grid"
-                          ? theme.palette.mode === "dark"
-                            ? "#0f172a"
-                            : "#ffffff"
+                          ? "#ffffff"
                           : "transparent",
                       boxShadow:
                         viewMode === "grid"
@@ -525,11 +404,9 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
                     onClick={() => setViewMode("list")}
                     color={viewMode === "list" ? "primary" : "default"}
                     sx={{
-                      bgcolor: (theme) =>
+                      bgcolor: () =>
                         viewMode === "list"
-                          ? theme.palette.mode === "dark"
-                            ? "#0f172a"
-                            : "#ffffff"
+                          ? "#ffffff"
                           : "transparent",
                       boxShadow:
                         viewMode === "list"
@@ -568,7 +445,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
                       if (term === searchTerm && page === 0) return;
                       setSearchTerm(term);
                       setPage(0);
-                      if (!preview) setLoading(true);
+                      setLoading(true);
                     }}
                     sx={{
                       height: 24,
@@ -583,7 +460,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
           </Paper>
 
           {/* Error Message */}
-          {!preview && catalogError && (
+          {catalogError && (
             <Alert
               severity="error"
               action={
@@ -605,7 +482,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
           )}
 
           {/* Loading Indicator */}
-          {loading && !preview ? (
+          {loading ? (
             <Box
               sx={{
                 py: 10,
@@ -639,11 +516,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
                   <BookCard
                     key={book.id}
                     book={book}
-                    onViewDetails={
-                      preview
-                        ? undefined
-                        : (id) => navigate(`/user/books/${id}`)
-                    }
+                    onViewDetails={(id) => navigate(`/user/books/${id}`)}
                   />
                 ))}
               </Box>
@@ -761,9 +634,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
                     <Button
                       variant="contained"
                       size="small"
-                      onClick={() =>
-                        preview ? undefined : navigate(`/user/books/${book.id}`)
-                      }
+                      onClick={() => navigate(`/user/books/${book.id}`)}
                       sx={{
                         borderRadius: 2,
                         textTransform: "none",
@@ -795,7 +666,7 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
           )}
 
           {/* Server-side Pagination */}
-          {!preview && !loading && !catalogError && catalog?.totalPages > 1 && (
+          {!loading && !catalogError && catalog?.totalPages > 1 && (
             <TablePaginationBar
               page={page}
               totalPages={catalog.totalPages}
@@ -815,14 +686,13 @@ const BookPageContent = ({ preview = false, urlQuery = "" }) => {
   );
 };
 
-const BookPage = ({ preview = false }) => {
+const BookPage = () => {
   const [searchParams] = useSearchParams();
   const urlQuery = searchParams.get("q") || "";
 
   return (
     <BookPageContent
-      key={`${preview ? "preview" : "catalog"}:${urlQuery}`}
-      preview={preview}
+      key={urlQuery}
       urlQuery={urlQuery}
     />
   );

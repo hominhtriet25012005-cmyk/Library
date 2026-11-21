@@ -14,7 +14,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import StarsRoundedIcon from "@mui/icons-material/StarsRounded";
@@ -36,7 +35,7 @@ import { paymentsEnabled } from "../Payments/paymentRules.js";
 import LoadingState from "../../../components/common/LoadingState";
 import EmptyState from "../../../components/common/EmptyState";
 
-const getPlanTheme = (plan, index, total, isDark = false) => {
+const getPlanTheme = (plan, index, total) => {
   const isFeatured =
     Boolean(plan.isFeatured) || (total === 3 && index === 1) || total === 1;
 
@@ -48,23 +47,15 @@ const getPlanTheme = (plan, index, total, isDark = false) => {
       accentColor: "#8b5cf6",
       badgeBg: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
       badgeTextColor: "#ffffff",
-      cardBorder: isDark ? "2px solid #a78bfa" : "2px solid #8b5cf6",
-      cardBg: isDark
-        ? "linear-gradient(180deg, #1e1b4b 0%, #111c2e 100%)"
-        : "linear-gradient(180deg, #faf5ff 0%, #ffffff 100%)",
-      cardShadow: isDark
-        ? "0 20px 40px -8px rgba(0, 0, 0, 0.6)"
-        : "0 20px 40px -8px rgba(124, 58, 237, 0.22)",
-      hoverShadow: isDark
-        ? "0 28px 50px -10px rgba(124, 58, 237, 0.5)"
-        : "0 28px 50px -10px rgba(124, 58, 237, 0.35)",
-      iconBg: isDark ? "rgba(167, 139, 250, 0.2)" : "rgba(124, 58, 237, 0.12)",
-      iconColor: isDark ? "#c4b5fd" : "#7c3aed",
-      priceColor: isDark ? "#c4b5fd" : "#6d28d9",
-      checkIconBg: isDark
-        ? "rgba(167, 139, 250, 0.2)"
-        : "rgba(124, 58, 237, 0.12)",
-      checkIconColor: isDark ? "#c4b5fd" : "#7c3aed",
+      cardBorder: "2px solid #8b5cf6",
+      cardBg: "linear-gradient(180deg, #faf5ff 0%, #ffffff 100%)",
+      cardShadow: "0 20px 40px -8px rgba(124, 58, 237, 0.22)",
+      hoverShadow: "0 28px 50px -10px rgba(124, 58, 237, 0.35)",
+      iconBg: "rgba(124, 58, 237, 0.12)",
+      iconColor: "#7c3aed",
+      priceColor: "#6d28d9",
+      checkIconBg: "rgba(124, 58, 237, 0.12)",
+      checkIconColor: "#7c3aed",
       buttonVariant: "contained",
       buttonSx: {
         background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
@@ -83,36 +74,26 @@ const getPlanTheme = (plan, index, total, isDark = false) => {
       isFeatured: false,
       badgeText: "TIẾT KIỆM & LINH HOẠT",
       tagline: "Khởi đầu lý tưởng cho bạn",
-      accentColor: isDark ? "#38bdf8" : "#0284c7",
-      badgeBg: isDark ? "rgba(2, 132, 199, 0.25)" : "#e0f2fe",
-      badgeTextColor: isDark ? "#38bdf8" : "#0369a1",
-      cardBorder: isDark ? "1px solid #1e3a5f" : "1px solid #bae6fd",
-      cardBg: isDark
-        ? "linear-gradient(180deg, #0d233a 0%, #111c2e 100%)"
-        : "linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%)",
-      cardShadow: isDark
-        ? "0 8px 25px -4px rgba(0, 0, 0, 0.4)"
-        : "0 8px 25px -4px rgba(2, 132, 199, 0.1)",
-      hoverShadow: isDark
-        ? "0 18px 36px -6px rgba(2, 132, 199, 0.4)"
-        : "0 18px 36px -6px rgba(2, 132, 199, 0.22)",
-      iconBg: isDark ? "rgba(56, 189, 248, 0.2)" : "rgba(2, 132, 199, 0.12)",
-      iconColor: isDark ? "#38bdf8" : "#0284c7",
-      priceColor: isDark ? "#38bdf8" : "#0369a1",
-      checkIconBg: isDark
-        ? "rgba(56, 189, 248, 0.2)"
-        : "rgba(2, 132, 199, 0.12)",
-      checkIconColor: isDark ? "#38bdf8" : "#0284c7",
+      accentColor: "#0284c7",
+      badgeBg: "#e0f2fe",
+      badgeTextColor: "#0369a1",
+      cardBorder: "1px solid #bae6fd",
+      cardBg: "linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%)",
+      cardShadow: "0 8px 25px -4px rgba(2, 132, 199, 0.1)",
+      hoverShadow: "0 18px 36px -6px rgba(2, 132, 199, 0.22)",
+      iconBg: "rgba(2, 132, 199, 0.12)",
+      iconColor: "#0284c7",
+      priceColor: "#0369a1",
+      checkIconBg: "rgba(2, 132, 199, 0.12)",
+      checkIconColor: "#0284c7",
       buttonVariant: "outlined",
       buttonSx: {
-        borderColor: isDark ? "#38bdf8" : "#0284c7",
-        color: isDark ? "#38bdf8" : "#0284c7",
-        bgcolor: isDark ? "rgba(56, 189, 248, 0.1)" : "#ffffff",
+        borderColor: "#0284c7",
+        color: "#0284c7",
+        bgcolor: "#ffffff",
         "&:hover": {
-          borderColor: isDark ? "#7dd3fc" : "#0369a1",
-          bgcolor: isDark
-            ? "rgba(56, 189, 248, 0.2)"
-            : "rgba(2, 132, 199, 0.08)",
+          borderColor: "#0369a1",
+          bgcolor: "rgba(2, 132, 199, 0.08)",
         },
       },
     };
@@ -122,32 +103,26 @@ const getPlanTheme = (plan, index, total, isDark = false) => {
     isFeatured: false,
     badgeText: "ĐẶC QUYỀN VIP CAO CẤP",
     tagline: "Tối ưu trọn vẹn cho nghiên cứu dài hạn",
-    accentColor: isDark ? "#fbbf24" : "#d97706",
-    badgeBg: isDark ? "rgba(217, 119, 6, 0.25)" : "#fef3c7",
-    badgeTextColor: isDark ? "#fbbf24" : "#92400e",
-    cardBorder: isDark ? "1px solid #4a3410" : "1px solid #fde68a",
-    cardBg: isDark
-      ? "linear-gradient(180deg, #261b0c 0%, #111c2e 100%)"
-      : "linear-gradient(180deg, #fffbeb 0%, #ffffff 100%)",
-    cardShadow: isDark
-      ? "0 8px 25px -4px rgba(0, 0, 0, 0.4)"
-      : "0 8px 25px -4px rgba(217, 119, 6, 0.12)",
-    hoverShadow: isDark
-      ? "0 18px 36px -6px rgba(217, 119, 6, 0.4)"
-      : "0 18px 36px -6px rgba(217, 119, 6, 0.25)",
-    iconBg: isDark ? "rgba(251, 191, 36, 0.2)" : "rgba(217, 119, 6, 0.12)",
-    iconColor: isDark ? "#fbbf24" : "#d97706",
-    priceColor: isDark ? "#fbbf24" : "#b45309",
-    checkIconBg: isDark ? "rgba(251, 191, 36, 0.2)" : "rgba(217, 119, 6, 0.12)",
-    checkIconColor: isDark ? "#fbbf24" : "#d97706",
+    accentColor: "#d97706",
+    badgeBg: "#fef3c7",
+    badgeTextColor: "#92400e",
+    cardBorder: "1px solid #fde68a",
+    cardBg: "linear-gradient(180deg, #fffbeb 0%, #ffffff 100%)",
+    cardShadow: "0 8px 25px -4px rgba(217, 119, 6, 0.12)",
+    hoverShadow: "0 18px 36px -6px rgba(217, 119, 6, 0.25)",
+    iconBg: "rgba(217, 119, 6, 0.12)",
+    iconColor: "#d97706",
+    priceColor: "#b45309",
+    checkIconBg: "rgba(217, 119, 6, 0.12)",
+    checkIconColor: "#d97706",
     buttonVariant: "outlined",
     buttonSx: {
-      borderColor: isDark ? "#fbbf24" : "#d97706",
-      color: isDark ? "#fbbf24" : "#d97706",
-      bgcolor: isDark ? "rgba(251, 191, 36, 0.1)" : "#ffffff",
+      borderColor: "#d97706",
+      color: "#d97706",
+      bgcolor: "#ffffff",
       "&:hover": {
-        borderColor: isDark ? "#fcd34d" : "#b45309",
-        bgcolor: isDark ? "rgba(251, 191, 36, 0.2)" : "rgba(217, 119, 6, 0.08)",
+        borderColor: "#b45309",
+        bgcolor: "rgba(217, 119, 6, 0.08)",
       },
     },
   };
@@ -155,8 +130,6 @@ const getPlanTheme = (plan, index, total, isDark = false) => {
 
 const SubscriptionsPage = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
   const [plans, setPlans] = useState([]);
   const [active, setActive] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -314,7 +287,7 @@ const SubscriptionsPage = () => {
           icon={
             <WorkspacePremiumRoundedIcon
               sx={{
-                "&&": { color: isDark ? "#d4bc8b" : "#315B4C", fontSize: 18 },
+                "&&": { color: "#315B4C", fontSize: 18 },
               }}
             />
           }
@@ -323,14 +296,10 @@ const SubscriptionsPage = () => {
             fontWeight: 700,
             fontSize: "0.75rem",
             letterSpacing: "0.08em",
-            bgcolor: isDark
-              ? "rgba(49, 91, 76, 0.25)"
-              : "#EBF1EE",
-            color: isDark ? "#c8dcd3" : "#315B4C",
+            bgcolor: "#EBF1EE",
+            color: "#315B4C",
             border: "1px solid",
-            borderColor: isDark
-              ? "rgba(169, 130, 71, 0.4)"
-              : "#A98247",
+            borderColor: "#A98247",
             borderRadius: 99,
             px: 1,
             py: 2,
@@ -345,7 +314,7 @@ const SubscriptionsPage = () => {
             fontWeight: 900,
             fontSize: { xs: "2rem", sm: "2.75rem", md: "3.25rem" },
             lineHeight: 1.2,
-            color: isDark ? "#f8fafc" : "#0f172a",
+            color: "#0f172a",
             letterSpacing: "-0.03em",
             mb: 2,
             maxWidth: 820,
@@ -357,7 +326,7 @@ const SubscriptionsPage = () => {
         <Typography
           variant="subtitle1"
           sx={{
-            color: isDark ? "#94a3b8" : "#475569",
+            color: "#475569",
             fontSize: { xs: "1rem", sm: "1.15rem" },
             maxWidth: 700,
             mx: "auto",
@@ -411,25 +380,13 @@ const SubscriptionsPage = () => {
               p: { xs: 2.5, sm: 3.5 },
               borderRadius: 4,
               border: "1px solid",
-              borderColor: isDark
-                ? active
-                  ? "#3b82f6"
-                  : "#24334a"
-                : active
+              borderColor: active
                   ? "#93c5fd"
                   : "#e2e8f0",
-              background: isDark
-                ? active
-                  ? "linear-gradient(135deg, #132238 0%, #111c2e 100%)"
-                  : "#111c2e"
-                : active
+              background: active
                   ? "linear-gradient(135deg, #EBF1EE 0%, #ffffff 100%)"
                   : "#ffffff",
-              boxShadow: isDark
-                ? active
-                  ? "0 4px 20px -2px rgba(0, 0, 0, 0.4)"
-                  : "0 1px 3px rgba(0, 0, 0, 0.3)"
-                : active
+              boxShadow: active
                   ? "0 4px 20px -2px rgba(49, 91, 76, 0.08)"
                   : "0 1px 3px rgba(0, 0, 0, 0.05)",
             }}
@@ -450,18 +407,10 @@ const SubscriptionsPage = () => {
                     width: 42,
                     height: 42,
                     borderRadius: 2.5,
-                    bgcolor: isDark
-                      ? active
-                        ? "rgba(169, 130, 71, 0.2)"
-                        : "rgba(148, 163, 184, 0.15)"
-                      : active
+                    bgcolor: active
                         ? "rgba(49, 91, 76, 0.12)"
                         : "rgba(100, 116, 139, 0.1)",
-                    color: isDark
-                      ? active
-                        ? "#d4bc8b"
-                        : "#94a3b8"
-                      : active
+                    color: active
                         ? "#315B4C"
                         : "#64748b",
                     display: "flex",
@@ -476,14 +425,14 @@ const SubscriptionsPage = () => {
                     variant="h6"
                     sx={{
                       fontWeight: 700,
-                      color: isDark ? "#f8fafc" : "#0f172a",
+                      color: "#0f172a",
                     }}
                   >
                     Gói thành viên hiện tại
                   </Typography>
                   <Typography
                     variant="body2"
-                    sx={{ color: isDark ? "#94a3b8" : "#64748b" }}
+                    sx={{ color: "#64748b" }}
                   >
                     {active
                       ? "Tài khoản đang có gói hiệu lực"
@@ -515,9 +464,7 @@ const SubscriptionsPage = () => {
             <Divider
               sx={{
                 my: 2,
-                borderColor: isDark
-                  ? "#24334a"
-                  : active
+                borderColor: active
                     ? "#dbeafe"
                     : "#f1f5f9",
               }}
@@ -532,7 +479,7 @@ const SubscriptionsPage = () => {
               <Box sx={{ py: 2 }}>
                 <Typography
                   variant="body1"
-                  sx={{ color: isDark ? "#cbd5e1" : "#475569", mb: 1 }}
+                  sx={{ color: "#475569", mb: 1 }}
                 >
                   Bạn chưa có gói thành viên hoạt động. Đăng ký ngay bên dưới để
                   tăng hạn mức mượn sách và thời gian lưu giữ!
@@ -558,12 +505,12 @@ const SubscriptionsPage = () => {
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                     <StarsRoundedIcon
-                      sx={{ color: isDark ? "#d4bc8b" : "#315B4C" }}
+                      sx={{ color: "#315B4C" }}
                     />
                     <Box>
                       <Typography
                         variant="caption"
-                        sx={{ color: isDark ? "#94a3b8" : "#64748b" }}
+                        sx={{ color: "#64748b" }}
                       >
                         Tên gói
                       </Typography>
@@ -571,7 +518,7 @@ const SubscriptionsPage = () => {
                         variant="subtitle1"
                         sx={{
                           fontWeight: 700,
-                          color: isDark ? "#f8fafc" : "#0f172a",
+                          color: "#0f172a",
                         }}
                       >
                         {active.planName || "Gói thành viên"}
@@ -581,12 +528,12 @@ const SubscriptionsPage = () => {
 
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                     <CalendarTodayRoundedIcon
-                      sx={{ color: isDark ? "#d4bc8b" : "#315B4C" }}
+                      sx={{ color: "#315B4C" }}
                     />
                     <Box>
                       <Typography
                         variant="caption"
-                        sx={{ color: isDark ? "#94a3b8" : "#64748b" }}
+                        sx={{ color: "#64748b" }}
                       >
                         Thời hạn sử dụng
                       </Typography>
@@ -594,7 +541,7 @@ const SubscriptionsPage = () => {
                         variant="body2"
                         sx={{
                           fontWeight: 600,
-                          color: isDark ? "#f1f5f9" : "#1e293b",
+                          color: "#1e293b",
                         }}
                       >
                         {formatDateVN(active.startDate)} –{" "}
@@ -605,12 +552,12 @@ const SubscriptionsPage = () => {
 
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                     <AutoStoriesRoundedIcon
-                      sx={{ color: isDark ? "#d4bc8b" : "#315B4C" }}
+                      sx={{ color: "#315B4C" }}
                     />
                     <Box>
                       <Typography
                         variant="caption"
-                        sx={{ color: isDark ? "#94a3b8" : "#64748b" }}
+                        sx={{ color: "#64748b" }}
                       >
                         Hạn mức sách cùng lúc
                       </Typography>
@@ -618,7 +565,7 @@ const SubscriptionsPage = () => {
                         variant="body2"
                         sx={{
                           fontWeight: 600,
-                          color: isDark ? "#f1f5f9" : "#1e293b",
+                          color: "#1e293b",
                         }}
                       >
                         Tối đa <strong>{active.maxBooksAllowed}</strong> cuốn
@@ -628,12 +575,12 @@ const SubscriptionsPage = () => {
 
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                     <AccessTimeRoundedIcon
-                      sx={{ color: isDark ? "#d4bc8b" : "#315B4C" }}
+                      sx={{ color: "#315B4C" }}
                     />
                     <Box>
                       <Typography
                         variant="caption"
-                        sx={{ color: isDark ? "#94a3b8" : "#64748b" }}
+                        sx={{ color: "#64748b" }}
                       >
                         Thời gian mượn tối đa
                       </Typography>
@@ -641,7 +588,7 @@ const SubscriptionsPage = () => {
                         variant="body2"
                         sx={{
                           fontWeight: 600,
-                          color: isDark ? "#f1f5f9" : "#1e293b",
+                          color: "#1e293b",
                         }}
                       >
                         <strong>{active.maxDaysPerBook}</strong> ngày / mỗi cuốn
@@ -682,7 +629,7 @@ const SubscriptionsPage = () => {
                 component="h2"
                 sx={{
                   fontWeight: 800,
-                  color: isDark ? "#f8fafc" : "#0f172a",
+                  color: "#0f172a",
                   fontSize: { xs: "1.5rem", sm: "1.85rem" },
                   letterSpacing: "-0.02em",
                   mb: 1,
@@ -693,7 +640,7 @@ const SubscriptionsPage = () => {
               <Typography
                 variant="body1"
                 sx={{
-                  color: isDark ? "#94a3b8" : "#64748b",
+                  color: "#64748b",
                   maxWidth: 540,
                   mx: "auto",
                 }}
@@ -725,7 +672,6 @@ const SubscriptionsPage = () => {
                     plan,
                     index,
                     plans.length,
-                    isDark,
                   );
 
                   return (
@@ -808,7 +754,7 @@ const SubscriptionsPage = () => {
                         variant="h5"
                         sx={{
                           fontWeight: 800,
-                          color: isDark ? "#f8fafc" : "#0f172a",
+                          color: "#0f172a",
                           letterSpacing: "-0.02em",
                         }}
                       >
@@ -818,7 +764,7 @@ const SubscriptionsPage = () => {
                       <Typography
                         variant="caption"
                         sx={{
-                          color: isDark ? "#94a3b8" : "#64748b",
+                          color: "#64748b",
                           fontWeight: 600,
                           mt: 0.5,
                           display: "block",
@@ -832,9 +778,7 @@ const SubscriptionsPage = () => {
                         sx={{
                           my: 2.5,
                           pb: 1,
-                          borderBottom: isDark
-                            ? "1px dashed #24334a"
-                            : "1px dashed #e2e8f0",
+                          borderBottom: "1px dashed #e2e8f0",
                         }}
                       >
                         <Typography
@@ -851,7 +795,7 @@ const SubscriptionsPage = () => {
                         <Typography
                           variant="body2"
                           sx={{
-                            color: isDark ? "#94a3b8" : "#64748b",
+                            color: "#64748b",
                             mt: 0.75,
                             fontWeight: 500,
                           }}
@@ -865,7 +809,7 @@ const SubscriptionsPage = () => {
                       <Typography
                         variant="body2"
                         sx={{
-                          color: isDark ? "#cbd5e1" : "#475569",
+                          color: "#475569",
                           flex: 1,
                           minHeight: 44,
                           whiteSpace: "pre-line",
@@ -880,7 +824,7 @@ const SubscriptionsPage = () => {
                       <Divider
                         sx={{
                           mb: 2.5,
-                          borderColor: isDark ? "#24334a" : "#f1f5f9",
+                          borderColor: "#f1f5f9",
                         }}
                       />
 
@@ -910,7 +854,7 @@ const SubscriptionsPage = () => {
                           </Box>
                           <Typography
                             variant="body2"
-                            sx={{ color: isDark ? "#e2e8f0" : "#1e293b" }}
+                            sx={{ color: "#1e293b" }}
                           >
                             Tối đa <strong>{plan.maxBooksAllowed}</strong> cuốn
                             cùng lúc
@@ -941,7 +885,7 @@ const SubscriptionsPage = () => {
                           </Box>
                           <Typography
                             variant="body2"
-                            sx={{ color: isDark ? "#e2e8f0" : "#1e293b" }}
+                            sx={{ color: "#1e293b" }}
                           >
                             Mượn tối đa <strong>{plan.maxDaysPerBook}</strong>{" "}
                             ngày / mỗi cuốn
@@ -972,7 +916,7 @@ const SubscriptionsPage = () => {
                           </Box>
                           <Typography
                             variant="body2"
-                            sx={{ color: isDark ? "#e2e8f0" : "#1e293b" }}
+                            sx={{ color: "#1e293b" }}
                           >
                             Gia hạn online trực tiếp & ưu tiên giữ sách
                           </Typography>
@@ -998,15 +942,9 @@ const SubscriptionsPage = () => {
                           transition: "all 0.2s ease",
                           ...planTheme.buttonSx,
                           ...(Boolean(active) && {
-                            bgcolor: isDark
-                              ? "#17243a !important"
-                              : "#f1f5f9 !important",
-                            color: isDark
-                              ? "#64748b !important"
-                              : "#94a3b8 !important",
-                            borderColor: isDark
-                              ? "#24334a !important"
-                              : "#e2e8f0 !important",
+                            bgcolor: "#f1f5f9 !important",
+                            color: "#94a3b8 !important",
+                            borderColor: "#e2e8f0 !important",
                             boxShadow: "none !important",
                           }),
                         }}
@@ -1045,25 +983,25 @@ const SubscriptionsPage = () => {
             display: "flex",
             alignItems: "center",
             gap: 1.5,
-            color: isDark ? "#f8fafc" : "#0f172a",
+            color: "#0f172a",
           }}
         >
-          <QrCodeRoundedIcon sx={{ color: isDark ? "#d4bc8b" : "#315B4C" }} />
+          <QrCodeRoundedIcon sx={{ color: "#315B4C" }} />
           Xác nhận mua gói: {selectedPlan?.name}
         </DialogTitle>
         <DialogContent>
           <Box
             sx={{
               p: 2,
-              bgcolor: isDark ? "#17243a" : "#f8fafc",
+              bgcolor: "#f8fafc",
               borderRadius: 2.5,
               mb: 2,
-              border: isDark ? "1px solid #24334a" : "none",
+              border: "none",
             }}
           >
             <Typography
               variant="body2"
-              sx={{ color: isDark ? "#94a3b8" : "#64748b", mb: 0.5 }}
+              sx={{ color: "#64748b", mb: 0.5 }}
             >
               Chi tiết giao dịch:
             </Typography>
@@ -1071,7 +1009,7 @@ const SubscriptionsPage = () => {
               variant="subtitle1"
               sx={{
                 fontWeight: 700,
-                color: isDark ? "#f8fafc" : "#0f172a",
+                color: "#0f172a",
               }}
             >
               Gói {selectedPlan?.durationDays} ngày · Giá:{" "}
@@ -1079,7 +1017,7 @@ const SubscriptionsPage = () => {
             </Typography>
             <Typography
               variant="caption"
-              sx={{ color: isDark ? "#cbd5e1" : "#475569" }}
+              sx={{ color: "#475569" }}
             >
               Hạn mức: {selectedPlan?.maxBooksAllowed} sách cùng lúc,{" "}
               {selectedPlan?.maxDaysPerBook} ngày mỗi cuốn.
@@ -1117,7 +1055,7 @@ const SubscriptionsPage = () => {
             sx={{
               textTransform: "none",
               fontWeight: 600,
-              color: isDark ? "#cbd5e1" : "#64748b",
+              color: "#64748b",
             }}
           >
             Đóng
@@ -1197,7 +1135,7 @@ const SubscriptionsPage = () => {
             sx={{
               textTransform: "none",
               fontWeight: 600,
-              color: isDark ? "#cbd5e1" : "#64748b",
+              color: "#64748b",
             }}
           >
             Giữ gói

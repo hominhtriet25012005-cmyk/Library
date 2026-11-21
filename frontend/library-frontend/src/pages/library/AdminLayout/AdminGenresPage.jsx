@@ -278,20 +278,14 @@ const GenreForm = ({ open, original, genres, onClose, onSaved }) => {
               justifyContent: "space-between",
               p: 2,
               borderRadius: 2.5,
-              bgcolor: (theme) =>
+              bgcolor: () =>
                 form.active
-                  ? theme.palette.mode === "dark"
-                    ? "rgba(22, 163, 74, 0.15)"
-                    : "#f0fdf4"
-                  : theme.palette.mode === "dark"
-                    ? "#17243a"
-                    : "#f8fafc",
+                  ? "#f0fdf4"
+                  : "#f8fafc",
               border: "1px solid",
-              borderColor: (theme) =>
+              borderColor: () =>
                 form.active
-                  ? theme.palette.mode === "dark"
-                    ? "rgba(74, 222, 128, 0.3)"
-                    : "#bbf7d0"
+                  ? "#bbf7d0"
                   : "divider",
               transition: "all 0.2s ease",
             }}
@@ -301,11 +295,9 @@ const GenreForm = ({ open, original, genres, onClose, onSaved }) => {
                 variant="subtitle2"
                 sx={{
                   fontWeight: 700,
-                  color: (theme) =>
+                  color: () =>
                     form.active
-                      ? theme.palette.mode === "dark"
-                        ? "#86efac"
-                        : "#166534"
+                      ? "#166534"
                       : "text.primary",
                 }}
               >
@@ -314,11 +306,9 @@ const GenreForm = ({ open, original, genres, onClose, onSaved }) => {
               <Typography
                 variant="caption"
                 sx={{
-                  color: (theme) =>
+                  color: () =>
                     form.active
-                      ? theme.palette.mode === "dark"
-                        ? "#bbf7d0"
-                        : "#15803d"
+                      ? "#15803d"
                       : "text.secondary",
                 }}
               >

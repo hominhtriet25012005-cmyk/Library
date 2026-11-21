@@ -9,7 +9,7 @@ import { formatDateVN, formatDateTimeVN } from "../../../utils/formatters.js";
 import { StatusChip } from "../../../components/common";
 import { canCancelReservation } from "./reservationRules.js";
 
-const MyReservationCard = ({ reservation, preview = false, onAction }) => {
+const MyReservationCard = ({ reservation, onAction }) => {
   return (
     <Paper
       variant="outlined"
@@ -33,8 +33,8 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
         sx={{
           p: 2,
           px: 2.5,
-          bgcolor: (theme) =>
-            theme.palette.mode === "dark" ? "#17243a" : "#f8fafc",
+          bgcolor: () =>
+            "#f8fafc",
           borderBottom: "1px solid",
           borderColor: "divider",
           display: "flex",
@@ -60,10 +60,8 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
             sx={{
               p: 1.25,
               borderRadius: 2,
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark"
-                  ? "rgba(96,165,250,0.15)"
-                  : "rgba(23,105,255,0.08)",
+              bgcolor: () =>
+                "rgba(23,105,255,0.08)",
               color: "primary.main",
               display: "flex",
               alignItems: "center",
@@ -99,15 +97,11 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
                 my: 1,
                 p: 1.25,
                 borderRadius: 2,
-                bgcolor: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "rgba(96,165,250,0.12)"
-                    : "rgba(23,105,255,0.06)",
+                bgcolor: () =>
+                  "rgba(23,105,255,0.06)",
                 border: "1px solid",
-                borderColor: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "rgba(96,165,250,0.25)"
-                    : "rgba(23,105,255,0.15)",
+                borderColor: () =>
+                  "rgba(23,105,255,0.15)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -202,7 +196,7 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
             mt: "auto",
           }}
         >
-          {!preview && reservation.bookId && (
+          {reservation.bookId && (
             <Button
               component={Link}
               to={`/user/books/${reservation.bookId}`}
@@ -217,7 +211,7 @@ const MyReservationCard = ({ reservation, preview = false, onAction }) => {
               Xem sách
             </Button>
           )}
-          {!preview && canCancelReservation(reservation) && (
+          {canCancelReservation(reservation) && (
             <Button
               color="error"
               variant="outlined"

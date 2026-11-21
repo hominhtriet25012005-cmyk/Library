@@ -69,6 +69,7 @@ export const buildPaymentQuery = ({
   size = 10,
   sortBy = "createdAt",
   sortDir = "DESC",
+  search = "", type = "ALL", status = "ALL",
 } = {}) => {
   validPage(page, size);
   if (!paymentSortFields.includes(sortBy) || !["ASC", "DESC"].includes(sortDir))
@@ -78,6 +79,9 @@ export const buildPaymentQuery = ({
     size: String(size),
     sortBy,
     sortDir,
+    ...(search.trim() ? { search: search.trim() } : {}),
+    ...(type !== "ALL" ? { type } : {}),
+    ...(status !== "ALL" ? { status } : {}),
   }).toString();
 };
 

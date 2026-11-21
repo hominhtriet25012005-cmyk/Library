@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useAdminSummary } from "../../../api/useAdminSummary";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -127,25 +128,8 @@ const AdminReviewsPage = () => {
     }
   };
 
-  const stats = useMemo(() => {
-    const list = result?.content || [];
-    const activeCount = list.filter((r) => r.isActive).length;
-    const hiddenCount = list.length - activeCount;
-    const avgRating =
-      list.length > 0
-        ? (
-            list.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) /
-            list.length
-          ).toFixed(1)
-        : "—";
-
-    return {
-      totalOnPage: list.length,
-      activeCount,
-      hiddenCount,
-      avgRating,
-    };
-  }, [result]);
+  const summary = useAdminSummary(result);
+  const stats = summary.data?.reviews ?? {"totalCount":"—","activeCount":"—","hiddenCount":"—","avgRating":"—"};
 
   return (
     <Box
@@ -192,28 +176,30 @@ const AdminReviewsPage = () => {
       )}
 
       {/* Thẻ thống kê */}
+      <Typography variant="caption">Thống kê toàn hệ thống</Typography>
+      {summary.error && <Alert severity="error">{summary.error}</Alert>}
       <StatCardGrid columns={{ xs: 1, sm: 2, lg: 4 }} sx={{ mb: 3 }}>
         <StatCard
-          title="Đánh giá (Trang)"
-          value={loading ? "—" : stats.totalOnPage}
+          title="Tổng đánh giá"
+          value={loading || !summary.data ? "—" : stats.totalCount}
           icon={RateReviewRoundedIcon}
           color="primary"
         />
         <StatCard
           title="Đang hiển thị"
-          value={loading ? "—" : stats.activeCount}
+          value={loading || !summary.data ? "—" : stats.activeCount}
           icon={CheckCircleRoundedIcon}
           color="success"
         />
         <StatCard
           title="Đã ẩn"
-          value={loading ? "—" : stats.hiddenCount}
+          value={loading || !summary.data ? "—" : stats.hiddenCount}
           icon={BlockRoundedIcon}
           color="error"
         />
         <StatCard
-          title="Điểm trung bình (Trang)"
-          value={loading ? "—" : stats.avgRating}
+          title="Điểm trung bình"
+          value={loading || !summary.data ? "—" : stats.avgRating}
           icon={StarRoundedIcon}
           color="warning"
         />
@@ -281,8 +267,8 @@ const AdminReviewsPage = () => {
         <Table sx={{ minWidth: 850 }}>
           <TableHead
             sx={{
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+              bgcolor: () =>
+                "#f8fafc",
             }}
           >
             <TableRow>
@@ -442,15 +428,11 @@ const AdminReviewsPage = () => {
                           onClick={() => setSelected(entry)}
                           sx={{
                             color: "primary.main",
-                            bgcolor: (theme) =>
-                              theme.palette.mode === "dark"
-                                ? "rgba(59,130,246,0.15)"
-                                : "rgba(23,105,255,0.06)",
+                            bgcolor: () =>
+                              "rgba(23,105,255,0.06)",
                             "&:hover": {
-                              bgcolor: (theme) =>
-                                theme.palette.mode === "dark"
-                                  ? "rgba(59,130,246,0.25)"
-                                  : "rgba(23,105,255,0.12)",
+                              bgcolor: () =>
+                                "rgba(23,105,255,0.12)",
                             },
                           }}
                         >
@@ -468,15 +450,11 @@ const AdminReviewsPage = () => {
                             }}
                             sx={{
                               color: "error.main",
-                              bgcolor: (theme) =>
-                                theme.palette.mode === "dark"
-                                  ? "rgba(239,68,68,0.15)"
-                                  : "rgba(239,68,68,0.06)",
+                              bgcolor: () =>
+                                "rgba(239,68,68,0.06)",
                               "&:hover": {
-                                bgcolor: (theme) =>
-                                  theme.palette.mode === "dark"
-                                    ? "rgba(239,68,68,0.25)"
-                                    : "rgba(239,68,68,0.12)",
+                                bgcolor: () =>
+                                  "rgba(239,68,68,0.12)",
                               },
                             }}
                           >
@@ -543,8 +521,8 @@ const AdminReviewsPage = () => {
               <Box
                 sx={{
                   p: 2,
-                  bgcolor: (theme) =>
-                    theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+                  bgcolor: () =>
+                    "#f8fafc",
                   borderRadius: 2.5,
                   border: 1,
                   borderColor: "divider",

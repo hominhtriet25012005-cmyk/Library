@@ -19,8 +19,6 @@ import CurrentLoans from "./CurrentLoans";
 import Reservation from "./Reservation";
 import ReadingHistory from "./ReadingHistory";
 import Recommandation from "./Recommandation";
-import { loans } from "../MyLoans/loans";
-import { myReservation } from "../MyReservations/reservation";
 import { loansApi, loadLoanPages } from "../../../api/loans.js";
 import {
   reservationsApi,
@@ -32,7 +30,7 @@ import { fineSummary } from "../Fines/fineRules.js";
 import { PageHeader, StatCard, StatCardGrid } from "../../../components/common";
 import { formatCurrencyVND } from "../../../utils/formatters";
 
-const Dashboard = ({ preview = false }) => {
+const Dashboard = () => {
   const [activeTab, setActiveTab] = React.useState(0);
   const [realLoans, setRealLoans] = React.useState(null);
   const [error, setError] = React.useState("");
@@ -45,7 +43,6 @@ const Dashboard = ({ preview = false }) => {
   const [fineRefresh, setFineRefresh] = React.useState(0);
 
   React.useEffect(() => {
-    if (preview) return;
     const controller = new AbortController();
     loadLoanPages(loansApi.list, { signal: controller.signal })
       .then((entries) => {
@@ -56,10 +53,9 @@ const Dashboard = ({ preview = false }) => {
         if (failure.name !== "AbortError") setError(failure.message);
       });
     return () => controller.abort();
-  }, [preview, refresh]);
+  }, [refresh]);
 
   React.useEffect(() => {
-    if (preview) return;
     const controller = new AbortController();
     loadReservationPages(reservationsApi.list, { signal: controller.signal })
       .then((entries) => {
@@ -73,10 +69,9 @@ const Dashboard = ({ preview = false }) => {
           setReservationError(failure.message);
       });
     return () => controller.abort();
-  }, [preview, reservationRefresh]);
+  }, [reservationRefresh]);
 
   React.useEffect(() => {
-    if (preview) return;
     const controller = new AbortController();
     finesApi
       .mine({}, { signal: controller.signal })
@@ -93,15 +88,15 @@ const Dashboard = ({ preview = false }) => {
         setFineError(failure.message || "Không thể tải tiền phạt.");
       });
     return () => controller.abort();
-  }, [preview, fineRefresh]);
+  }, [fineRefresh]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
-  const myLoansData = preview ? loans : realLoans;
-  const myReservationsData = preview ? myReservation : realReservations;
-  const finesData = preview ? null : realFines;
+  const myLoansData = realLoans;
+  const myReservationsData = realReservations;
+  const finesData = realFines;
 
   // Tính toán số liệu thống kê an toàn
   const activeLoansCount = Array.isArray(myLoansData)
@@ -137,7 +132,7 @@ const Dashboard = ({ preview = false }) => {
         action={{
           label: "Khám phá sách",
           icon: ExploreRoundedIcon,
-          to: preview ? "/demo/books" : "/user/books",
+          to: "/user/books",
         }}
       />
 
@@ -211,7 +206,7 @@ const Dashboard = ({ preview = false }) => {
         <StatCard
           title="Tiền phạt còn nợ"
           value={
-            !Array.isArray(finesData) && !preview
+            !Array.isArray(finesData)
               ? "—"
               : formatCurrencyVND(outstandingFines)
           }
@@ -235,8 +230,8 @@ const Dashboard = ({ preview = false }) => {
           sx={{
             borderBottom: "1px solid",
             borderColor: "divider",
-            bgcolor: (theme) =>
-              theme.palette.mode === "dark" ? "#17243a" : "#f8fafc",
+            bgcolor: () =>
+              "#f8fafc",
             px: 2,
           }}
         >
@@ -289,11 +284,8 @@ const Dashboard = ({ preview = false }) => {
 
         {/* Nội dung từng Tab */}
         {activeTab === 0 &&
-          (preview || realLoans ? (
-            <CurrentLoans
-              loans={preview ? loans : realLoans}
-              preview={preview}
-            />
+          (realLoans ? (
+            <CurrentLoans loans={realLoans} />
           ) : (
             !error && (
               <Box sx={{ p: 4, textAlign: "center" }}>
@@ -305,11 +297,8 @@ const Dashboard = ({ preview = false }) => {
           ))}
 
         {activeTab === 1 &&
-          (preview || realReservations ? (
-            <Reservation
-              entries={preview ? myReservation : realReservations}
-              preview={preview}
-            />
+          (realReservations ? (
+            <Reservation entries={realReservations} />
           ) : (
             !reservationError && (
               <Box sx={{ p: 4, textAlign: "center" }}>
@@ -320,14 +309,8 @@ const Dashboard = ({ preview = false }) => {
             )
           ))}
 
-        {activeTab === 2 && (
-          <ReadingHistory
-            loans={preview ? loans : realLoans}
-            preview={preview}
-          />
-        )}
-
-        {activeTab === 3 && <Recommandation preview={preview} />}
+        {activeTab === 2 && <ReadingHistory loans={realLoans ?? []} />}
+        {activeTab === 3 && <Recommandation />}
       </Paper>
     </Box>
   );

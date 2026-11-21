@@ -92,14 +92,25 @@ public class NotificationPublisherImpl implements NotificationPublisher {
         if (adminUserId == null) {
             throw new IllegalArgumentException("ADMIN tạo thông báo là bắt buộc.");
         }
-        String normalizedRequestKey = requireText(requestKey, 80, "Khóa yêu cầu");
-        if (!normalizedRequestKey.matches("[A-Za-z0-9_-]{8,80}")) {
-            throw new IllegalArgumentException(
-                    "Khóa yêu cầu chỉ được chứa chữ, số, dấu gạch ngang hoặc gạch dưới.");
+        String normalizedRequestKey;
+        String normalizedTitle;
+        String normalizedMessage;
+        String normalizedActionUrl;
+        // Chỉ chuyển lỗi kiểm tra dữ liệu của ADMIN thành lỗi yêu cầu.
+        // Lỗi lưu trữ, gửi email và thông báo do hệ thống tạo vẫn giữ nguyên loại lỗi.
+        try {
+            normalizedRequestKey = requireText(requestKey, 80, "Khóa yêu cầu");
+            if (!normalizedRequestKey.matches("[A-Za-z0-9_-]{8,80}")) {
+                throw new IllegalArgumentException(
+                        "Khóa yêu cầu chỉ được chứa chữ, số, dấu gạch ngang hoặc gạch dưới.");
+            }
+            normalizedTitle = requireText(title, MAX_TITLE_LENGTH, "Tiêu đề");
+            normalizedMessage = requireText(message, MAX_MESSAGE_LENGTH, "Nội dung");
+            normalizedActionUrl = normalizeActionUrl(actionUrl);
+        } catch (IllegalArgumentException e) {
+            throw new com.library.exception.InvalidRequestException(
+                    e.getMessage(), "INVALID_ANNOUNCEMENT");
         }
-        String normalizedTitle = requireText(title, MAX_TITLE_LENGTH, "Tiêu đề");
-        String normalizedMessage = requireText(message, MAX_MESSAGE_LENGTH, "Nội dung");
-        String normalizedActionUrl = normalizeActionUrl(actionUrl);
         List<Long> recipientIds = userRepository.findIdsByRole(UserRole.ROLE_USER);
         String batchKey = "GA:" + normalizedRequestKey;
         for (Long recipientId : recipientIds) {

@@ -105,7 +105,8 @@ public class SubscriptionPlanMapper {
                 ? "VND"
                 : currency.trim().toUpperCase(Locale.ROOT);
         if (!"VND".equals(normalized)) {
-            throw new IllegalArgumentException("Tiền tệ của gói thành viên chỉ hỗ trợ VND.");
+            throw new com.library.exception.InvalidRequestException(
+                    "Tiền tệ của gói thành viên chỉ hỗ trợ VND.", "INVALID_SUBSCRIPTION_PLAN");
         }
 
         return normalized;
@@ -114,8 +115,9 @@ public class SubscriptionPlanMapper {
     private java.math.BigDecimal validatePrice(java.math.BigDecimal price) {
         if (price == null || price.signum() <= 0 || price.compareTo(new java.math.BigDecimal("99999999")) > 0
                 || price.stripTrailingZeros().scale() > 0) {
-            throw new IllegalArgumentException(
-                    "Giá gói phải là số nguyên VND lớn hơn 0 và không vượt quá giới hạn cho phép.");
+            throw new com.library.exception.InvalidRequestException(
+                    "Giá gói phải là số nguyên VND lớn hơn 0 và không vượt quá giới hạn cho phép.",
+                    "INVALID_SUBSCRIPTION_PLAN");
         }
 
         return price;

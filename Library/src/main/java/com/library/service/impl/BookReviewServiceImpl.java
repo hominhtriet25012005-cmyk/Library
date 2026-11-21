@@ -159,11 +159,12 @@ public class BookReviewServiceImpl implements BookReviewService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteReview(Long reviewId) throws Exception {
         User currentUser = userService.getCurrentUser();
 
         // 1. Tìm bài đánh giá
-        BookReview bookReview = bookReviewRepository.findByIdAndIsActiveTrue(reviewId)
+        BookReview bookReview = bookReviewRepository.findLockedById(reviewId)
                 .orElseThrow(() -> new BookReviewException("Không tìm thấy đánh giá.", org.springframework.http.HttpStatus.NOT_FOUND));
 
         // 2. Kiểm tra xem người dùng hiện tại có phải là chủ sở hữu của bài đánh giá hay không
@@ -172,8 +173,12 @@ public class BookReviewServiceImpl implements BookReviewService {
         }
 
 
-        bookReview.setIsActive(false);
-        bookReviewRepository.save(bookReview);
+        if (!Boolean.TRUE.equals(bookReview.getIsActive())) {
+            throw new BookReviewException("Đánh giá đã bị ẩn và không thể tự xóa.");
+        }
+        // USER xóa hẳn đánh giá của mình để có thể gửi đánh giá mới.
+        // ADMIN ẩn đánh giá vẫn dùng hideReview và giữ lại bản ghi.
+        bookReviewRepository.delete(bookReview);
     }
 
     @Override

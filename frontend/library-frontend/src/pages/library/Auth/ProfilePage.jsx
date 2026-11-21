@@ -71,14 +71,10 @@ const ProfilePage = () => {
             borderRadius: 4,
             border: "1px solid",
             borderColor: "divider",
-            background: (theme) =>
-              theme.palette.mode === "dark"
-                ? "linear-gradient(135deg, #132238 0%, #111c2e 100%)"
-                : "linear-gradient(135deg, #EBF1EE 0%, #ffffff 60%)",
-            boxShadow: (theme) =>
-              theme.palette.mode === "dark"
-                ? "0 4px 20px -2px rgba(0, 0, 0, 0.4)"
-                : "0 4px 20px -2px rgba(49, 91, 76, 0.08)",
+            background: () =>
+              "linear-gradient(135deg, #EBF1EE 0%, #ffffff 60%)",
+            boxShadow: () =>
+              "0 4px 20px -2px rgba(49, 91, 76, 0.08)",
             display: "flex",
             flexDirection: { xs: "column", sm: "row" },
             alignItems: { xs: "center", sm: "flex-start" },

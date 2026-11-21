@@ -140,7 +140,10 @@ const PaymentDetails = ({ paymentId, returned }) => {
     snapshot?.fineId || cached?.kind === "fine"
       ? "/user/my-fines"
       : "/user/subscriptions";
-  const matchingCache = snapshot?.status === "PENDING" && recoveredCheckout && !recovering && !recoveryError
+  // Backend chỉ trả link khôi phục khi payOS còn PENDING và chưa nhận tiền.
+  // PROCESSING nội bộ cũng có thể là đơn vừa được gắn link thanh toán.
+  const matchingCache = ["PENDING", "PROCESSING"].includes(snapshot?.status)
+    && recoveredCheckout && !recovering && !recoveryError
     ? { checkoutUrl: recoveredCheckout,
         qrCode: cached?.amount === Number(snapshot.amount) ? cached.qrCode : null }
     : null;
@@ -291,8 +294,8 @@ const PaymentDetails = ({ paymentId, returned }) => {
                 {/* THẺ TÓM TẮT ĐƠN HÀNG */}
                 <Box
                   sx={{
-                    bgcolor: (theme) =>
-                      theme.palette.mode === "dark" ? "#17243a" : "#f8fafc",
+                    bgcolor: () =>
+                      "#f8fafc",
                     p: 2.5,
                     borderRadius: 3,
                     border: "1px solid",
@@ -356,14 +359,10 @@ const PaymentDetails = ({ paymentId, returned }) => {
                     sx={{
                       p: 3,
                       borderRadius: 3.5,
-                      border: (theme) =>
-                        theme.palette.mode === "dark"
-                          ? "1px dashed #A98247"
-                          : "1px dashed #A98247",
-                      bgcolor: (theme) =>
-                        theme.palette.mode === "dark"
-                          ? "rgba(169, 130, 71, 0.15)"
-                          : "rgba(169, 130, 71, 0.08)",
+                      border: () =>
+                        "1px dashed #A98247",
+                      bgcolor: () =>
+                        "rgba(169, 130, 71, 0.08)",
                       textAlign: "center",
                     }}
                     aria-label="Mã VietQR"
@@ -372,8 +371,8 @@ const PaymentDetails = ({ paymentId, returned }) => {
                       variant="subtitle1"
                       sx={{
                         fontWeight: 700,
-                        color: (theme) =>
-                          theme.palette.mode === "dark" ? "#f8fafc" : "#0f172a",
+                        color: () =>
+                          "#0f172a",
                         mb: 0.5,
                       }}
                     >
@@ -382,8 +381,8 @@ const PaymentDetails = ({ paymentId, returned }) => {
                     <Typography
                       variant="caption"
                       sx={{
-                        color: (theme) =>
-                          theme.palette.mode === "dark" ? "#94a3b8" : "#475569",
+                        color: () =>
+                          "#475569",
                         display: "block",
                         mb: 2,
                       }}

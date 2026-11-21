@@ -3,7 +3,7 @@ package com.library.repository;
 import com.library.model.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface PaymentRepository extends JpaRepository<Payment, Long> {
+public interface PaymentRepository extends JpaRepository<Payment, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Payment> {
     java.util.List<Payment> findByUserIdAndPaymentTypeAndGatewayAndStatusInOrderByIdDesc(
             Long userId, com.library.domain.PaymentType paymentType,
             com.library.domain.PaymentGateway gateway,

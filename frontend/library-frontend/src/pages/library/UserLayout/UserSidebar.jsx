@@ -2,7 +2,7 @@ import { Box, Drawer } from "@mui/material";
 import SidebarDrawer from "./SidebarDrawer";
 import { drawerWidth } from "./layout";
 
-const UserSidebar = ({ mobileOpen, onClose, preview = false }) => {
+const UserSidebar = ({ mobileOpen, onClose }) => {
   return (
     <Box
       component={"nav"}
@@ -18,7 +18,7 @@ const UserSidebar = ({ mobileOpen, onClose, preview = false }) => {
           "& .MuiDrawer-paper": { boxSizing: "border-box", width: drawerWidth },
         }}
       >
-        <SidebarDrawer preview={preview} onNavigate={onClose} />
+        <SidebarDrawer onNavigate={onClose} />
       </Drawer>
       <Drawer
         variant="permanent"
@@ -32,7 +32,7 @@ const UserSidebar = ({ mobileOpen, onClose, preview = false }) => {
         }}
         open
       >
-        <SidebarDrawer preview={preview} />
+        <SidebarDrawer />
       </Drawer>
     </Box>
   );

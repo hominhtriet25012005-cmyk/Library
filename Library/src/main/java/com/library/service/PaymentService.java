@@ -12,4 +12,5 @@ public interface PaymentService {
     PaymentInitiateResponse initiatePayment(PaymentInitiateRequest request) throws Exception;
 
     Page<PaymentDTO> getAllPayments(Pageable pageable);
+    Page<PaymentDTO> searchPayments(Pageable pageable, String search, com.library.domain.PaymentType type, com.library.domain.PaymentStatus status);
 }

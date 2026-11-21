@@ -103,10 +103,8 @@ const ForgotPasswordPage = () => {
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: "10px",
-                  bgcolor: (theme) =>
-                    theme.palette.mode === "dark"
-                      ? "rgba(255, 255, 255, 0.03)"
-                      : "#f8fafc",
+                  bgcolor: () =>
+                    "#f8fafc",
                 },
               }}
             />

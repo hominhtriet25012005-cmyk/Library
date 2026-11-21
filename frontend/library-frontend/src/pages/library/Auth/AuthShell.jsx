@@ -7,12 +7,10 @@ const AuthShell = ({ title, subtitle, children, maxWidth = 480 }) => (
     component="main"
     sx={{
       minHeight: "100vh",
-      bgcolor: (theme) =>
-        theme.palette.mode === "dark" ? "#090d16" : "#FAF8F3",
-      background: (theme) =>
-        theme.palette.mode === "dark"
-          ? "radial-gradient(circle at 50% 15%, #111827 0%, #090d16 100%)"
-          : "radial-gradient(circle at 50% 15%, #ffffff 0%, #FAF8F3 60%, #F3EFE6 100%)",
+      bgcolor: () =>
+        "#FAF8F3",
+      background: () =>
+        "radial-gradient(circle at 50% 15%, #ffffff 0%, #FAF8F3 60%, #F3EFE6 100%)",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -31,10 +29,8 @@ const AuthShell = ({ title, subtitle, children, maxWidth = 480 }) => (
         bgcolor: "background.paper",
         border: 1,
         borderColor: "divider",
-        boxShadow: (theme) =>
-          theme.palette.mode === "dark"
-            ? "0 20px 45px -10px rgba(0, 0, 0, 0.7)"
-            : "0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03)",
+        boxShadow: () =>
+          "0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.03)",
         p: { xs: 3, sm: 4.5 },
       }}
     >

@@ -19,9 +19,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import { navigationItems, secondaryItems } from "./NavigationItems";
-import { isActive, navigationPath } from "./util";
+import { isActive } from "./util";
 import { useLocation, useNavigate, Link as RouterLink } from "react-router-dom";
 import MenuIcon from "@mui/icons-material/MenuRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
@@ -38,12 +37,11 @@ import { useNotifications } from "../../../notifications/useNotifications.js";
 import NotificationPagination from "../../../notifications/NotificationPagination.jsx";
 import { notificationPath } from "../../../api/notifications.js";
 
-const Navbar = ({ handleDrawerToggle, preview = false }) => {
+const Navbar = ({ handleDrawerToggle }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const theme = useTheme();
   const { user } = useAuth();
-  const needsEmailVerification = !preview && Boolean(user?.id)
+  const needsEmailVerification = Boolean(user?.id)
     && user.role !== "ROLE_ADMIN" && user.verified === false;
 
   const [searchQuery, setSearchQuery] = useState(
@@ -66,15 +64,14 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
     totalPages: notificationTotalPages,
     changePage: changeNotificationPage,
   } = useNotifications({
-    enabled: Boolean(user?.id) && !preview,
+    enabled: Boolean(user?.id),
     scope: `${user?.id || "guest"}:${user?.role || "USER"}`,
   });
 
   const currentItem = [...navigationItems, ...secondaryItems].find((item) =>
-    isActive(navigationPath(item.path, preview), location),
+    isActive(item.path, location),
   );
 
-  const isDark = theme.palette.mode === "dark";
 
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
@@ -101,7 +98,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
       sx={{
         width: { md: `calc(100% - ${drawerWidth}px)` },
         ml: { md: `${drawerWidth}px` },
-        bgcolor: isDark ? "background.default" : "rgba(255, 255, 255, 0.95)",
+        bgcolor: "rgba(255, 255, 255, 0.95)",
         backdropFilter: "blur(8px)",
         color: "text.primary",
         borderBottom: "1px solid",
@@ -127,23 +124,12 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
             component="div"
             sx={{
               fontWeight: 750,
-              color: isDark ? "primary.light" : "primary.main",
+              color: "primary.main",
               fontSize: "1.125rem",
             }}
           >
             {currentItem?.title || "Tổng quan bạn đọc"}
           </Typography>
-          {preview && (
-            <Typography
-              variant="caption"
-              sx={{
-                color: "text.secondary",
-                display: { xs: "none", sm: "block" },
-              }}
-            >
-              Chế độ xem trước (Dữ liệu thử nghiệm)
-            </Typography>
-          )}
         </Box>
 
         {/* KHU VỰC CÔNG CỤ TOOLBAR BÊN PHẢI (Thứ tự: Tìm kiếm -> Thông báo -> Trang chủ -> Avatar -> Vào quản trị) */}
@@ -164,7 +150,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                   alignItems: "center",
                   width: { xs: 190, sm: 230, md: 270 },
                   height: 38,
-                  bgcolor: isDark ? "background.paper" : "action.hover",
+                  bgcolor: "action.hover",
                   borderRadius: "20px",
                   px: 1.5,
                   border: "1px solid",
@@ -286,65 +272,17 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
           </Tooltip>
 
           {/* 4. KHU VỰC TÀI KHOẢN (AVATAR) */}
-          {preview ? (
-            <Chip
-              label="Bản xem thử"
-              size="small"
-              color="warning"
-              variant="outlined"
-              sx={{ fontWeight: 600, fontSize: "0.75rem" }}
-            />
-          ) : (
-            user && (
-              <Tooltip title="Xem hồ sơ cá nhân" arrow>
-                <Button
-                  component={RouterLink}
-                  to="/user/profile"
-                  size="small"
-                  sx={{
-                    textTransform: "none",
-                    color: "text.primary",
-                    px: 1.25,
-                    py: 0.5,
-                    borderRadius: "20px",
-                    bgcolor: "action.hover",
-                    "&:hover": {
-                      bgcolor: "action.selected",
-                    },
-                  }}
-                >
-                  <Avatar
-                    sx={{
-                      width: 28,
-                      height: 28,
-                      mr: 1,
-                      bgcolor: "primary.main",
-                      fontSize: "0.8125rem",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {user?.fullName
-                      ? user.fullName.charAt(0).toUpperCase()
-                      : user?.name
-                        ? user.name.charAt(0).toUpperCase()
-                        : "U"}
-                  </Avatar>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 600,
-                      display: { xs: "none", md: "inline" },
-                      maxWidth: 140,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {user?.fullName || user?.name || "Bạn đọc"}
-                  </Typography>
-                </Button>
-              </Tooltip>
-            )
+          {user && (
+            <Tooltip title="Xem hồ sơ cá nhân" arrow>
+              <Button component={RouterLink} to="/user/profile" size="small" sx={{ textTransform: "none", color: "text.primary", px: 1.25, py: 0.5, borderRadius: "20px", bgcolor: "action.hover", "&:hover": { bgcolor: "action.selected" } }}>
+                <Avatar sx={{ width: 28, height: 28, mr: 1, bgcolor: "primary.main", fontSize: "0.8125rem", fontWeight: 700 }}>
+                  {user?.fullName ? user.fullName.charAt(0).toUpperCase() : user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                </Avatar>
+                <Typography variant="body2" sx={{ fontWeight: 600, display: { xs: "none", md: "inline" }, maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user?.fullName || user?.name || "Bạn đọc"}
+                </Typography>
+              </Button>
+            </Tooltip>
           )}
         </Stack>
       </Toolbar>
@@ -490,9 +428,7 @@ const Navbar = ({ handleDrawerToggle, preview = false }) => {
                     width: 36,
                     height: 36,
                     borderRadius: 2,
-                    bgcolor: isDark
-                      ? "rgba(49, 91, 76, 0.2)"
-                      : "primary.light",
+                    bgcolor: "primary.light",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",

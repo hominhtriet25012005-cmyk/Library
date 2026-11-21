@@ -73,7 +73,11 @@ public class PayOSConfirmationService {
         // Reuse receipt validation and settlement, including partial-payment safeguards.
         confirm(payment, null);
         payment = authorized(id);
-        if (payment.getStatus() != PaymentStatus.PENDING) return new Resume(snapshot(payment), null);
+        // PROCESSING cũng được dùng khi link vừa tạo; quyền tiếp tục thanh toán
+        // phải được xác nhận bằng trạng thái và số tiền đã trả từ payOS bên dưới.
+        if (payment.getStatus() != PaymentStatus.PENDING && payment.getStatus() != PaymentStatus.PROCESSING) {
+            return new Resume(snapshot(payment), null);
+        }
         var link = gateway().getPaymentLink(id);
         if (payment.getGateway() != PaymentGateway.PAYOS || !"VND".equals(payment.getCurrency())
                 || link == null || !Objects.equals(link.getOrderCode(), id)

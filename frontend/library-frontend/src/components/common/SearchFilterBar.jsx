@@ -54,10 +54,7 @@ export const SearchFilterBar = ({
         borderRadius: 3,
         bgcolor: "background.paper",
         borderColor: "divider",
-        boxShadow: (theme) =>
-          theme.palette.mode === "dark"
-            ? "0 1px 3px rgba(0, 0, 0, 0.24)"
-            : "0 1px 3px rgba(15, 23, 42, 0.03)",
+        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.03)",
         ...sx,
       }}
     >

@@ -1,15 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { createLibraryTheme } from "../theme";
 
 const AppThemeProvider = ({ children }) => {
-  const mode = "light";
-  const theme = useMemo(() => createLibraryTheme(mode), []);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = mode;
-  }, []);
+  const theme = useMemo(() => createLibraryTheme(), []);
 
   return (
     <ThemeProvider theme={theme}>

@@ -60,16 +60,15 @@ export const brandColors = {
   },
 };
 
-export const createLibraryTheme = (mode = "light") => {
-  const isDark = mode === "dark";
-  const neutralText = isDark ? "#e2e8f0" : brandColors.neutral[900];
-  const secondaryText = isDark ? "#a8b6ca" : brandColors.neutral[500];
-  const surface = isDark ? "#111c2e" : "#ffffff";
-  const border = isDark ? "#293952" : brandColors.neutral[200];
+export const createLibraryTheme = () => {
+  const neutralText = brandColors.neutral[900];
+  const secondaryText = brandColors.neutral[500];
+  const surface = "#ffffff";
+  const border = brandColors.neutral[200];
 
   return createTheme({
     palette: {
-      mode,
+      mode: "light",
       primary: brandColors.primary,
       secondary: {
         main: "#A98247",
@@ -102,7 +101,7 @@ export const createLibraryTheme = (mode = "light") => {
         secondary: secondaryText,
       },
       background: {
-        default: isDark ? "#0b1220" : "#FAF8F3",
+        default: "#FAF8F3",
         paper: surface,
       },
       divider: border,
@@ -133,7 +132,7 @@ export const createLibraryTheme = (mode = "light") => {
         fontWeight: 600,
       },
       body2: {
-        color: isDark ? "#c1ccda" : brandColors.neutral[600],
+        color: brandColors.neutral[600],
       },
     },
     shape: {
@@ -162,9 +161,7 @@ export const createLibraryTheme = (mode = "light") => {
             borderColor: border,
             "&:hover": {
               borderColor: brandColors.primary.main,
-              backgroundColor: isDark
-                ? "rgba(49, 91, 76, 0.12)"
-                : brandColors.primary[50],
+              backgroundColor: brandColors.primary[50],
             },
           },
           sizeMedium: {
@@ -193,9 +190,7 @@ export const createLibraryTheme = (mode = "light") => {
           root: {
             borderRadius: 12,
             borderColor: border,
-            boxShadow: isDark
-              ? "0 1px 3px rgba(0, 0, 0, 0.25)"
-              : "0 1px 3px rgba(15, 23, 42, 0.05)",
+            boxShadow: "0 1px 3px rgba(15, 23, 42, 0.05)",
           },
         },
       },
@@ -208,7 +203,7 @@ export const createLibraryTheme = (mode = "light") => {
               borderColor: border,
             },
             "&:hover .MuiOutlinedInput-notchedOutline": {
-              borderColor: isDark ? "#40536d" : brandColors.neutral[300],
+              borderColor: brandColors.neutral[300],
             },
             "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
               borderColor: brandColors.primary.main,
@@ -220,9 +215,9 @@ export const createLibraryTheme = (mode = "light") => {
       MuiTableHead: {
         styleOverrides: {
           root: {
-            backgroundColor: isDark ? "#17243a" : brandColors.neutral[50],
+            backgroundColor: brandColors.neutral[50],
             "& .MuiTableCell-root": {
-              color: isDark ? "#c1ccda" : brandColors.neutral[600],
+              color: brandColors.neutral[600],
               fontWeight: 700,
               fontSize: "0.8125rem",
               borderBottom: `1px solid ${border}`,
@@ -234,7 +229,7 @@ export const createLibraryTheme = (mode = "light") => {
       MuiTableCell: {
         styleOverrides: {
           root: {
-            borderColor: isDark ? "#24334a" : brandColors.neutral[100],
+            borderColor: brandColors.neutral[100],
             fontSize: "0.875rem",
             padding: "12px 16px",
           },
@@ -244,9 +239,7 @@ export const createLibraryTheme = (mode = "light") => {
         styleOverrides: {
           root: {
             "&:hover": {
-              backgroundColor: isDark
-                ? "rgba(169, 130, 71, 0.12)"
-                : "rgba(49, 91, 76, 0.04)",
+              backgroundColor: "rgba(49, 91, 76, 0.04)",
             },
           },
         },
@@ -281,7 +274,7 @@ export const createLibraryTheme = (mode = "light") => {
         styleOverrides: {
           root: {
             padding: "16px 24px",
-            borderTop: `1px solid ${isDark ? "#24334a" : brandColors.neutral[100]}`,
+            borderTop: `1px solid ${brandColors.neutral[100]}`,
           },
         },
       },

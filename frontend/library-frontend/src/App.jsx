@@ -24,11 +24,6 @@ const Dashboard = lazy(() => import("./pages/library/Dashboard/Dashboard"));
 const BookPage = lazy(() => import("./pages/library/Book/BookPage"));
 const BookDetailPage = lazy(() => import("./pages/library/Book/BookDetailPage"));
 const WishlistPage = lazy(() => import("./pages/library/Wishlist/WishlistPage"));
-const WishlistPreviewPage = lazy(() =>
-  import("./pages/library/Wishlist/WishlistPage").then((m) => ({
-    default: m.WishlistPreviewPage,
-  })),
-);
 const MyLoans = lazy(() => import("./pages/library/MyLoans/MyLoans"));
 const MyReservation = lazy(
   () => import("./pages/library/MyReservations/MyReservation"),
@@ -99,14 +94,6 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/403" element={<ForbiddenPage />} />
-
-        <Route path="/demo" element={<UserLayout preview />}>
-          <Route index element={<Dashboard preview />} />
-          <Route path="books" element={<BookPage preview />} />
-          <Route path="wishlist" element={<WishlistPreviewPage />} />
-          <Route path="my-loans" element={<MyLoans preview />} />
-          <Route path="my-reservations" element={<MyReservation preview />} />
-        </Route>
 
         <Route element={<RequireRole role={["ROLE_USER", "ROLE_ADMIN"]} />}>
           <Route

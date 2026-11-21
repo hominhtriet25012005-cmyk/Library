@@ -143,8 +143,8 @@ export const UserSettingsPage = () => {
             onChange={(e, val) => setActiveTab(val)}
             variant="fullWidth"
             sx={{
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark" ? "#17243a" : "#f1f5f9",
+              bgcolor: () =>
+                "#f1f5f9",
               p: 0.6,
               borderRadius: "14px",
               minHeight: 46,
@@ -165,13 +165,11 @@ export const UserSettingsPage = () => {
                 color: "text.secondary",
                 transition: "all 0.2s ease",
                 "&.Mui-selected": {
-                  bgcolor: (theme) =>
-                    theme.palette.mode === "dark" ? "#0f172a" : "#ffffff",
+                  bgcolor: () =>
+                    "#ffffff",
                   color: "primary.main",
-                  boxShadow: (theme) =>
-                    theme.palette.mode === "dark"
-                      ? "0 2px 8px rgba(0,0,0,0.4)"
-                      : "0 2px 8px rgba(0,0,0,0.06)",
+                  boxShadow: () =>
+                    "0 2px 8px rgba(0,0,0,0.06)",
                 },
               }}
             />
@@ -189,13 +187,11 @@ export const UserSettingsPage = () => {
                 color: "text.secondary",
                 transition: "all 0.2s ease",
                 "&.Mui-selected": {
-                  bgcolor: (theme) =>
-                    theme.palette.mode === "dark" ? "#0f172a" : "#ffffff",
+                  bgcolor: () =>
+                    "#ffffff",
                   color: "primary.main",
-                  boxShadow: (theme) =>
-                    theme.palette.mode === "dark"
-                      ? "0 2px 8px rgba(0,0,0,0.4)"
-                      : "0 2px 8px rgba(0,0,0,0.06)",
+                  boxShadow: () =>
+                    "0 2px 8px rgba(0,0,0,0.06)",
                 },
               }}
             />
@@ -556,15 +552,11 @@ export const UserSettingsPage = () => {
               spacing={1.5}
               sx={{
                 p: 2,
-                bgcolor: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "rgba(220, 38, 38, 0.12)"
-                    : "#fef2f2",
+                bgcolor: () =>
+                  "#fef2f2",
                 borderRadius: 2.5,
-                border: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "1px dashed rgba(248, 113, 113, 0.3)"
-                    : "1px dashed #fecaca",
+                border: () =>
+                  "1px dashed #fecaca",
               }}
             >
               <Box>
@@ -572,8 +564,8 @@ export const UserSettingsPage = () => {
                   variant="subtitle2"
                   sx={{
                     fontWeight: 700,
-                    color: (theme) =>
-                      theme.palette.mode === "dark" ? "#fca5a5" : "#991b1b",
+                    color: () =>
+                      "#991b1b",
                   }}
                 >
                   Xóa sạch lịch sử tra cứu đã lưu
@@ -581,8 +573,8 @@ export const UserSettingsPage = () => {
                 <Typography
                   variant="caption"
                   sx={{
-                    color: (theme) =>
-                      theme.palette.mode === "dark" ? "#f87171" : "#b91c1c",
+                    color: () =>
+                      "#b91c1c",
                   }}
                 >
                   Xóa vĩnh viễn các từ khóa đã tìm kiếm lưu trên trình duyệt này
@@ -599,19 +591,13 @@ export const UserSettingsPage = () => {
                   textTransform: "none",
                   fontWeight: 700,
                   whiteSpace: "nowrap",
-                  bgcolor: (theme) =>
-                    theme.palette.mode === "dark"
-                      ? "rgba(220, 38, 38, 0.18)"
-                      : "#ffffff",
-                  borderColor: (theme) =>
-                    theme.palette.mode === "dark"
-                      ? "rgba(248, 113, 113, 0.4)"
-                      : "#fca5a5",
+                  bgcolor: () =>
+                    "#ffffff",
+                  borderColor: () =>
+                    "#fca5a5",
                   "&:hover": {
-                    bgcolor: (theme) =>
-                      theme.palette.mode === "dark"
-                        ? "rgba(220, 38, 38, 0.28)"
-                        : "#fee2e2",
+                    bgcolor: () =>
+                      "#fee2e2",
                   },
                 }}
               >
@@ -658,18 +644,14 @@ export const UserSettingsPage = () => {
             label="Tự động lưu thay đổi"
             size="small"
             sx={{
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark"
-                  ? "rgba(22, 163, 74, 0.16)"
-                  : "#f0fdf4",
-              color: (theme) =>
-                theme.palette.mode === "dark" ? "#4ade80" : "#16a34a",
+              bgcolor: () =>
+                "#f0fdf4",
+              color: () =>
+                "#16a34a",
               fontWeight: 600,
               fontSize: "0.75rem",
-              border: (theme) =>
-                theme.palette.mode === "dark"
-                  ? "1px solid rgba(74, 222, 128, 0.3)"
-                  : "1px solid #bbf7d0",
+              border: () =>
+                "1px solid #bbf7d0",
             }}
           />
         </Stack>

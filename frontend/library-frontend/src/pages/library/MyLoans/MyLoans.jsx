@@ -24,7 +24,6 @@ import { loansApi, loadLoanPages } from "../../../api/loans.js";
 import { finesApi } from "../../../api/fines.js";
 import { filterLoans, renewalDays, effectiveLoanStatus } from "./loanRules.js";
 import { tabs } from "./tab.js";
-import { loans as previewLoans } from "./loans.js";
 import LoanCard from "./LoanCard.jsx";
 import {
   PageHeader,
@@ -33,11 +32,11 @@ import {
   EmptyState,
 } from "../../../components/common";
 
-const MyLoans = ({ preview = false }) => {
+const MyLoans = () => {
   const [activeTab, setActiveTab] = useState(0);
-  const [loans, setLoans] = useState(preview ? previewLoans : []);
+  const [loans, setLoans] = useState([]);
   const [fines, setFines] = useState([]);
-  const [loading, setLoading] = useState(!preview);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [finesError, setFinesError] = useState("");
   const [message, setMessage] = useState("");
@@ -49,7 +48,6 @@ const MyLoans = ({ preview = false }) => {
   const [actionError, setActionError] = useState("");
 
   useEffect(() => {
-    if (preview) return;
     const controller = new AbortController();
     loadLoanPages(loansApi.list, { signal: controller.signal })
       .then((entries) => {
@@ -63,10 +61,9 @@ const MyLoans = ({ preview = false }) => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [preview, refresh]);
+  }, [refresh]);
 
   useEffect(() => {
-    if (preview) return;
     const controller = new AbortController();
     finesApi
       .mine({}, { signal: controller.signal })
@@ -80,7 +77,7 @@ const MyLoans = ({ preview = false }) => {
         if (failure.name !== "AbortError") setFinesError(failure.message);
       });
     return () => controller.abort();
-  }, [preview, refresh]);
+  }, [refresh]);
 
   const finesByLoan = useMemo(() => {
     const grouped = new Map();
@@ -159,7 +156,7 @@ const MyLoans = ({ preview = false }) => {
       <PageHeader
         title="Sách mượn của tôi"
         icon={LibraryBooksRoundedIcon}
-        badge={!preview ? `${loans.length} lượt mượn` : undefined}
+        badge={`${loans.length} lượt mượn`}
       />
 
       {/* Thẻ thống kê */}
@@ -290,7 +287,6 @@ const MyLoans = ({ preview = false }) => {
             <LoanCard
               key={loan.id}
               loan={loan}
-              preview={preview}
               fines={finesByLoan.get(loan.id) ?? []}
               onAction={openAction}
             />
@@ -298,7 +294,7 @@ const MyLoans = ({ preview = false }) => {
         </Box>
       )}
 
-      {finesError && !preview && (
+      {finesError && (
         <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
           Không tải được các khoản phạt. Bạn vẫn có thể xem lượt mượn; hãy tải
           lại trang để cập nhật tiền phạt.

@@ -1,3 +1,4 @@
+import { api } from "../../../api/client";
 import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -108,6 +109,8 @@ const AdminDashboard = () => {
     const controller = new AbortController();
     const { signal } = controller;
 
+    const summaryPromise = api.get("/api/admin/dashboard/summary", { signal });
+
     // Tải thống kê sách
     adminDashboardApi
       .bookStats({ signal })
@@ -125,8 +128,7 @@ const AdminDashboard = () => {
       });
 
     // Tải tổng lượt mượn & quá hạn
-    adminDashboardApi
-      .loanSummary({ signal })
+    summaryPromise.then(data => data.loans)
       .then((data) => {
         if (!signal.aborted)
           setLoanSummaryState({ loading: false, data, error: "" });
@@ -141,49 +143,12 @@ const AdminDashboard = () => {
         }
       });
 
-    // Tải cơ cấu lượt mượn & 5 lượt mượn mới nhất
-    Promise.allSettled([
+    Promise.all([
+      summaryPromise,
       adminLoansApi.search({ page: 0, size: 5, mode: "all" }, { signal }),
-      adminLoansApi.search(
-        { page: 0, size: 1, mode: "status", value: "CHECKED_OUT" },
-        { signal },
-      ),
-      adminLoansApi.search(
-        { page: 0, size: 1, mode: "status", value: "RETURNED" },
-        { signal },
-      ),
-      adminLoansApi.search(
-        { page: 0, size: 1, mode: "status", value: "DAMAGED" },
-        { signal },
-      ),
-      adminLoansApi.search(
-        { page: 0, size: 1, mode: "status", value: "LOST" },
-        { signal },
-      ),
-    ]).then((results) => {
-      if (signal.aborted) return;
-      const [recentRes, checkedOutRes, returnedRes, damagedRes, lostRes] =
-        results;
-
-      const recentPage =
-        recentRes.status === "fulfilled" ? recentRes.value : null;
-      const checkedOutPage =
-        checkedOutRes.status === "fulfilled" ? checkedOutRes.value : null;
-      const returnedPage =
-        returnedRes.status === "fulfilled" ? returnedRes.value : null;
-      const damagedPage =
-        damagedRes.status === "fulfilled" ? damagedRes.value : null;
-      const lostPage = lostRes.status === "fulfilled" ? lostRes.value : null;
-
-      setLoanDetails({
-        loading: false,
-        checkedOutCount: checkedOutPage?.totalElements ?? 0,
-        returnedCount: returnedPage?.totalElements ?? 0,
-        damagedOrLostCount:
-          (damagedPage?.totalElements ?? 0) + (lostPage?.totalElements ?? 0),
-        recentLoans: recentPage?.content ?? [],
-      });
-    });
+    ]).then(([summary, recent]) => {
+      if (!signal.aborted) setLoanDetails({ loading: false, ...summary.loans, recentLoans: recent.content ?? [] });
+    }).catch(() => { if (!signal.aborted) setLoanDetails({ loading: false, checkedOutCount: 0, returnedCount: 0, damagedOrLostCount: 0, recentLoans: [] }); });
 
     // Tải thống kê người dùng
     adminUsersApi
@@ -209,61 +174,14 @@ const AdminDashboard = () => {
           });
       });
 
-    // Tải doanh thu & giao dịch gần đây
-    adminFinanceApi
-      .payments(
-        { page: 0, size: 100, sortBy: "createdAt", sortDir: "DESC" },
-        { signal },
-      )
-      .then(async (firstPage) => {
-        if (signal.aborted) return;
-        let allPayments = [...(firstPage?.content ?? [])];
-        const totalPages = Math.min(firstPage?.totalPages ?? 1, 5);
-        if (totalPages > 1) {
-          const restPages = await Promise.allSettled(
-            Array.from({ length: totalPages - 1 }, (_, i) =>
-              adminFinanceApi.payments(
-                {
-                  page: i + 1,
-                  size: 100,
-                  sortBy: "createdAt",
-                  sortDir: "DESC",
-                },
-                { signal },
-              ),
-            ),
-          );
-          restPages.forEach((res) => {
-            if (res.status === "fulfilled" && res.value?.content) {
-              allPayments = allPayments.concat(res.value.content);
-            }
-          });
-        }
-        if (signal.aborted) return;
-        const successPayments = allPayments.filter(
-          (p) => p.status === "SUCCESS",
-        );
-        const sumRevenue = successPayments.reduce(
-          (sum, p) => sum + (Number(p.amount) || 0),
-          0,
-        );
-        setRevenueState({
-          loading: false,
-          totalRevenue: sumRevenue,
-          successCount: successPayments.length,
-          recentPayments: (firstPage?.content ?? []).slice(0, 5),
-        });
-      })
-      .catch(() => {
-        if (!signal.aborted) {
-          setRevenueState({
-            loading: false,
-            totalRevenue: 0,
-            successCount: 0,
-            recentPayments: [],
-          });
-        }
-      });
+    Promise.all([
+      summaryPromise,
+      adminFinanceApi.payments({ page: 0, size: 5 }, { signal }),
+    ]).then(([summary, recent]) => {
+      if (!signal.aborted) setRevenueState({ loading: false, totalRevenue: summary.payments.totalSuccessAmount, successCount: summary.payments.successCount, recentPayments: recent.content ?? [] });
+    }).catch(() => {
+      if (!signal.aborted) setRevenueState({ loading: false, totalRevenue: null, successCount: null, recentPayments: [] });
+    });
 
     // Tải Hàng 2: Gói đăng ký đang hoạt động, Yêu cầu đặt trước chờ xử lý, Tổng số đánh giá
     Promise.allSettled([
@@ -438,7 +356,7 @@ const AdminDashboard = () => {
         />
         <StatCard
           title="Tổng doanh thu"
-          value={formatCurrencyVND(revenueState.totalRevenue)}
+          value={revenueState.totalRevenue == null ? "—" : formatCurrencyVND(revenueState.totalRevenue)}
           icon={<PaymentsRoundedIcon />}
           color="#16a34a"
           loading={revenueState.loading}

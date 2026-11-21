@@ -648,18 +648,12 @@ const AdminLoansPage = () => {
                           fontWeight: 700,
                           borderRadius: "10px",
                           cursor: "pointer",
-                          bgcolor: (theme) =>
+                          bgcolor: () =>
                             isWarning
-                              ? theme.palette.mode === "dark"
-                                ? "rgba(239, 68, 68, 0.2)"
-                                : "#fee2e2"
+                              ? "#fee2e2"
                               : isSelected
-                                ? theme.palette.mode === "dark"
-                                  ? "rgba(99, 102, 241, 0.2)"
-                                  : "#e0e7ff"
-                                : theme.palette.mode === "dark"
-                                  ? "rgba(255, 255, 255, 0.08)"
-                                  : "#f1f5f9",
+                                ? "#e0e7ff"
+                                : "#f1f5f9",
                           color: isWarning
                             ? "error.main"
                             : isSelected

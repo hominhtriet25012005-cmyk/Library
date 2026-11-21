@@ -662,8 +662,8 @@ export const AdminSubscriptionPlansPage = () => {
         <Table sx={{ minWidth: 800 }}>
           <TableHead
             sx={{
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+              bgcolor: () =>
+                "#f8fafc",
             }}
           >
             <TableRow>
@@ -754,10 +754,8 @@ export const AdminSubscriptionPlansPage = () => {
                             px: 1,
                             py: 0.25,
                             borderRadius: "12px",
-                            bgcolor: (theme) =>
-                              theme.palette.mode === "dark"
-                                ? "rgba(59,130,246,0.2)"
-                                : "rgba(23,105,255,0.1)",
+                            bgcolor: () =>
+                              "rgba(23,105,255,0.1)",
                             color: "primary.main",
                             fontWeight: 700,
                             fontSize: "0.7rem",
@@ -818,15 +816,11 @@ export const AdminSubscriptionPlansPage = () => {
                         onClick={() => setSelected(plan)}
                         sx={{
                           color: "primary.main",
-                          bgcolor: (theme) =>
-                            theme.palette.mode === "dark"
-                              ? "rgba(59,130,246,0.15)"
-                              : "rgba(23,105,255,0.06)",
+                          bgcolor: () =>
+                            "rgba(23,105,255,0.06)",
                           "&:hover": {
-                            bgcolor: (theme) =>
-                              theme.palette.mode === "dark"
-                                ? "rgba(59,130,246,0.25)"
-                                : "rgba(23,105,255,0.12)",
+                            bgcolor: () =>
+                              "rgba(23,105,255,0.12)",
                           },
                         }}
                       >
@@ -1244,8 +1238,8 @@ export const AdminSubscriptionMembersPage = () => {
         <Table sx={{ minWidth: 850 }}>
           <TableHead
             sx={{
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+              bgcolor: () =>
+                "#f8fafc",
             }}
           >
             <TableRow>
@@ -1395,15 +1389,11 @@ export const AdminSubscriptionMembersPage = () => {
                           onClick={() => setSelected(entry)}
                           sx={{
                             color: "primary.main",
-                            bgcolor: (theme) =>
-                              theme.palette.mode === "dark"
-                                ? "rgba(59,130,246,0.15)"
-                                : "rgba(23,105,255,0.06)",
+                            bgcolor: () =>
+                              "rgba(23,105,255,0.06)",
                             "&:hover": {
-                              bgcolor: (theme) =>
-                                theme.palette.mode === "dark"
-                                  ? "rgba(59,130,246,0.25)"
-                                  : "rgba(23,105,255,0.12)",
+                              bgcolor: () =>
+                                "rgba(23,105,255,0.12)",
                             },
                           }}
                         >

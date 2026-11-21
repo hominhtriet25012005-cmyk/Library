@@ -43,7 +43,7 @@ const faqItems = [
   {
     question: "Làm sao để tìm một cuốn kinh/sách?",
     answer:
-      "Bạn có thể nhập tên kinh, tên sách, tên tác giả/dịch giả hoặc mã ISBN vào thanh tìm kiếm tại Trang chủ hoặc trang Kho kinh sách (/books). Ngoài ra, bộ lọc bên trái cho phép lọc theo từng chủ đề Phật học và tình trạng bản in hiện còn.",
+      "Hiện khu vực công khai chưa có ô tìm theo tên hoặc ISBN. Bạn có thể mở Kho kinh sách (/books), lọc theo chủ đề kinh sách và tình trạng bản in, rồi sắp xếp danh sách theo tên hoặc tác giả/dịch giả. Trên điện thoại, nhấn “Bộ lọc” để chọn tiêu chí.",
   },
   {
     question: "Cần đăng nhập để xem danh mục không?",

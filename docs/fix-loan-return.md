@@ -265,6 +265,7 @@ SELECT status, COUNT(*) AS total FROM reservations GROUP BY status ORDER BY stat
 **LR-3 đã rà soát/sửa code, chờ USER kiểm thử và nghiệm thu.** Không chạy test/build, không thay đổi MySQL live trong phiên này.
 
 - Hoàn kho chỉ cho `RETURNED`; sách `DAMAGED`/`LOST` không tự trở lại số bản có thể cho mượn. Chưa bổ sung nghiệp vụ sửa chữa sách hỏng.
+- Điều chỉnh tồn kho ngày 21/11/2026: check-in mới với `DAMAGED`/`LOST` giảm `totalCopies` một bản và giữ nguyên `availableCopies`, theo quy tắc loại bản sách khỏi kho lưu hành. Khóa sách và transaction hiện có bảo vệ thao tác; xác nhận lặp lại không trừ lần hai. Chưa chạy kiểm thử, USER phụ trách nghiệm thu. Không áp dụng hồi tố cho lịch sử cũ: cần đối chiếu tồn kho thực tế trước khi điều chỉnh dữ liệu, tránh trừ các bản đã được ADMIN xử lý. Sách hỏng được sửa chữa chỉ bổ sung lại khi thực tế đủ điều kiện lưu hành.
 - Flush bản sách đã hoàn trước khi lifecycle refresh/khóa lại để phân bổ hàng chờ thấy đúng số bản mới. Flush vẫn nằm trong transaction check-in; lỗi tạo phạt/thông báo sẽ rollback cùng trạng thái và tồn kho.
 - Số ngày quá hạn cuối cùng lấy theo ngày thực nhận ADMIN nhập, cùng ngày dùng tính tiền phạt; không giữ số ngày quét quá hạn lớn hơn ngày thực nhận.
 - Yêu cầu trả lặp và check-in lặp chỉ trả kết quả hiện có, không phát lại thông báo hoặc hoàn kho/tạo phạt thêm.

@@ -13,6 +13,12 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @RestControllerAdvice
 public class GlobalException {
 
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ApiResponse> handleInvalidRequest(InvalidRequestException e) {
+        return ResponseEntity.badRequest()
+                .body(new ApiResponse(e.getMessage(), false, e.getErrorCode()));
+    }
+
     @ExceptionHandler(InvalidSubscriptionPlanCreationException.class)
     public ResponseEntity<ApiResponse> handleInvalidSubscriptionPlanCreation(
             InvalidSubscriptionPlanCreationException e) {

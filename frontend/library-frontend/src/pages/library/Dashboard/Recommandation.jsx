@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material";
 import RecommendRoundedIcon from "@mui/icons-material/RecommendRounded";
 import { EmptyState } from "../../../components/common";
 
-const Recommandation = ({ preview = false }) => {
+const Recommandation = () => {
   return (
     <Box sx={{ p: { xs: 2.5, sm: 3.5 } }}>
       <Typography
@@ -17,7 +17,7 @@ const Recommandation = ({ preview = false }) => {
         title="Tính năng gợi ý sách thông minh"
         description="Hệ thống đang tổng hợp sở thích đọc và thể loại sách bạn yêu thích để đưa ra những đề xuất phù hợp nhất."
         actionText="Xem tất cả sách"
-        actionTo={preview ? "/demo/books" : "/user/books"}
+        actionTo="/user/books"
       />
     </Box>
   );

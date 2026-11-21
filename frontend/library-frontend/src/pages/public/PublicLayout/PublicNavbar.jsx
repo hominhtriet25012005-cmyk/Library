@@ -8,20 +8,17 @@ import {
   Divider,
   Drawer,
   IconButton,
-  InputAdornment,
   List,
   ListItemButton,
   ListItemText,
   Menu,
   MenuItem,
   Stack,
-  TextField,
   Toolbar,
   Typography,
 } from "@mui/material";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
@@ -73,7 +70,6 @@ const PublicNavbar = () => {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountAnchor, setAccountAnchor] = useState(null);
-  const [mobileQuery, setMobileQuery] = useState("");
 
   const isAdmin = user?.role === "ROLE_ADMIN";
   const accountMenuOpen = Boolean(accountAnchor);
@@ -93,17 +89,6 @@ const PublicNavbar = () => {
     setMobileOpen(false);
     signOut();
     navigate("/", { replace: true });
-  };
-
-  const handleMobileSearchSubmit = (event) => {
-    event.preventDefault();
-    const trimmed = mobileQuery.trim();
-    setMobileOpen(false);
-    if (trimmed) {
-      navigate(`/books?q=${encodeURIComponent(trimmed)}`);
-    } else {
-      navigate("/books");
-    }
   };
 
   const userInitial =
@@ -503,30 +488,6 @@ const PublicNavbar = () => {
           >
             <CloseRoundedIcon />
           </IconButton>
-        </Box>
-
-        {/* Ô tìm kiếm nhanh trên mobile */}
-        <Box
-          component="form"
-          onSubmit={handleMobileSearchSubmit}
-          sx={{ mb: 2 }}
-        >
-          <TextField
-            fullWidth
-            size="small"
-            value={mobileQuery}
-            onChange={(event) => setMobileQuery(event.target.value)}
-            placeholder="Tìm kinh sách, tác giả..."
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon
-                    sx={{ fontSize: 19, color: publicPalette.textSecondary }}
-                  />
-                </InputAdornment>
-              ),
-            }}
-          />
         </Box>
 
         <Divider sx={{ borderColor: publicPalette.border, mb: 1.5 }} />

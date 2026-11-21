@@ -252,7 +252,7 @@ public class BookLoanServiceImpl implements BookLoanService {
                 .orElseThrow(() -> new BookException("Không tìm thấy lượt mượn."));
         entityManager.refresh(bookLoan, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 
-        // Retry sau khi giao dịch đầu đã hoàn tất chỉ đọc lại kết quả, không tăng kho lần hai.
+        // Xác nhận lặp lại chỉ đọc kết quả, không cộng hoặc trừ kho lần hai.
         if (bookLoan.getCheckedInAt() != null && !bookLoan.isActive()) {
             return bookLoanMapper.toDTO(bookLoan);
         }
@@ -311,6 +311,18 @@ public class BookLoanServiceImpl implements BookLoanService {
             // This flush remains inside the check-in transaction and rolls back on failure.
             bookRepository.saveAndFlush(book);
             reservationLifecycleService.activateNextPendingForBook(book.getId(), checkinAt);
+        } else {
+            // LOST/DAMAGED kết thúc lượt mượn và loại bản sách khỏi kho lưu hành.
+            // Giữ nguyên số bản còn sẵn; không để bản đã loại tiếp tục chiếm tồn kho.
+            // Sách hư hỏng chỉ được bổ sung lại vào kho khi ADMIN xác nhận sử dụng được.
+            Book book = lockedBook(bookLoan.getBook().getId());
+            if (book.getAvailableCopies() == null || book.getTotalCopies() == null
+                    || book.getAvailableCopies() < 0
+                    || book.getTotalCopies() <= book.getAvailableCopies()) {
+                throw new BookException("Số bản sách trong kho không khớp; vui lòng kiểm tra tồn kho trước khi ghi nhận mất hoặc hư hỏng.");
+            }
+            book.setTotalCopies(book.getTotalCopies() - 1);
+            bookRepository.save(book);
         }
 
         BookLoan savedBookLoan = bookLoanRepository.save(bookLoan);

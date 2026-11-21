@@ -415,8 +415,8 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
                 borderRadius: 2.5,
                 border: "1px solid",
                 borderColor: "divider",
-                bgcolor: (theme) =>
-                  theme.palette.mode === "dark" ? "#17243a" : "#f8fafc",
+                bgcolor: () =>
+                  "#f8fafc",
               }}
             >
               <Box
@@ -523,8 +523,8 @@ const BookForm = ({ open, original, genres, onClose, onSaved }) => {
                       height: 80,
                       borderRadius: 1.5,
                       overflow: "hidden",
-                      bgcolor: (theme) =>
-                        theme.palette.mode === "dark" ? "#24334a" : "#e2e8f0",
+                      bgcolor: () =>
+                        "#e2e8f0",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -988,8 +988,8 @@ const AdminBooksPage = () => {
                         height: 56,
                         borderRadius: 1.5,
                         overflow: "hidden",
-                        bgcolor: (theme) =>
-                          theme.palette.mode === "dark" ? "#17243a" : "#f1f5f9",
+                        bgcolor: () =>
+                          "#f1f5f9",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -1198,8 +1198,8 @@ const AdminBooksPage = () => {
                     height: 126,
                     borderRadius: 2,
                     overflow: "hidden",
-                    bgcolor: (theme) =>
-                      theme.palette.mode === "dark" ? "#17243a" : "#f1f5f9",
+                    bgcolor: () =>
+                      "#f1f5f9",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1294,8 +1294,8 @@ const AdminBooksPage = () => {
               {detail.description && (
                 <Box
                   sx={{
-                    bgcolor: (theme) =>
-                      theme.palette.mode === "dark" ? "#17243a" : "#f8fafc",
+                    bgcolor: () =>
+                      "#f8fafc",
                     p: 2,
                     borderRadius: 2,
                     border: "1px solid",

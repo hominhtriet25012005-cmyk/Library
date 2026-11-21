@@ -10,19 +10,18 @@ import ListItemText from "@mui/material/ListItemText";
 import Tooltip from "@mui/material/Tooltip";
 import { useLocation, useNavigate, Link as RouterLink } from "react-router-dom";
 import { navigationItems, secondaryItems } from "./NavigationItems";
-import { isActive, navigationPath } from "./util";
+import { isActive } from "./util";
 import Logout from "@mui/icons-material/Logout";
-import Login from "@mui/icons-material/LoginRounded";
 import AdminPanelSettingsRoundedIcon from "@mui/icons-material/AdminPanelSettingsRounded";
 import { useAuth } from "../../../auth/useAuth";
 
-const SidebarDrawer = ({ onNavigate, preview = false }) => {
+const SidebarDrawer = ({ onNavigate }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
 
   const handleNavigation = (path) => {
-    navigate(navigationPath(path, preview));
+    navigate(path);
     onNavigate?.();
   };
 
@@ -159,36 +158,12 @@ const SidebarDrawer = ({ onNavigate, preview = false }) => {
 
           <List disablePadding>
             {navigationItems.map((item, index) => {
-              const active = isActive(
-                navigationPath(item.path, preview),
-                location,
-              );
-              const available =
-                [
-                  "/user",
-                  "/user/books",
-                  "/user/my-loans",
-                  "/user/my-reservations",
-                  "/user/wishlist",
-                ].includes(item.path) ||
-                (!preview &&
-                  ["/user/subscriptions", "/user/my-fines"].includes(
-                    item.path,
-                  ));
+              const active = isActive(item.path, location);
 
               return (
                 <ListItem key={index} disablePadding sx={{ mb: 0.6 }}>
-                  <Tooltip
-                    title={
-                      available
-                        ? (item.title || item.description)
-                        : "Chỉ khả dụng ở tài khoản chính thức"
-                    }
-                    placement="right"
-                    arrow
-                  >
+                  <Tooltip title={item.title || item.description} placement="right" arrow>
                     <ListItemButton
-                      disabled={!available}
                       onClick={() => handleNavigation(item.path)}
                       sx={{
                         minHeight: 46,
@@ -237,7 +212,6 @@ const SidebarDrawer = ({ onNavigate, preview = false }) => {
         </Box>
 
         {/* Nhóm 2: TÀI KHOẢN & CÀI ĐẶT */}
-        {!preview && (
           <Box sx={{ mb: 1.5 }}>
             <Typography
               variant="overline"
@@ -313,7 +287,6 @@ const SidebarDrawer = ({ onNavigate, preview = false }) => {
               })}
             </List>
           </Box>
-        )}
       </Box>
 
       {/* 3. Footer: Thẻ người dùng + Chuyển trang Quản trị (nếu là Admin) + Đăng xuất */}
@@ -325,7 +298,7 @@ const SidebarDrawer = ({ onNavigate, preview = false }) => {
           bgcolor: "rgba(0, 0, 0, 0.18)",
         }}
       >
-        {!preview && user && (
+        {user && (
           <Box
             sx={{
               display: "flex",
@@ -373,7 +346,7 @@ const SidebarDrawer = ({ onNavigate, preview = false }) => {
         )}
 
         {/* Nút vào trang Quản trị (Dành riêng cho Admin khi đang ở User interface) */}
-        {!preview && user?.role === "ROLE_ADMIN" && (
+        {user?.role === "ROLE_ADMIN" && (
           <ListItemButton
             component={RouterLink}
             to="/admin/dashboard"
@@ -403,34 +376,32 @@ const SidebarDrawer = ({ onNavigate, preview = false }) => {
 
         <ListItemButton
           onClick={() => {
-            if (!preview) signOut();
-            navigate("/login", { replace: !preview });
+            signOut();
+            navigate("/login", { replace: true });
             onNavigate?.();
           }}
           sx={{
             borderRadius: 2,
-            color: preview ? "#93c5fd" : "#fca5a5",
+            color: "#fca5a5",
             minHeight: 42,
             px: 1.5,
             "&:hover": {
-              bgcolor: preview
-                ? "rgba(147, 197, 253, 0.1)"
-                : "rgba(239, 68, 68, 0.15)",
-              color: preview ? "#ffffff" : "#f87171",
+              bgcolor: "rgba(239, 68, 68, 0.15)",
+              color: "#f87171",
             },
           }}
         >
           <ListItemIcon
             sx={{
               minWidth: 38,
-              color: preview ? "#93c5fd" : "#fca5a5",
+              color: "#fca5a5",
               "& svg": { fontSize: 20 },
             }}
           >
-            {preview ? <Login /> : <Logout />}
+            <Logout />
           </ListItemIcon>
           <ListItemText
-            primary={preview ? "Đăng nhập chính thức" : "Đăng xuất tài khoản"}
+            primary="Đăng xuất tài khoản"
             primaryTypographyProps={{ fontSize: "0.875rem", fontWeight: 600 }}
           />
         </ListItemButton>

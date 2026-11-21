@@ -6,7 +6,7 @@ import Navbar from "./Navbar";
 import { drawerWidth } from "./layout";
 import PageLoader from "../../../components/PageLoader";
 
-const UserLayout = ({ preview = false }) => {
+const UserLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -18,11 +18,9 @@ const UserLayout = ({ preview = false }) => {
       }}
     >
       <Navbar
-        preview={preview}
         handleDrawerToggle={() => setMobileOpen((open) => !open)}
       />
       <UserSidebar
-        preview={preview}
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
       />

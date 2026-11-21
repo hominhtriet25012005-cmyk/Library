@@ -12,7 +12,6 @@ import {
 import { filterReservations, reservationCounts } from "./reservationRules.js";
 import { tabs } from "./tabs.jsx";
 import MyReservationCard from "./MyReservationCard.jsx";
-import { myReservation as previewReservations } from "./reservation.js";
 import {
   PageHeader,
   StatCard,
@@ -21,10 +20,10 @@ import {
   EmptyState,
 } from "../../../components/common";
 
-const MyReservation = ({ preview = false }) => {
-  const [entries, setEntries] = useState(preview ? previewReservations : []);
+const MyReservation = () => {
+  const [entries, setEntries] = useState([]);
   const [activeTab, setActiveTab] = useState(0);
-  const [loading, setLoading] = useState(!preview);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [refresh, setRefresh] = useState(0);
@@ -33,7 +32,6 @@ const MyReservation = ({ preview = false }) => {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (preview) return;
     const controller = new AbortController();
     loadReservationPages(reservationsApi.list, { signal: controller.signal })
       .then((items) => {
@@ -47,7 +45,7 @@ const MyReservation = ({ preview = false }) => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [preview, refresh]);
+  }, [refresh]);
 
   const openAction = (reservation, kind) => {
     setAction({ reservation, kind });
@@ -88,7 +86,7 @@ const MyReservation = ({ preview = false }) => {
       <PageHeader
         title="Sách đặt giữ "
         icon={EventAvailableRoundedIcon}
-        badge={!preview ? `${entries.length} lượt đặt giữ` : undefined}
+        badge={`${entries.length} lượt đặt giữ`}
       />
 
       {/* Thẻ thống kê */}
@@ -183,16 +181,12 @@ const MyReservation = ({ preview = false }) => {
               "&.Mui-selected": {
                 color: "primary.main",
                 fontWeight: 700,
-                bgcolor: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "rgba(49, 91, 76, 0.12)"
-                    : "rgba(49, 91, 76, 0.06)",
+                bgcolor: () =>
+                  "rgba(49, 91, 76, 0.06)",
               },
               "&:hover": {
-                bgcolor: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "rgba(255, 255, 255, 0.03)"
-                    : "rgba(0, 0, 0, 0.02)",
+                bgcolor: () =>
+                  "rgba(0, 0, 0, 0.02)",
               },
             },
             "& .MuiTabs-indicator": {
@@ -233,10 +227,8 @@ const MyReservation = ({ preview = false }) => {
                         bgcolor:
                           activeTab === idx
                             ? "primary.main"
-                            : (theme) =>
-                                theme.palette.mode === "dark"
-                                  ? "rgba(255, 255, 255, 0.08)"
-                                  : "#e2e8f0",
+                            : () =>
+                                "#e2e8f0",
                         color: activeTab === idx ? "#ffffff" : "text.secondary",
                         transition: "all 0.2s ease",
                       }}
@@ -289,7 +281,6 @@ const MyReservation = ({ preview = false }) => {
             <MyReservationCard
               key={reservation.id}
               reservation={reservation}
-              preview={preview}
               onAction={openAction}
             />
           ))}

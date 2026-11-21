@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useAdminSummary } from "../../../api/useAdminSummary";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Box,
@@ -176,28 +177,8 @@ const AdminFinesPage = () => {
     }
   };
 
-  const statistics = useMemo(() => {
-    const list = result?.content || [];
-    const pendingCount = list.filter(
-      (f) => f.status === "PENDING" || f.status === "PARTIALLY_PAID",
-    ).length;
-    const paidCount = list.filter((f) => f.status === "PAID").length;
-    const totalCollected = list.reduce(
-      (sum, f) => sum + (Number(f.amountPaid) || 0),
-      0,
-    );
-    const totalDebt = list.reduce(
-      (sum, f) => sum + (Number(f.amountOutstanding) || 0),
-      0,
-    );
-
-    return {
-      pendingCount,
-      paidCount,
-      totalCollected,
-      totalDebt,
-    };
-  }, [result]);
+  const summary = useAdminSummary(result);
+  const statistics = summary.data?.fines ?? {"pendingCount":"—","paidCount":"—","totalCollected":"—","totalDebt":"—"};
 
   return (
     <Box
@@ -246,28 +227,30 @@ const AdminFinesPage = () => {
       )}
 
       {/* Thẻ thống kê */}
+      <Typography variant="caption">Thống kê toàn hệ thống</Typography>
+      {summary.error && <Alert severity="error">{summary.error}</Alert>}
       <StatCardGrid columns={{ xs: 1, sm: 2, lg: 4 }} sx={{ mb: 3 }}>
         <StatCard
           title="Chờ thanh toán "
-          value={loading ? "—" : statistics.pendingCount}
+          value={loading || !summary.data ? "—" : statistics.pendingCount}
           icon={HourglassTopRoundedIcon}
           color="warning"
         />
         <StatCard
           title="Đã thanh toán "
-          value={loading ? "—" : statistics.paidCount}
+          value={loading || !summary.data ? "—" : statistics.paidCount}
           icon={CheckCircleOutlineRoundedIcon}
           color="success"
         />
         <StatCard
           title="Tổng đã thu "
-          value={loading ? "—" : formatCurrencyVND(statistics.totalCollected)}
+          value={loading || !summary.data ? "—" : formatCurrencyVND(statistics.totalCollected)}
           icon={PaidRoundedIcon}
           color="primary"
         />
         <StatCard
           title="Tổng còn nợ "
-          value={loading ? "—" : formatCurrencyVND(statistics.totalDebt)}
+          value={loading || !summary.data ? "—" : formatCurrencyVND(statistics.totalDebt)}
           icon={ReportProblemRoundedIcon}
           color="error"
         />
@@ -342,8 +325,8 @@ const AdminFinesPage = () => {
         <Table sx={{ minWidth: 850 }}>
           <TableHead
             sx={{
-              bgcolor: (theme) =>
-                theme.palette.mode === "dark" ? "action.hover" : "#f8fafc",
+              bgcolor: () =>
+                "#f8fafc",
             }}
           >
             <TableRow>
@@ -497,15 +480,11 @@ const AdminFinesPage = () => {
                         onClick={() => setSelected(fine)}
                         sx={{
                           color: "primary.main",
-                          bgcolor: (theme) =>
-                            theme.palette.mode === "dark"
-                              ? "rgba(59,130,246,0.15)"
-                              : "rgba(23,105,255,0.06)",
+                          bgcolor: () =>
+                            "rgba(23,105,255,0.06)",
                           "&:hover": {
-                            bgcolor: (theme) =>
-                              theme.palette.mode === "dark"
-                                ? "rgba(59,130,246,0.25)"
-                                : "rgba(23,105,255,0.12)",
+                            bgcolor: () =>
+                              "rgba(23,105,255,0.12)",
                           },
                         }}
                       >
